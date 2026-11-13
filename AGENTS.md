@@ -20,6 +20,9 @@ this order:
 ## Working Style
 
 - Treat questions about the codebase as read-only unless the user asks for changes.
+- Use `dev` as the shared integration branch for this fork's custom changes.
+  Commit and push to `origin/dev` by default. Create or push separate feature
+  branches only when the user explicitly requests them.
 - Make focused, reviewable changes; avoid unrelated rewrites.
 - Use the simplest design that solves the actual problem; do not add
   speculative machinery, and remove machinery your change makes unnecessary.
