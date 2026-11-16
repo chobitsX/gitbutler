@@ -893,13 +893,10 @@ impl Render for TerminalOverview {
             .size_full()
             // The card under its tab is its edges.
             .when(!in_tab, |el| {
-                el.bg(theme.bg_1)
-                    .border_1()
-                    .border_color(match focused {
-                        true => theme.focus_edge(),
-                        false => theme.border_3,
-                    })
-                    .rounded(dp(theme.shape.card))
+                el.bg(theme.bg_2).border_t_1().border_color(match focused {
+                    true => theme.focus_edge(),
+                    false => theme.border_3,
+                })
             })
             .overflow_hidden()
             .child(self.render_bar(cx))

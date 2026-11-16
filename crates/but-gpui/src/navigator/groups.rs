@@ -19,7 +19,7 @@ use crate::state::{ProjectEntry, ProjectGroup, ProjectId, Store};
 use crate::theme::Theme;
 use crate::transfer::ProjectDrag;
 use crate::ui::text_input::TextInput;
-use crate::ui::{Icon, Tooltip, dp, h_flex, icon, icon_button, small_icon, tab_stop};
+use crate::ui::{Icon, Tooltip, dp, h_flex, icon, icon_button, tab_stop};
 
 pub(super) const GROUP_HEIGHT: f32 = 36.;
 
@@ -131,7 +131,7 @@ impl Navigator {
                 open: !folded,
             }));
             rows.fold(Fold::Group(id.to_owned()), !folded, &self.folds, |rows| {
-                rows.open_in(8.);
+                rows.open_in(super::STEP);
                 if entries.is_empty() {
                     rows.push(Row::Note("Drag repositories here".into(), false));
                 }
@@ -228,14 +228,14 @@ impl Navigator {
                     .flex_grow(1.)
                     .min_w_0()
                     .truncate()
-                    .text_color(theme.text_1)
+                    .text_color(theme.text_2)
                     .font_weight(gpui::FontWeight::SEMIBOLD)
                     .child(group.name.clone()),
             )
             .child(
                 div()
                     .text_size(dp(11.))
-                    .text_color(theme.text_3)
+                    .text_color(theme.text_2)
                     .child(group.total.to_string()),
             )
             .when(group.changed > 0, |el| {
@@ -244,14 +244,9 @@ impl Navigator {
                     h_flex()
                         .id(format!("repository-group-changes-{id}"))
                         .flex_none()
-                        .gap(dp(4.))
-                        .px(dp(6.))
                         .h(dp(20.))
-                        .rounded(dp(theme.shape.control))
-                        .bg(theme.blue_soft)
                         .text_color(theme.blue)
                         .text_size(dp(11.))
-                        .child(small_icon(Icon::Diff).text_color(theme.blue))
                         .child(format!("{changed} changed"))
                         .tooltip(move |window, cx| {
                             Tooltip::text(format!(

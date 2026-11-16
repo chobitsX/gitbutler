@@ -2487,7 +2487,6 @@ impl Navigator {
         let own = self.top_scope(cx).as_ref() == Some(scope);
         let held_card = self.held_card.take();
         let held_worktree = self.held_worktree.take();
-        let focused_card = self.focused_card.take();
         let keys = (!own).then(|| std::mem::take(&mut self.row_keys));
         let rows = std::mem::replace(&mut self.rows, rows);
         let insets = std::mem::replace(&mut self.insets, insets);
@@ -2503,7 +2502,6 @@ impl Navigator {
         if let Some(keys) = keys {
             self.row_keys = keys;
         }
-        self.focused_card.replace(focused_card);
         self.held_worktree = held_worktree;
         self.held_card = held_card;
         self.scope = outer;

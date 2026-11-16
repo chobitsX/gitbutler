@@ -27,7 +27,7 @@ use crate::transfer::{
     Changes, Move, Moving, Op, Slot, Stop, Target, Transfer, group_slots, slots,
 };
 use crate::ui::fold::{self, on_top};
-use crate::ui::{Icon, blink_once, dp, fixed, guide, h_flex, icon, small_icon};
+use crate::ui::{Icon, blink_once, dp, fixed, h_flex, icon, small_icon};
 
 /// The move of commits or a branch shown in `project`, or the squash of those or files, with
 /// copies where it'd land: the one under way, or one Return landed, until the reload after it
@@ -301,7 +301,7 @@ pub(super) struct StandIn {
     pub(super) under: RowKey,
     by: f32,
     inset: f32,
-    guides: Vec<f32>,
+    guides: Vec<super::rows::Guide>,
     /// When it was taken away, which it fades from as the rows close over it, at their pace:
     /// so no sliver of it stays as they come to rest, nor does it brighten if they set off again.
     since: Instant,
@@ -1987,6 +1987,7 @@ pub(super) fn stand_in(
     layer: usize,
     store: &Store,
     theme: &Theme,
+    ground: Hsla,
 ) -> Div {
     let StandIn {
         of,
@@ -2014,7 +2015,7 @@ pub(super) fn stand_in(
         Gone::Branch { id, name } => branch_copy(id.clone(), name.clone(), style),
         Gone::NewBranch(at) => ghost_branch_row(at, *inset, op.colour(theme), None, theme),
     };
-    let guides = guides.iter().map(|at| guide(*at, theme));
+    let guides = guides.iter().map(|guide| guide.draw(theme));
     div()
         .absolute()
         .top(dp(*by))
@@ -2023,7 +2024,7 @@ pub(super) fn stand_in(
         .px(fixed(1.))
         .child(
             on_top(
-                (div().relative().bg(theme.bg_1).opacity(*shown))
+                (div().relative().bg(ground).opacity(*shown))
                     .child(row)
                     .children(guides),
             )

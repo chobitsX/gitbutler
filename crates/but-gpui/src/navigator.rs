@@ -1,4 +1,4 @@
-//! The left column: every project as a card, each listing its uncommitted changes,
+//! The left column: grouped projects, each listing its uncommitted changes,
 //! stacks, branches and commits as one tree of rows.
 
 use std::cell::Cell;
@@ -13,8 +13,8 @@ use but_tty::Status;
 use gpui::{
     AnyElement, App, Bounds, ClickEvent, Context, Div, DragMoveEvent, ElementId, Entity,
     FocusHandle, Focusable, Hsla, ListAlignment, ListOffset, ListState, Modifiers, MouseButton,
-    MouseDownEvent, PathBuilder, Pixels, Point, Role, SharedString, Stateful, Subscription, Task,
-    Window, actions, canvas, div, fill, list, point, prelude::*, relative,
+    MouseDownEvent, Pixels, Point, Role, SharedString, Stateful, Subscription, Task, Window,
+    actions, div, list, prelude::*, relative,
 };
 
 use crate::app::{
@@ -121,6 +121,31 @@ const STEP: f32 = 16. + 8.;
 /// The group every item row is, so a fold's chevron shows in place of its icon while the
 /// pointer is over the row (see [`Navigator::fold`]).
 const ROW_GROUP: &str = "navigator-row";
+
+impl rows::Guide {
+    fn draw(self, theme: &Theme) -> Div {
+        guide(self.at, theme)
+            .when(self.last, |el| {
+                el.bottom(relative(0.5))
+                    .w(dp(12.))
+                    .bg(gpui::transparent_black())
+                    .border_l_1()
+                    .border_b_1()
+                    .border_color(theme.border_3)
+                    .rounded_bl(dp(4.))
+            })
+            .when(self.stub && !self.last, |el| {
+                el.child(
+                    div()
+                        .absolute()
+                        .top(relative(0.5))
+                        .w(dp(12.))
+                        .h(fixed(1.))
+                        .bg(theme.border_3),
+                )
+            })
+    }
+}
 
 /// The eye of a project the app watches, or struck through for one it doesn't.
 fn watch_glyph(watched: bool) -> gpui::Svg {
@@ -556,7 +581,7 @@ pub struct Navigator {
     /// height, taken as the navigator draws, so its row maths and its rows agree.
     row: f32,
     insets: Vec<f32>,
-    guides: Vec<Vec<f32>>,
+    guides: Vec<Vec<rows::Guide>>,
     /// Each row's place in the fold it moves with, while one does.
     moving: Vec<Option<Moving>>,
     folds: Folds<Fold>,
@@ -667,9 +692,6 @@ pub struct Navigator {
     /// The rows of the card being moved, dragged by its heading or with the keys, as last
     /// drawn, which show it held.
     held_card: Option<Range<usize>>,
-    /// The rows of the card the selection's in, while the navigator has the keys, which edge
-    /// it as the tile with them is: see [`Self::find_focused_card`].
-    focused_card: std::cell::RefCell<Option<Range<usize>>>,
     /// The project whose card is held, kept once it's let go of until the cards stop sliding,
     /// so it stays over the cards it passes going back.
     held_project: Option<ProjectId>,
@@ -726,7 +748,7 @@ impl Navigator {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let filter = cx.new(|cx| TextInput::new("Filter", false, cx));
+        let filter = cx.new(|cx| TextInput::new("Filter projects…", false, cx));
         let subscriptions = vec![
             cx.subscribe_in(&filter, window, |this, input, event, window, cx| {
                 match event {
@@ -864,7 +886,6 @@ impl Navigator {
             held_order: None,
             watch_hovered: None,
             held_card: None,
-            focused_card: Default::default(),
             held_project: None,
             dragged_worktree: None,
             held_worktree: None,
@@ -2031,14 +2052,22 @@ impl Navigator {
         let focused = self.filter.focus_handle(cx).is_focused(window);
         let filtering = !self.filter.read(cx).text().is_empty();
         above_drag(
-            // Edged as the cards are, but while it has the keys.
             field(&self.filter, focused, theme)
+                .pl(dp(30.))
                 .when(!focused, |el| el.border_color(theme.border_3)),
         )
         .relative()
         .flex_1()
         .min_w_0()
-        .py(dp(3.))
+        .py(dp(6.))
+        .child(
+            h_flex()
+                .absolute()
+                .top_0()
+                .bottom_0()
+                .left(dp(9.))
+                .child(small_icon(Icon::Search).text_color(theme.text_2)),
+        )
         .when(filtering, |el| {
             el.pr(dp(26.)).child(
                 h_flex().absolute().top_0().bottom_0().right(dp(2.)).child(
@@ -2514,15 +2543,18 @@ impl Navigator {
         let (first, last) = card_ends(&self.rows, ix);
         // A guide for each row it's under, joining those of the rows above and below into
         // one line, as but.dev's sidebar draws them.
-        let guides = || (self.guides.get(ix).into_iter().flatten()).map(|at| guide(*at, theme));
+        let guides = || (self.guides.get(ix).into_iter().flatten()).map(|guide| guide.draw(theme));
         // The card dragged by its heading is edged as what's moving is where it would land.
         let held = (self.held_card.as_ref()).is_some_and(|card| card.contains(&ix));
         let held_worktree = (self.held_worktree.as_ref()).is_some_and(|rows| rows.contains(&ix));
-        let focused = (self.focused_card.borrow().as_ref()).is_some_and(|card| card.contains(&ix));
-        let edge = match (held, focused) {
-            (true, _) => theme.pop,
-            (false, true) => theme.focus_edge(),
-            (false, false) => theme.border_3,
+        let edge = if held {
+            theme.pop
+        } else {
+            gpui::transparent_black()
+        };
+        let ground = match self.scope {
+            Some(_) => theme.bg_1,
+            None => theme.bg_2,
         };
         // How far row `ix` is drawn from where it's laid out: as far as a reorder slid it, but
         // not while a fold moves it, which draws it as far as the fold's open.
@@ -2607,7 +2639,14 @@ impl Navigator {
                     Some(_) => (0., 0.),
                     None => self.card_margins(),
                 };
-                moving::stand_in(stand_in, margins, self.layer(0), self.store.read(cx), theme)
+                moving::stand_in(
+                    stand_in,
+                    margins,
+                    self.layer(0),
+                    self.store.read(cx),
+                    theme,
+                    ground,
+                )
             });
         // What's being moved has its copy drawn over it while the move is at where it is, over
         // everything, as the copies elsewhere are, sliding out to them and back by its key, as
@@ -2625,7 +2664,7 @@ impl Navigator {
                         .top(dp(self.reorder.offset(own) - slid_at(ix)))
                         .left_0()
                         .right_0()
-                        .bg(theme.bg_1)
+                        .bg(ground)
                         .child(moving::ghost_row(
                             item,
                             inset,
@@ -2644,7 +2683,7 @@ impl Navigator {
         let edged = self.scope.is_none();
         let card = div()
             .relative()
-            .bg(theme.bg_1)
+            .bg(ground)
             .border_color(edge)
             .when(edged, |el| el.border_l_1().border_r_1())
             .when(first && edged, |el| {
@@ -2670,7 +2709,7 @@ impl Navigator {
                         true => 2.,
                         false => theme.shape.popup - CARD_PADDING,
                     };
-                    let over = (div().relative().bg(theme.bg_1).child(el))
+                    let over = (div().relative().bg(ground).child(el))
                         .when(first, |el| el.rounded_t(dp(corner)))
                         .when(last, |el| el.rounded_b(dp(corner)))
                         .when(crossing, |el| el.top(dp(drawn_at(ix) - slid)));
@@ -2690,7 +2729,7 @@ impl Navigator {
                 .left(dp(left))
                 .right(dp(right))
                 .h(dp(height))
-                .bg(theme.bg_1)
+                .bg(ground)
                 .border_color(edge)
                 .when(edged, |el| el.border_l_1().border_r_1())
                 .children(guides())
@@ -3037,9 +3076,9 @@ impl Navigator {
         v_flex()
             .relative()
             .size_full()
-            .bg(theme.bg_1)
+            .bg(theme.bg_2)
             .border_1()
-            .border_color(theme.border_3)
+            .border_color(gpui::transparent_black())
             .rounded(dp(theme.shape.card))
             .child(self.drawer_bar(alone, window, theme, cx))
             .child(
@@ -3137,23 +3176,6 @@ impl Navigator {
         })
     }
 
-    /// Note the card the selection's in while the navigator has the keys, but in its filter,
-    /// for its rows to edge it as the tile with the keys is.
-    fn find_focused_card(&self, window: &Window, cx: &App) {
-        let keys = !self.on_drawer_bar && self.rows_have_keys(window, cx);
-        let selection = self.store.read(cx).selection.as_ref();
-        let at = selection.filter(|_| keys).and_then(|selection| {
-            (self.rows.iter()).position(|row| matches!(row, Row::Item(item) if item == selection))
-        });
-        let card = at.map(|at| {
-            let gap = |ix: &usize| matches!(self.rows.get(*ix), Some(Row::Gap));
-            let start = (0..at).rev().find(gap).map_or(0, |ix| ix + 1);
-            let end = (at..self.rows.len()).find(gap).unwrap_or(self.rows.len());
-            start..end
-        });
-        *self.focused_card.borrow_mut() = card;
-    }
-
     /// How tall the cards are drawn in this frame, from the list's top: each row as tall as it
     /// is, or one a fold is moving as far as the fold's open, as `row_in_card` draws them, and
     /// the first card's top edge and the last's bottom, which no gap between two counts.
@@ -3174,153 +3196,6 @@ impl Navigator {
             };
             (row, height)
         })
-    }
-
-    /// Where the list's top and bottom edges cut a card off as it's scrolled in this frame,
-    /// the drawer's too: there the card's edge is drawn along the list's, rounded as its own,
-    /// so it keeps its shape. GPUI cuts what the list draws to a rectangle, so the ground the
-    /// cards are on is painted past the corners. The list is `height` tall in this frame, as
-    /// [`Self::fit_footer`] works out.
-    fn card_caps(&self, height: f32, theme: &Theme, cx: &App) -> Vec<Div> {
-        let scale = Theme::get(cx).scale;
-        let top = -f32::from(self.list.scroll_px_offset_for_scrollbar().y) / scale;
-        // Each card's top and bottom, from the list's top, as `cards_height` counts them.
-        let mut cards = Vec::new();
-        let (mut start, mut y) = (LIST_TOP, LIST_TOP + CARD_EDGE);
-        for (row, drawn) in self.drawn_heights() {
-            if matches!(row, Row::Gap) {
-                cards.push((start, y + CARD_EDGE));
-                start = y + drawn - CARD_EDGE;
-            }
-            y += drawn;
-        }
-        cards.push((start, y + CARD_EDGE));
-        let (spacer, drawer) = self.footer.get();
-        let drawer_top = y + CARD_EDGE + spacer + CARD_MARGIN;
-        cards.push((drawer_top, drawer_top + drawer));
-        // How much of the card an edge cuts shows on the list's side of it, if it cuts one past
-        // its edge.
-        let cut = |at: f32, at_top: bool| {
-            (cards.iter())
-                .position(|&(card_top, bottom)| at > card_top + 1. && at < bottom - 1.)
-                .and_then(|ix| Some((ix, *cards.get(ix)?)))
-                .map(|(ix, (card_top, bottom))| {
-                    (ix, if at_top { bottom - at } else { at - card_top })
-                })
-        };
-        // Which card the selection's, while it's edged, counting them as `cards` does.
-        let focused = (self.focused_card.borrow().as_ref()).map(|rows| {
-            (self.rows.iter().take(rows.start))
-                .filter(|row| matches!(row, Row::Gap))
-                .count()
-        });
-        let (left, right) = self.card_margins();
-        let ground = theme.bg_2;
-        let cap = |at_top: bool, (card, shows): (usize, f32)| {
-            let line = match focused == Some(card) {
-                true => theme.focus_edge(),
-                false => theme.border_3,
-            };
-            // Too little of the card shows for a corner at each of its ends: it's drawn whole,
-            // as a rounded box is that's shorter than two corners, over its own corners.
-            let sliver = shows < 2. * theme.shape.card;
-            let radius = if sliver { shows / 2. } else { theme.shape.card };
-            let edge = div()
-                .absolute()
-                .left(dp(left))
-                .right(dp(right))
-                .border_color(line)
-                .border_l_1()
-                .border_r_1();
-            // Otherwise its edge along the list's, two corners tall, as GPUI rounds a box no
-            // further than half its height, cut where the card's own corners start.
-            let (edge, shown) = match (sliver, at_top) {
-                (true, _) => (
-                    (edge.h(dp(shows)).border_t_1().border_b_1()).rounded(dp(radius)),
-                    shows,
-                ),
-                (false, true) => (
-                    edge.border_t_1().rounded_t(dp(theme.shape.card)),
-                    shows - theme.shape.card,
-                ),
-                (false, false) => (
-                    edge.border_b_1().rounded_b(dp(theme.shape.card)),
-                    shows - theme.shape.card,
-                ),
-            };
-            let edge = edge.when(!sliver, |el| el.h(dp(2. * theme.shape.card)));
-            let band = div()
-                .absolute()
-                .left_0()
-                .right_0()
-                .h(dp(shown.min(2. * theme.shape.card)))
-                .overflow_hidden();
-            let edge = match at_top {
-                true => band.top_0().child(edge.top_0()),
-                false => band.bottom_0().child(edge.bottom_0()),
-            };
-            // The ground past its corners, painted as their shape: GPUI rounds only a border's
-            // outer edge, so no border's inner one could cover them.
-            let corners = canvas(
-                |_, _, _| {},
-                move |bounds, _, window, cx| {
-                    let theme = Theme::get(cx);
-                    let (r, out) = (theme.scaled(radius), theme.scaled(1.));
-                    let (x0, x1) = (
-                        bounds.left() + theme.scaled(left),
-                        bounds.right() - theme.scaled(right),
-                    );
-                    // The list's edge, and the way into it.
-                    let (y, toward) = match at_top {
-                        true => (bounds.top(), r),
-                        false => (bounds.bottom(), -r),
-                    };
-                    let mut ends = vec![(y, toward)];
-                    if sliver {
-                        // The card's own end, its corners under the card's ground, rounder
-                        // than the sliver's.
-                        let end = y + toward / r * theme.scaled(shows);
-                        let (top, bottom) = (y.min(end), y.max(end));
-                        let wide = theme.scaled(theme.shape.card);
-                        for x in [x0, x1 - wide] {
-                            let under =
-                                Bounds::from_corners(point(x, top), point(x + wide, bottom));
-                            window.paint_quad(fill(under, theme.bg_1));
-                        }
-                        ends.push((end, -toward));
-                    }
-                    // A quarter circle's control points, as a cubic Bézier draws it.
-                    let k = r * 0.5523;
-                    for (y, toward) in ends {
-                        for (x, inward) in [(x0, r), (x1, -r)] {
-                            let mut path = PathBuilder::fill();
-                            let side = |dx: Pixels, dy: Pixels| point(x + dx, y + dy);
-                            let (outward, beyond) = (-inward / r * out, -toward / r * out);
-                            path.move_to(side(outward, toward));
-                            path.line_to(side(outward, beyond));
-                            path.line_to(side(inward, beyond));
-                            path.line_to(side(inward, Pixels::ZERO));
-                            path.cubic_bezier_to(
-                                side(Pixels::ZERO, toward),
-                                side(inward - inward / r * k, Pixels::ZERO),
-                                side(Pixels::ZERO, toward - toward / r * k),
-                            );
-                            path.close();
-                            if let Ok(path) = path.build() {
-                                window.paint_path(path, ground);
-                            }
-                        }
-                    }
-                },
-            )
-            .absolute()
-            .inset_0();
-            div().absolute().inset_0().child(corners).child(edge)
-        };
-        let ends = [(cut(top, true), true), (cut(top + height, false), false)];
-        (ends.into_iter())
-            .filter_map(|(cut, at_top)| Some(cap(at_top, cut?)))
-            .collect()
     }
 
     /// The drawer's handle: a click opens or closes it, and it says how many projects it lists
@@ -3448,6 +3323,15 @@ impl Navigator {
             .id(ElementId::Name(
                 format!("{}-{id}", if expanded { "unwatch" } else { "watch" }).into(),
             ))
+            .role(Role::Button)
+            .aria_label(if expanded {
+                "Stop watching"
+            } else {
+                "Watch this project"
+            })
+            .when(!style.selected, |el| {
+                el.opacity(0.).group_hover(ROW_GROUP, |el| el.opacity(1.))
+            })
             .flex_none()
             .size(dp(20.))
             .flex()
@@ -5130,10 +5014,32 @@ impl Render for Navigator {
             )
             .when(!self.floating, crate::ui::drags_window)
             .gap(dp(6.))
-            .child(self.filter_field(window, &theme, cx))
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .truncate()
+                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                    .child("Projects"),
+            )
             .children(self.update_button(cx).map(|el| above_drag(div().child(el))))
-            .child(above_drag(div().child(self.view_button(cx))))
+            .child(above_drag(
+                div().child(
+                    icon_button("navigator-add-project", Icon::Plus)
+                        .small()
+                        .tooltip("Add project")
+                        .dispatch(&AddProject),
+                ),
+            ))
             .child(above_drag(div().child(self.settings_button(&theme, cx))));
+        let search = h_flex()
+            .flex_none()
+            .gap(dp(8.))
+            .px(dp(12.))
+            .pt(dp(8.))
+            .pb(dp(12.))
+            .child(self.filter_field(window, &theme, cx))
+            .child(self.view_button(cx));
         let store = self.store.read(cx);
         let moving = store.moving.is_some();
         let squashing =
@@ -5202,6 +5108,7 @@ impl Render for Navigator {
                 false => el.border_r_1().border_color(gpui::transparent_black()),
             })
             .child(header)
+            .child(search)
             .map(|el| {
                 // With no projects, the welcome beside it says what to do.
                 if empty {
@@ -5215,8 +5122,7 @@ impl Render for Navigator {
                     )
                     .size_full()
                     .pt(dp(LIST_TOP));
-                    let height = self.fit_footer(window, cx);
-                    self.find_focused_card(window, cx);
+                    self.fit_footer(window, cx);
                     let scroll = Scroll::List(self.list.clone());
                     el.child(
                         // Its thumb in the middle of the gap to the detail's cards, beside it
@@ -5231,7 +5137,6 @@ impl Render for Navigator {
                             }),
                             &theme,
                         )
-                        .children(self.card_caps(height, &theme, cx))
                         .children(self.drag_divider(&theme, cx))
                         // Ending level with the detail's cards, so what scrolls past is cut
                         // where they end.

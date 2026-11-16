@@ -228,7 +228,7 @@ pub(super) struct Moving {
 pub(super) struct Rows {
     pub(super) rows: Vec<Row>,
     pub(super) insets: Vec<f32>,
-    pub(super) guides: Vec<Vec<f32>>,
+    pub(super) guides: Vec<Vec<Guide>>,
     pub(super) moving: Vec<Option<Moving>>,
     /// Each fold the rows were built through: whether it showed what it holds, and the row
     /// just above that, which says where it is.
@@ -244,6 +244,15 @@ pub(super) struct Rows {
     pub(super) drawer: Drawer,
     /// How tall an item's row is, as the density has it, which a fold that moves counts by.
     pub(super) row: f32,
+}
+
+/// One ancestor's line beside a row. Closing that ancestor ends it at its last child,
+/// leaving the child's descendants connected only to their own parents.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct Guide {
+    pub(super) at: f32,
+    pub(super) last: bool,
+    pub(super) stub: bool,
 }
 
 /// The projects not watched, in the drawer under the cards: their rows while it's open, how
@@ -287,9 +296,26 @@ impl Rows {
     }
 
     pub(super) fn push(&mut self, row: Row) {
+        let chained = matches!(
+            row,
+            Row::Item(Selection::Stack(..) | Selection::Branch(..) | Selection::Commit(..))
+                | Row::Ghost(..)
+                | Row::GhostBranch(..)
+                | Row::NewCommit(_)
+        );
+        self.guides.push(
+            self.open
+                .iter()
+                .enumerate()
+                .map(|(level, at)| Guide {
+                    at: *at,
+                    last: false,
+                    stub: chained && level + 1 == self.open.len(),
+                })
+                .collect(),
+        );
         self.rows.push(row);
         self.insets.push(self.inset);
-        self.guides.push(self.open.clone());
         self.moving.push(None);
     }
 
@@ -310,7 +336,15 @@ impl Rows {
             return;
         }
         let from = self.rows.len();
+        // A project holds a real tree level even when its main checkout has no heading.
+        let project = matches!(fold, Fold::Under(Selection::Project(_)));
+        if project {
+            self.open_in(STEP);
+        }
         rows(self);
+        if project {
+            self.close();
+        }
         if folds.openness(&fold).is_none() {
             return;
         }
@@ -353,8 +387,24 @@ impl Rows {
     }
 
     pub(super) fn close(&mut self) {
-        self.open.pop();
         self.inset = self.outer.pop().unwrap_or_default();
+        let Some(at) = self.open.pop() else {
+            return;
+        };
+        // The rows are already in display order. Work back only through the last child's
+        // descendants, so no per-frame tree walk is needed to draw the rounded tail.
+        for (row, guides) in self.rows.iter().zip(&mut self.guides).rev() {
+            let Some(level) = guides.iter().position(|guide| guide.at == at) else {
+                break;
+            };
+            if level + 1 == guides.len() && !matches!(row, Row::Between(_) | Row::WorktreeDivider) {
+                if let Some(guide) = guides.get_mut(level) {
+                    guide.last = true;
+                }
+                break;
+            }
+            guides.remove(level);
+        }
     }
 
     /// Rule what follows off from the rows above with a line, unless one already does.
@@ -616,6 +666,7 @@ impl Navigator {
             let own = found(terms, &[&entry.project.name, group]);
             rows.push_found(Selection::Project(id.clone()), hit(0, own));
             let project_end = rows.rows.len();
+            rows.open_in(STEP);
             let workspace = (entry.workspace.as_ref()).filter(|ws| ws.editing.is_none());
             if let Some(workspace) = workspace {
                 // The main worktree's branches under its heading, or alone, right under the
@@ -661,6 +712,7 @@ impl Navigator {
                 }
             }
             self.filtered_mesh_rows(store, id, terms, own, &mut rows);
+            rows.close();
             if rows.rows.len() == project_end && !hit(0, own) {
                 rows.truncate(start);
             }
@@ -1252,6 +1304,113 @@ fn holds(text: &str, term: &str) -> bool {
         true => (text.as_bytes().windows(term.len()))
             .any(|window| window.eq_ignore_ascii_case(term.as_bytes())),
         false => text.to_lowercase().contains(term),
+    }
+}
+
+#[cfg(test)]
+mod hierarchy_tests {
+    use super::{Fold, GUIDE_AT, Row, Rows, STEP};
+    use crate::backend::Checkout;
+    use crate::backend::model::build::{full, id};
+    use crate::state::Selection;
+    use crate::ui::fold::Folds;
+
+    #[test]
+    fn project_children_step_in_and_the_next_project_returns_to_its_level() {
+        let mut rows = Rows::new(28.);
+        let folds = Folds::default();
+        rows.push(Row::Note("Work".into(), false));
+        rows.open_in(STEP);
+        let project = Selection::Project("server".into());
+        rows.push(Row::Item(project.clone()));
+        rows.fold(Fold::Under(project), true, &folds, |rows| {
+            rows.push(Row::Item(Selection::Uncommitted(
+                "server".into(),
+                Checkout::Main,
+            )));
+            let branch = Selection::Branch("server".into(), Some(full("refs/heads/dev")));
+            rows.push(Row::Item(branch.clone()));
+            rows.fold(Fold::Under(branch), true, &folds, |rows| {
+                rows.open();
+                rows.push(Row::Item(Selection::Commit("server".into(), id(1))));
+                rows.close();
+            });
+        });
+        rows.push(Row::Item(Selection::Project("web".into())));
+        rows.close();
+        assert_eq!(
+            rows.insets,
+            vec![0., STEP, STEP * 2., STEP * 2., STEP * 2., STEP],
+            "project children need a level of their own; commits add their glyph indent, and siblings must not inherit it"
+        );
+    }
+
+    #[test]
+    fn the_last_branch_ends_its_parents_guide_before_its_commits() {
+        let mut rows = Rows::new(28.);
+        let folds = Folds::default();
+        let project = Selection::Project("server".into());
+        rows.push(Row::Item(project.clone()));
+        rows.fold(Fold::Under(project), true, &folds, |rows| {
+            rows.push(Row::Item(Selection::Uncommitted(
+                "server".into(),
+                Checkout::Main,
+            )));
+            rows.push(Row::Item(Selection::Branch(
+                "server".into(),
+                Some(full("refs/heads/dev")),
+            )));
+            rows.open();
+            rows.push(Row::Item(Selection::Commit("server".into(), id(1))));
+            rows.close();
+        });
+        rows.push(Row::Item(Selection::Project("web".into())));
+        let guides: Vec<Vec<_>> = rows
+            .guides
+            .iter()
+            .map(|guides| guides.iter().map(|g| (g.at, g.last)).collect())
+            .collect();
+        assert_eq!(
+            guides,
+            vec![
+                vec![],
+                vec![(GUIDE_AT, false)],
+                vec![(GUIDE_AT, true)],
+                vec![(GUIDE_AT + STEP, true)],
+                vec![]
+            ],
+            "the branch closes its parent's line, the commit keeps only its own, and another repository starts cleanly"
+        );
+    }
+
+    #[test]
+    fn worktrees_keep_their_own_level_and_a_folded_project_adds_no_children() {
+        let mut rows = Rows::new(28.);
+        let folds = Folds::default();
+        let project = Selection::Project("server".into());
+        rows.push(Row::Item(project.clone()));
+        rows.fold(Fold::Under(project), true, &folds, |rows| {
+            rows.push(Row::Item(Selection::Checkout(
+                "server".into(),
+                Checkout::Linked("feature".into()),
+            )));
+            rows.open_in(STEP);
+            rows.push(Row::Item(Selection::Branch(
+                "server".into(),
+                Some(full("refs/heads/feature")),
+            )));
+            rows.close();
+        });
+        let project = Selection::Project("web".into());
+        rows.push(Row::Item(project.clone()));
+        rows.fold(Fold::Under(project), false, &folds, |rows| {
+            rows.push(Row::Note("Hidden".into(), false));
+        });
+        assert_eq!(
+            rows.insets,
+            vec![0., STEP, STEP * 2., 0.],
+            "linked worktrees are below repositories and above their branches; closed repositories leave nothing behind"
+        );
     }
 }
 
