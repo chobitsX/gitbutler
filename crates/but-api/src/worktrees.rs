@@ -410,10 +410,10 @@ pub enum RecycledWorktree {
 
 /// Show an archived worktree again in place of making a new one, keeping what its folder holds
 /// that Git doesn't, as built dependencies: the most recently used one on a branch outside the
-/// workspace that the target's tip has, with nothing uncommitted and no Git command partway
-/// through. It goes onto a new branch at that tip with a canned name, as a new worktree's, and
-/// its own branch stays as it was, with its upstream. Without one, make a new worktree there,
-/// or at the workspace's base without a target tip.
+/// workspace that the local target branch has, or its upstream without one, with nothing
+/// uncommitted and no Git command partway through. It goes onto a new branch at that tip with a
+/// canned name, as a new worktree's, and its own branch stays as it was, with its upstream.
+/// Without one, make a new worktree there, or at the workspace's base without a target tip.
 pub fn worktree_recycle_with_perm(
     ctx: &but_ctx::Context,
     perm: &mut RepoExclusive,
@@ -452,19 +452,20 @@ pub fn worktree_recycle_with_perm(
     }))
 }
 
-/// The tip of where the target's new commits come from: its upstream, or with none configured,
-/// the local target branch.
+/// The tip of the target: the local target branch, wherever it is relative to its upstream,
+/// or the upstream when there is no local branch.
 fn target_tip(ctx: &but_ctx::Context, perm: &RepoShared) -> Result<Option<gix::ObjectId>> {
     let (repo, ws, _db) = ctx.workspace_and_db_with_perm(perm)?;
     let meta = &ws.graph.project_meta;
-    let source = match meta.remote_target_ref(&repo)? {
-        Some(upstream) => upstream,
-        None => match meta.target_ref.as_ref() {
-            Some(target) => target.as_local_full_name_ref().to_owned(),
-            None => return Ok(None),
-        },
+    let Some(target) = meta.target_ref.as_ref() else {
+        return Ok(None);
     };
-    Ok(ref_tip(&repo, source.as_ref()))
+    if let Some(local) = ref_tip(&repo, target.as_local_full_name_ref()) {
+        return Ok(Some(local));
+    }
+    Ok(meta
+        .remote_target_ref(&repo)?
+        .and_then(|upstream| ref_tip(&repo, upstream.as_ref())))
 }
 
 /// The archived worktree [`worktree_recycle_with_perm()`] shows again at `tip`, with its

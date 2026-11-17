@@ -26,6 +26,7 @@ use crate::theme::{Hue, Theme};
 use crate::transfer::{
     Changes, Move, Moving, Op, Slot, Stop, Target, Transfer, group_slots, slots,
 };
+use crate::ui::Text;
 use crate::ui::fold::{self, on_top};
 use crate::ui::{Icon, blink_once, dp, fixed, h_flex, icon, small_icon};
 
@@ -261,7 +262,7 @@ pub(super) fn outline_label(label: &'static str, row: f32, hue: Hue, theme: &The
         .gap(dp(4.))
         .rounded(dp(theme.shape.control))
         .bg(theme.bg_1)
-        .text_size(dp(12.))
+        .text_12()
         .text_color(colour)
         .child(small_icon(Icon::Stack).text_color(colour))
         .child(label)
@@ -665,18 +666,18 @@ impl Navigator {
         let Some(op) = was else {
             return Vec::new();
         };
-        let taken = taken_away(&self.row_keys, keys, ended, landing);
+        let taken = taken_away(&self.built.row_keys, keys, ended, landing);
         // Those taken away together, next to each other, stay outlined as one.
         let together: HashSet<usize> = (taken.iter())
             .map(|(ix, _)| *ix)
-            .filter(|ix| matches!(self.rows.get(*ix), Some(Row::Item(_))))
+            .filter(|ix| matches!(self.built.rows.get(*ix), Some(Row::Item(_))))
             .collect();
         (taken.into_iter())
             .filter_map(|(ix, above)| {
-                let of = match self.rows.get(ix)? {
+                let of = match self.built.rows.get(ix)? {
                     Row::Item(Selection::Commit(project, id)) => {
                         // Landed, it's another commit where it went, found by its key.
-                        let key = match self.row_keys.get(ix).cloned().flatten() {
+                        let key = match self.built.row_keys.get(ix).cloned().flatten() {
                             Some(RowKey::Left(own)) => match *own {
                                 RowKey::Commit(_, key) => Some(key),
                                 _ => None,
@@ -708,10 +709,10 @@ impl Navigator {
                 Some(StandIn {
                     of,
                     outlined_with,
-                    under: self.row_keys.get(above)?.clone()?,
-                    by: span_height(&self.rows, above..ix, self.row),
-                    inset: self.insets.get(ix).copied().unwrap_or_default(),
-                    guides: self.guides.get(ix).cloned().unwrap_or_default(),
+                    under: self.built.row_keys.get(above)?.clone()?,
+                    by: span_height(&self.built.rows, above..ix, self.row),
+                    inset: self.built.insets.get(ix).copied().unwrap_or_default(),
+                    guides: self.built.guides.get(ix).cloned().unwrap_or_default(),
                     since: now,
                     shown: 1.,
                     op,
@@ -726,7 +727,7 @@ impl Navigator {
             fold.as_ref()
                 .is_some_and(|fold| self.folds.closing(&fold.fold))
         };
-        (self.rows.iter().zip(&self.moving))
+        (self.built.rows.iter().zip(&self.built.moving))
             .filter(move |(_, fold)| !closing(fold))
             .map(|(row, _)| row)
     }

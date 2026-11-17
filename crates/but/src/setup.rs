@@ -48,6 +48,9 @@ pub(crate) struct InitCtxOptions {
     pub target_requirement: TargetRequirement,
 }
 
+/// The error code for running outside any Git repository. Metrics sampling matches on it.
+pub(crate) const NO_GIT_REPOSITORY: &str = "NoGitRepository";
+
 /// Explain why no repository could be opened at `dir`, suggesting `but init` only where it can work.
 fn discovery_failure(dir: &Path, err: &anyhow::Error) -> BadInput {
     let no_repo = crate::is_not_in_git_repository_error(err);
@@ -60,7 +63,7 @@ fn discovery_failure(dir: &Path, err: &anyhow::Error) -> BadInput {
     {
         return bad_input(format!("No git repository found at {}", dot_git.display()))
             .hint("Run `but init` to initialize a Git repository.")
-            .code("NoGitRepository");
+            .code(NO_GIT_REPOSITORY);
     }
     let reason = match gix::discover::is_git(&dot_git) {
         Err(broken) if no_repo => format!("{broken:#}"),
@@ -125,54 +128,43 @@ pub fn init_ctx(
         let Some(workdir) = repo.workdir() else {
             return Err(anyhow::anyhow!("Bare repositories are not supported.").into());
         };
-        #[cfg(feature = "legacy")]
-        {
-            use but_ctx::LegacyProject;
+        use but_ctx::LegacyProject;
 
-            let project = match LegacyProject::find_by_worktree_dir(workdir) {
-                Ok(project) => project,
-                Err(_) => match gitbutler_project::add(workdir)? {
-                    gitbutler_project::AddProjectOutcome::Added(project)
-                    | gitbutler_project::AddProjectOutcome::AlreadyExists(project) => project,
-                    outcome => outcome.try_project()?,
-                },
-            };
-            let mut ctx =
-                Context::new_from_legacy_project_and_settings(&project, app_settings.clone())?;
+        let project = match LegacyProject::find_by_worktree_dir(workdir) {
+            Ok(project) => project,
+            Err(_) => match gitbutler_project::add(workdir)? {
+                gitbutler_project::AddProjectOutcome::Added(project)
+                | gitbutler_project::AddProjectOutcome::AlreadyExists(project) => project,
+                outcome => outcome.try_project()?,
+            },
+        };
+        let mut ctx =
+            Context::new_from_legacy_project_and_settings(&project, app_settings.clone())?;
 
-            // now that we have a context we should use the repo from that
-            drop(repo);
+        // now that we have a context we should use the repo from that
+        drop(repo);
 
-            match options.target_requirement {
-                TargetRequirement::Required => {
+        match options.target_requirement {
+            TargetRequirement::Required => {
+                infer_target(&mut ctx)?;
+            }
+            TargetRequirement::OptionalIfUnborn => {
+                if ctx.repo.get()?.head()?.is_unborn() {
+                    // target is optional, so don't infer it
+                } else {
                     infer_target(&mut ctx)?;
                 }
-                TargetRequirement::OptionalIfUnborn => {
-                    if ctx.repo.get()?.head()?.is_unborn() {
-                        // target is optional, so don't infer it
-                    } else {
-                        infer_target(&mut ctx)?;
-                    }
-                }
-                TargetRequirement::Optional => {}
             }
+            TargetRequirement::Optional => {}
+        }
 
-            let fetch_interval_minutes = ctx.settings.fetch.auto_fetch_interval_minutes;
-            let last_fetch = ctx
-                .legacy_project
-                .project_data_last_fetch
-                .as_ref()
-                .map(|f| f.timestamp());
-            (ctx, fetch_interval_minutes, last_fetch)
-        }
-        #[cfg(not(feature = "legacy"))]
-        {
-            let ctx = but_ctx::Context::from_repo_with_settings(repo, app_settings.clone())?;
-            // TODO: this can be implemented once project metadata is available from the project location itself,
-            //       i.e. once it was migrated out of `projects.json` into `.git/gitbutler/…`
-            let fetch_interval_disabled = 0;
-            (ctx, fetch_interval_disabled, None::<std::time::SystemTime>)
-        }
+        let fetch_interval_minutes = ctx.settings.fetch.auto_fetch_interval_minutes;
+        let last_fetch = ctx
+            .legacy_project
+            .project_data_last_fetch
+            .as_ref()
+            .map(|f| f.timestamp());
+        (ctx, fetch_interval_minutes, last_fetch)
     };
 
     unarchive_invoked_worktree(&ctx, &args.current_dir)?;

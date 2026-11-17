@@ -9,13 +9,14 @@ use gpui::{AnyElement, App, Context, Div, SharedString, Window, div, prelude::*}
 
 use super::Detail;
 use super::panes::{
-    Crumb, Lane, and_more, grouped, meta_item, overview_heading, overview_row, overview_sections,
-    overview_split, overview_tiles, overview_title, worktree_lanes,
+    Crumb, Lane, and_more, grouped, meta_item, overview_body, overview_heading, overview_page,
+    overview_row, overview_sections, overview_split, overview_tiles, worktree_lanes,
 };
 use crate::backend::mesh::{self, Checkout};
 use crate::backend::{self, CommitId, DiffSource};
 use crate::state::{MeshBranch, MeshPick, ProjectId, Selection, Store};
 use crate::theme::Theme;
+use crate::ui::Text;
 use crate::ui::diff;
 use crate::ui::file_icons::file_icon;
 use crate::ui::{
@@ -191,7 +192,7 @@ impl Detail {
                 .items_center()
                 .justify_center()
                 .gap(dp(12.))
-                .child(faint(line, theme).text_size(dp(13.)))
+                .child(faint(line, theme).text_13())
                 .children(url.filter(|_| !checkout.uncommitted.is_empty()).map(|url| {
                     button("checkout-on-but-dev", "Open on but.dev")
                         .small()
@@ -289,14 +290,14 @@ impl Detail {
                 count(&|c| !c.online),
             ),
         ]
-        .map(|(color, fill, said, n)| (Icon::Computer, color, fill, said.to_owned(), n));
+        .map(|(color, fill, said, n)| (Icon::Desktop, color, fill, said.to_owned(), n));
 
         // Who did the most lately first.
         let mut by_activity: Vec<&Checkout> = checkouts.iter().collect();
         by_activity.sort_by_key(|c| std::cmp::Reverse(c.last_activity));
         let lanes = by_activity.into_iter().map(|c| Lane {
             at: Selection::Mesh(project.clone(), c.id.as_str().into(), MeshPick::Checkout),
-            glyph: Icon::Computer,
+            glyph: Icon::Desktop,
             name: c.label(),
             tag: match (active(c), c.online) {
                 (true, _) => Some(("active".to_owned(), theme.safe)),
@@ -371,34 +372,20 @@ impl Detail {
             .children(file_rows)
             .children(and_more(changed.len().saturating_sub(SHOWN), theme));
 
-        v_flex()
-            .id("machines-overview")
-            .flex_1()
-            .h_full()
-            .min_w_0()
-            .overflow_y_scroll()
-            .child(
-                v_flex()
-                    .w_full()
-                    .px(dp(14.))
-                    .py(dp(16.))
-                    .gap(dp(6.))
-                    .child(overview_title(
-                        "Network worktrees",
-                        "From your mesh".to_owned(),
-                        theme,
-                    ))
-                    .child(overview_tiles(tiles, theme))
-                    .children(overview_split(parts, theme))
-                    // The lanes want the width a cell a day needs; the lists sit side by side
-                    // under them where they fit.
-                    .child(overview_sections([
-                        (Some(worktrees.into_any_element()), 880.),
-                        (Some(commits_section.into_any_element()), 340.),
-                        (Some(files_section.into_any_element()), 300.),
-                    ])),
-            )
-            .into_any_element()
+        overview_page(
+            "machines-overview",
+            overview_body("Network worktrees", "From your mesh".to_owned(), theme)
+                .child(overview_tiles(tiles, theme))
+                .children(overview_split(parts, theme))
+                // The lanes want the width a cell a day needs; the lists sit side by side
+                // under them where they fit.
+                .child(overview_sections([
+                    (Some(worktrees.into_any_element()), 880.),
+                    (Some(commits_section.into_any_element()), 340.),
+                    (Some(files_section.into_any_element()), 300.),
+                ])),
+        )
+        .into_any_element()
     }
 
     /// What the project's header counts of its checkouts on other machines, while it has any.
@@ -470,7 +457,7 @@ fn uncommitted_list(checkout: &Checkout, theme: &Theme, cx: &App) -> AnyElement 
         .child(
             v_flex()
                 .gap(dp(2.))
-                .child(div().font_weight(gpui::FontWeight::SEMIBOLD).child(title))
+                .child(div().semibold().child(title))
                 .child(faint(checkout.path.clone(), theme)),
         )
         .child(v_flex().gap(dp(4.)).children(listed))

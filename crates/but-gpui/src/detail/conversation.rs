@@ -12,12 +12,13 @@ use crate::backend::reviews::Verdict;
 use crate::backend::{Forge, Note, Remark, Review, Thread};
 use crate::state::ProjectId;
 use crate::theme::{Hue, Theme};
+use crate::ui::Text;
 use crate::ui::diff::{excerpt, split_path};
 use crate::ui::fold;
 use crate::ui::markdown;
 use crate::ui::person::forge_avatar;
 use crate::ui::{
-    Icon, Tooltip, ago, dp, error_summary, h_flex, local_time, plural, small_icon, v_flex,
+    Icon, Tooltip, ago, dp, error_summary, h_flex, icon_at, local_time, plural, v_flex,
 };
 
 impl Detail {
@@ -35,12 +36,7 @@ impl Detail {
         if store.workspace(project).and_then(|ws| ws.forge) != Some(Forge::GitHub) {
             return None;
         }
-        let quiet = |text: &'static str| {
-            div()
-                .text_size(dp(13.))
-                .text_color(theme.text_3)
-                .child(text)
-        };
+        let quiet = |text: &'static str| div().text_13().text_color(theme.text_3).child(text);
         let status = match store.conversation(project, review.number) {
             // Faded in, so a read done in a blink doesn't flash it.
             None => Some(
@@ -71,12 +67,7 @@ impl Detail {
                 .when(status.is_none(), |el| el.pb(dp(10.)))
                 .border_t_1()
                 .border_color(theme.border_3)
-                .child(
-                    div()
-                        .text_size(dp(15.))
-                        .font_weight(gpui::FontWeight::SEMIBOLD)
-                        .child("Activity"),
-                )
+                .child(div().text_15().semibold().child("Activity"))
                 .children(status),
         )
     }
@@ -133,7 +124,7 @@ impl Detail {
                 .rounded_full()
                 .border_1()
                 .border_color(theme.border_2)
-                .text_size(dp(12.))
+                .text_12()
                 .child(reaction.emoji.clone())
                 .child(
                     div()
@@ -198,7 +189,7 @@ impl Detail {
             .px(dp(10.))
             .py(dp(7.))
             .gap(dp(6.))
-            .text_size(dp(12.))
+            .text_12()
             .hover(|el| el.bg(theme.hover))
             .child(fold::chevron("fold", open, theme.text_3))
             .child(
@@ -294,8 +285,8 @@ fn header(note: &Note, verdict: Option<Verdict>, compact: bool, theme: &Theme) -
                 div()
                     .min_w_0()
                     .truncate()
-                    .text_size(dp(if compact { 12. } else { 13. }))
-                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                    .map(|el| if compact { el.text_12() } else { el.text_13() })
+                    .semibold()
                     .text_color(theme.text_1)
                     .child(author.login.clone()),
             )
@@ -334,7 +325,7 @@ fn opens(note: &Note, at: i64, compact: bool, theme: &Theme) -> AnyElement {
         .relative()
         .flex_none()
         .gap(dp(6.))
-        .text_size(dp(12.))
+        .text_12()
         .text_color(theme.text_2)
         .hover(|el| el.text_color(theme.text_1))
         .child(ago(at))
@@ -348,8 +339,7 @@ fn opens(note: &Note, at: i64, compact: bool, theme: &Theme) -> AnyElement {
                 .bottom_0()
                 .right(dp(-room))
                 .child(
-                    small_icon(Icon::ArrowUpRight)
-                        .size(dp(arrow))
+                    icon_at(Icon::ArrowUpRight, arrow)
                         .text_color(theme.text_3)
                         .opacity(0.)
                         .group_hover(group, |el| el.opacity(1.)),

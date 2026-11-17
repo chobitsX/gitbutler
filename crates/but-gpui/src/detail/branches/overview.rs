@@ -13,12 +13,13 @@ use crate::backend::branches::OtherBranch;
 use crate::backend::upstream::{self, ACTIVITY_DAYS};
 use crate::detail::Detail;
 use crate::detail::panes::{
-    OVERVIEW_TIME_WIDTH, grouped, overview_heading, overview_sections, overview_split,
-    overview_tiles, overview_title,
+    OVERVIEW_TIME_WIDTH, grouped, overview_body, overview_heading, overview_page,
+    overview_sections, overview_split, overview_tiles,
 };
 use crate::detail::upstream::noon;
 use crate::state::{BranchStatus, ProjectId};
 use crate::theme::Theme;
+use crate::ui::Text;
 use crate::ui::person::author_avatar;
 use crate::ui::{Icon, Tooltip, dp, faint, h_flex, list_row, plural, review, small_icon, v_flex};
 
@@ -222,32 +223,22 @@ impl Detail {
                 ))
                 .children(quiet_lanes)
         });
-        v_flex()
-            .id("branches-overview")
-            .flex_1()
-            .h_full()
-            .min_w_0()
-            .overflow_y_scroll()
-            .child(
-                v_flex()
-                    .w_full()
-                    .px(dp(14.))
-                    .py(dp(16.))
-                    .gap(dp(6.))
-                    .child(overview_title(
-                        listed,
-                        scope.into_iter().flatten().collect::<Vec<_>>().join(" · "),
-                        theme,
-                    ))
-                    .child(overview_tiles(tiles, theme))
-                    .children(review_split(&summary, theme))
-                    // Side by side only where a lane has room for a cell a day and its name.
-                    .child(overview_sections([
-                        (Some(cooking.into_any_element()), 880.),
-                        (quiet.map(IntoElement::into_any_element), 880.),
-                    ])),
+        overview_page(
+            "branches-overview",
+            overview_body(
+                listed,
+                scope.into_iter().flatten().collect::<Vec<_>>().join(" · "),
+                theme,
             )
-            .into_any_element()
+            .child(overview_tiles(tiles, theme))
+            .children(review_split(&summary, theme))
+            // Side by side only where a lane has room for a cell a day and its name.
+            .child(overview_sections([
+                (Some(cooking.into_any_element()), 880.),
+                (quiet.map(IntoElement::into_any_element), 880.),
+            ])),
+        )
+        .into_any_element()
     }
 }
 
@@ -369,7 +360,7 @@ fn lane_row(
                     div()
                         .id("quiet-days")
                         .flex_none()
-                        .text_size(dp(11.))
+                        .text_11()
                         .text_color(theme.warn)
                         .tooltip(Tooltip::text(format!("No commits for {days} days")))
                         .child(format!("{days}d"))

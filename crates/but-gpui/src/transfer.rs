@@ -17,6 +17,7 @@ use crate::state::{
 };
 use crate::terminal::TerminalId;
 use crate::theme::{Hue, Theme};
+use crate::ui::Text;
 use crate::ui::diff::split_path;
 use crate::ui::file_icons::{file_icon, folder_icon};
 use crate::ui::{Icon, commit_title, count_badge, dp, h_flex, popover, small_icon};
@@ -1611,7 +1612,7 @@ impl Render for DragPreview {
                     _ => 0,
                 };
                 (
-                    folder_icon().into_any_element(),
+                    folder_icon(theme, cx).into_any_element(),
                     folder_label(name.clone(), files, theme).into_any_element(),
                 )
             }
@@ -1771,7 +1772,7 @@ impl Render for ProjectPreview {
         // A project carries no files to count.
         let label = folder_label(self.label.clone(), 0, theme);
         let hint = tile_hint(self.store.read(cx)).map(SharedString::from);
-        drag_pill(self.offset, folder_icon(), label, hint, 1, theme)
+        drag_pill(self.offset, folder_icon(theme, cx), label, hint, 1, theme)
     }
 }
 
@@ -1866,7 +1867,7 @@ pub fn drag_pill(
         .max_w(dp(320.))
         .border_color(theme.pop)
         .font_family(theme.ui_font.clone())
-        .text_size(dp(12.))
+        .text_12()
         .text_color(theme.text_1)
         .child(mark)
         .child(label)

@@ -7,13 +7,14 @@ use std::ops::Range;
 
 use gpui::{
     AnyElement, App, Context, DismissEvent, Entity, EventEmitter, FocusHandle, Focusable,
-    FontWeight, ScrollHandle, SharedString, Subscription, Task, Window, actions, div, prelude::*,
+    ScrollHandle, SharedString, Subscription, Task, Window, div, prelude::*,
 };
 
 use crate::app::AppView;
 use crate::backend::{self, settings::Published};
 use crate::help::OpenReleaseNotes;
 use crate::theme::{Hue, Theme};
+use crate::ui::Text;
 use crate::ui::fold::Folds;
 use crate::ui::markdown::{self, Block, Kind, Style};
 use crate::ui::modal::{ModalSize, modal};
@@ -23,8 +24,6 @@ use crate::ui::{
     self, ButtonStyle, Icon, button, dp, error_summary, faint, field, fold_glyph, h_flex, muted,
     plural, quiet, quoted, section_label, side_row, small_icon, v_flex,
 };
-
-actions!(whats_new, [PreviousRelease, NextRelease]);
 
 const RELEASES: &str = "https://github.com/gitbutlerapp/gitbutler/releases";
 
@@ -282,30 +281,6 @@ impl WhatsNew {
         self.search.read(cx).text().trim().to_ascii_lowercase()
     }
 
-    fn previous_release(&mut self, _: &PreviousRelease, _: &mut Window, cx: &mut Context<Self>) {
-        self.step(-1, cx);
-    }
-
-    fn next_release(&mut self, _: &NextRelease, _: &mut Window, cx: &mut Context<Self>) {
-        self.step(1, cx);
-    }
-
-    /// Pick the release `by` rows from the picked one, while not searching.
-    fn step(&mut self, by: isize, cx: &mut Context<Self>) {
-        let Some(Ok(releases)) = &self.releases else {
-            return;
-        };
-        if !self.query(cx).is_empty() {
-            return;
-        }
-        let at = (releases.iter()).position(|r| Some(&r.version) == self.selected.as_ref());
-        let next = (at.and_then(|at| at.checked_add_signed(by)))
-            .and_then(|row| Some((row, releases.get(row)?.version.clone())));
-        if let Some((row, version)) = next {
-            self.pick(version, row, cx);
-        }
-    }
-
     /// Whether the running release has `release`; `None` when that can't be told.
     fn has(&self, release: &Release) -> Option<bool> {
         Some(release.numbers.as_ref()? <= self.running.as_ref()?)
@@ -351,7 +326,7 @@ impl WhatsNew {
         .child(
             div()
                 .font_family(theme.mono_font.clone())
-                .text_size(dp(12.))
+                .text_12()
                 .child(version.clone()),
         )
         .when(self.is_running(release), |el| {
@@ -368,8 +343,8 @@ impl WhatsNew {
                         true => theme.muted_on_solid,
                         false => theme.pop,
                     })
-                    .text_size(dp(10.))
-                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_11()
+                    .semibold()
                     .child("Yours"),
             )
         })
@@ -398,11 +373,10 @@ impl WhatsNew {
                 .child(
                     div()
                         .font_family(theme.mono_font.clone())
-                        .text_size(dp(20.))
-                        .font_weight(FontWeight::SEMIBOLD)
+                        .text_h1()
                         .child(release.version.clone()),
                 )
-                .child(faint(said.join(" · "), theme).text_size(dp(12.)))
+                .child(faint(said.join(" · "), theme).text_12())
                 .into_any_element(),
         ];
         if self.has(release) == Some(false) {
@@ -412,7 +386,7 @@ impl WhatsNew {
                     .py(dp(8.))
                     .rounded(dp(theme.shape.card))
                     .bg(theme.surface(Hue::Pop))
-                    .text_size(dp(13.))
+                    .text_13()
                     .child("Not in your version yet")
                     .into_any_element(),
             );
@@ -426,8 +400,8 @@ impl WhatsNew {
                 true => h_flex()
                     .id(SharedString::from(id.clone()))
                     .gap(dp(4.))
-                    .text_size(dp(12.))
-                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_12()
+                    .semibold()
                     .text_color(theme.text_2)
                     .hover(|el| el.text_color(theme.text_1))
                     .child(fold_glyph("fold", Some(open), theme.text_3))
@@ -498,7 +472,7 @@ impl WhatsNew {
             plural(total, "match"),
             plural(found.len(), "release")
         );
-        let mut parts = vec![faint(said, theme).text_size(dp(12.)).into_any_element()];
+        let mut parts = vec![faint(said, theme).text_12().into_any_element()];
         let mut left = SHOWN;
         for (release, blocks) in found {
             if left == 0 {
@@ -528,8 +502,8 @@ impl WhatsNew {
                             .child(
                                 div()
                                     .font_family(theme.mono_font.clone())
-                                    .text_size(dp(13.))
-                                    .font_weight(FontWeight::SEMIBOLD)
+                                    .text_13()
+                                    .semibold()
                                     .child(release.version.clone()),
                             )
                             .child(faint(
@@ -537,7 +511,7 @@ impl WhatsNew {
                                 theme,
                             ))
                             .child(div().flex_grow(1.))
-                            .children(has.map(|has| has.text_size(dp(12.)))),
+                            .children(has.map(|has| has.text_12())),
                     )
                     .child(markdown::render(
                         &format!("found-{}", release.version),
@@ -629,8 +603,8 @@ impl Render for WhatsNew {
                     .px(dp(20.))
                     .pt(dp(20.))
                     .pb(dp(10.))
-                    .text_size(dp(16.))
-                    .font_weight(FontWeight::SEMIBOLD)
+                    .text_16()
+                    .semibold()
                     .text_color(theme.text_1)
                     .child("What's new"),
             )
@@ -685,9 +659,6 @@ impl Render for WhatsNew {
         };
         modal(ModalSize::Large, &theme)
             .id("whats-new")
-            .key_context("WhatsNew")
-            .on_action(cx.listener(Self::previous_release))
-            .on_action(cx.listener(Self::next_release))
             .h(dp(height))
             .flex_row()
             .child(side)

@@ -24,6 +24,7 @@ use crate::overlays::{MenuItem, has_keys};
 use crate::pr::{MarkReadyForReview, Mergeability, Offer};
 use crate::state::{ProjectId, ProjectTab, Selection, Side};
 use crate::theme::{Hue, Theme};
+use crate::ui::Text;
 use crate::ui::fold;
 use crate::ui::markdown;
 use crate::ui::person::forge_avatar;
@@ -31,8 +32,8 @@ use crate::ui::review as ui_review;
 use crate::ui::scrollbar::{Scroll, scrolled};
 use crate::ui::{
     ButtonStyle, Icon, TextPoint, Tooltip, ago, button, count_badge, dot, dp, dropdown_button,
-    duration, h_flex, icon, icon_button, local_time, now, relative_time, shortcut, small_icon,
-    switch_grounds, switch_spring, tab_after, tab_stop, v_flex,
+    duration, h_flex, icon, icon_at, icon_button, local_time, now, relative_time, shortcut,
+    small_icon, switch_grounds, switch_spring, tab_after, tab_stop, v_flex,
 };
 
 /// How tall the tabs over the diff beside a list are.
@@ -134,6 +135,13 @@ impl Detail {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        self.set_page_tab_keeping_keys(tab, cx);
+        if !self.tabs_focus.is_focused(window) {
+            self.focus_files(window, cx);
+        }
+    }
+
+    pub(crate) fn set_page_tab_keeping_keys(&mut self, tab: PageTab, cx: &mut Context<Self>) {
         if self.has_brief() {
             self.brief.first = tab == PageTab::Brief;
         }
@@ -154,10 +162,7 @@ impl Detail {
             };
             self.store.read(cx).count_view_named(view, &project);
         }
-        match self.tabs_focus.is_focused(window) {
-            true => cx.notify(),
-            false => self.focus_files(window, cx),
-        }
+        cx.notify();
         self.ask_forge(cx);
         self.ask_briefs(cx);
     }
@@ -739,16 +744,10 @@ impl Detail {
                 None,
                 theme,
             )
-            .text_size(dp(18.))
-            .line_height(dp(24.))
+            .text_h2()
             .on_click(cx.listener(|this, _, window, cx| this.start_review_edit(window, cx)))
             .into_any_element(),
-            (None, Some(Forge::Azure) | None) => div()
-                .text_size(dp(18.))
-                .line_height(dp(24.))
-                .font_weight(gpui::FontWeight::SEMIBOLD)
-                .child(title)
-                .into_any_element(),
+            (None, Some(Forge::Azure) | None) => div().text_h2().child(title).into_any_element(),
         };
         v_flex()
             .gap(dp(12.))
@@ -825,10 +824,11 @@ impl Detail {
             self.branches_section(review, theme),
             review.created_at.map(|at| {
                 side_section("Created", None, theme).child(
-                    div()
-                        .text_size(dp(13.))
-                        .text_color(theme.text_2)
-                        .child(format!("{}, {}", ago(at), local_time(at))),
+                    div().text_13().text_color(theme.text_2).child(format!(
+                        "{}, {}",
+                        ago(at),
+                        local_time(at)
+                    )),
                 )
             }),
         ];
@@ -867,7 +867,7 @@ impl Detail {
             h_flex()
                 .min_h(dp(20.))
                 .gap(dp(4.))
-                .text_size(dp(12.))
+                .text_12()
                 .text_color(theme.text_2)
         };
         let section = || v_flex().gap(dp(8.)).pl(dp(14.)).pr(dp(12.)).py(dp(12.));
@@ -913,30 +913,26 @@ impl Detail {
                     .bg(color)
             }),
         );
-        let counts = h_flex()
-            .flex_wrap()
-            .gap(dp(8.))
-            .text_size(dp(12.))
-            .children(
-                // In the bar's order.
-                [
-                    (failed, format!("{failed} failed"), theme.danger),
-                    (running, format!("{running} running"), theme.warn),
-                    (queued, format!("{queued} queued"), theme.warn),
-                    (
-                        passed,
-                        match passed == runs.len() {
-                            true => format!("All {passed} passed"),
-                            false => format!("{passed} passed"),
-                        },
-                        theme.safe,
-                    ),
-                    (skipped, format!("{skipped} skipped"), theme.text_3),
-                ]
-                .into_iter()
-                .filter(|(n, ..)| *n > 0)
-                .map(|(_, text, color)| div().text_color(color).child(text)),
-            );
+        let counts = h_flex().flex_wrap().gap(dp(8.)).text_12().children(
+            // In the bar's order.
+            [
+                (failed, format!("{failed} failed"), theme.danger),
+                (running, format!("{running} running"), theme.warn),
+                (queued, format!("{queued} queued"), theme.warn),
+                (
+                    passed,
+                    match passed == runs.len() {
+                        true => format!("All {passed} passed"),
+                        false => format!("{passed} passed"),
+                    },
+                    theme.safe,
+                ),
+                (skipped, format!("{skipped} skipped"), theme.text_3),
+            ]
+            .into_iter()
+            .filter(|(n, ..)| *n > 0)
+            .map(|(_, text, color)| div().text_color(color).child(text)),
+        );
         let key = (project.clone(), review.number);
         // Opening by itself counts as the reader's choice, so a rerun that takes the failure
         // back to queued doesn't fold the list away while they watch it.
@@ -1031,7 +1027,7 @@ impl Detail {
                 h_flex()
                     .flex_wrap()
                     .gap(dp(6.))
-                    .text_size(dp(13.))
+                    .text_13()
                     .children(source)
                     .child(target),
             ),
@@ -1106,8 +1102,8 @@ fn auto_merge_switch(on: bool, why_not: Option<SharedString>, theme: &Theme) -> 
         .rounded(dp(theme.shape.control))
         .border_1()
         .border_color(theme.control_border)
-        .text_size(dp(12.))
-        .font_weight(gpui::FontWeight::SEMIBOLD)
+        .text_12()
+        .semibold()
         .whitespace_nowrap()
         .child(
             h_flex()
@@ -1178,7 +1174,7 @@ fn byline(review: &Review, theme: &Theme) -> Option<Div> {
     let mut row = h_flex()
         .flex_wrap()
         .gap(dp(6.))
-        .text_size(dp(13.))
+        .text_13()
         .text_color(theme.text_2);
     for (ix, fact) in facts.into_iter().enumerate() {
         if ix > 0 {
@@ -1198,7 +1194,7 @@ fn description(review: &Review, select: markdown::Select, theme: &Theme) -> Div 
     let body = markdown::parse(&review.body);
     if body.is_empty() {
         return div()
-            .text_size(dp(14.))
+            .text_14()
             .text_color(theme.text_3)
             .child("No description");
     }
@@ -1258,7 +1254,7 @@ fn side_section(heading: &'static str, action: Option<AnyElement>, theme: &Theme
                 .child(
                     div()
                         .flex_none()
-                        .text_size(dp(12.))
+                        .text_12()
                         .text_color(theme.text_2)
                         .child(heading),
                 )
@@ -1277,15 +1273,15 @@ pub(super) fn tag(hue: Hue, theme: &Theme) -> Div {
         .rounded(dp(theme.shape.control))
         .bg(theme.soft(hue))
         .text_color(theme.hue(hue))
-        .text_size(dp(12.))
-        .font_weight(gpui::FontWeight::SEMIBOLD)
+        .text_12()
+        .semibold()
 }
 
 /// Its state as a tinted badge, and its number, which opens it on the forge.
 fn status_section(review: &Review, state: ReviewState, forge: &str, theme: &Theme) -> Div {
     let (glyph, color) = ui_review::state_glyph(state, theme);
     let badge = tag(ui_review::state_hue(state), theme)
-        .child(small_icon(glyph).size(dp(12.)).text_color(color))
+        .child(icon_at(glyph, 12.).text_color(color))
         .child(ui_review::state_label(state));
     let link = review.url.clone().map(|url| {
         h_flex()
@@ -1293,15 +1289,11 @@ fn status_section(review: &Review, state: ReviewState, forge: &str, theme: &Them
             .role(Role::Link)
             .aria_label(format!("Open on {forge}"))
             .gap(dp(2.))
-            .text_size(dp(12.))
+            .text_12()
             .text_color(theme.text_2)
             .hover(|el| el.text_color(theme.text_1))
             .child(div().underline().child(format!("#{}", review.number)))
-            .child(
-                small_icon(Icon::ArrowUpRight)
-                    .size(dp(12.))
-                    .text_color(theme.text_3),
-            )
+            .child(icon_at(Icon::ArrowUpRight, 12.).text_color(theme.text_3))
             .tooltip(move |window, cx| {
                 let key = shortcut(&crate::app::OpenPullRequest, cx);
                 Tooltip::keyed("Open the pull request", key)(window, cx)
@@ -1321,7 +1313,7 @@ fn reviewers_section(review: &Review, github: bool, theme: &Theme) -> Option<Div
     let rows = review.reviewers.iter().enumerate().map(|(ix, user)| {
         h_flex()
             .gap(dp(8.))
-            .text_size(dp(13.))
+            .text_13()
             .child(forge_avatar(
                 &user.login,
                 user.avatar_url.as_deref(),
@@ -1367,7 +1359,7 @@ fn labels_section(review: &Review, theme: &Theme) -> Option<Div> {
             .rounded_full()
             .border_1()
             .border_color(theme.border_2)
-            .text_size(dp(12.))
+            .text_12()
             .children(dot_color.map(|color| dot(color).size(dp(8.))))
             .child(div().min_w_0().truncate().child(label.name.clone()))
     });
@@ -1380,8 +1372,7 @@ fn labels_section(review: &Review, theme: &Theme) -> Option<Div> {
 /// long it took or has run, or what became of it when that says more. A click opens its log,
 /// as the arrow in place of the time says on hover.
 fn check_row(ix: usize, run: &CheckRun, theme: &Theme) -> Stateful<Div> {
-    let glyph =
-        |glyph, color| (small_icon(glyph).size(dp(14.)).text_color(color)).into_any_element();
+    let glyph = |glyph, color| (icon_at(glyph, 14.).text_color(color)).into_any_element();
     let took =
         (run.started_at.zip(run.completed_at)).map(|(start, end)| duration((end - start).max(0)));
     let mark = match run.state {
@@ -1449,8 +1440,7 @@ fn check_row(ix: usize, run: &CheckRun, theme: &Theme) -> Stateful<Div> {
         .py(dp(3.))
         .gap(dp(8.))
         .rounded(dp(theme.shape.control))
-        .text_size(dp(12.))
-        .line_height(dp(18.))
+        .text_12()
         .child(h_flex().flex_none().w(dp(14.)).justify_center().child(mark))
         .child(name)
         .child(aside)
@@ -1486,8 +1476,8 @@ pub(super) fn tab(
         .gap(dp(6.))
         .px(dp(8. + theme.sizes.padding))
         .rounded(dp(theme.shape.control))
-        .text_size(dp(13.))
-        .font_weight(gpui::FontWeight::SEMIBOLD)
+        .text_13()
+        .semibold()
         .text_color(theme.text_1)
         .when(!selected, |el| el.hover(move |el| el.bg(hover)))
         .child(icon(glyph).text_color(theme.text_1).opacity(0.7))

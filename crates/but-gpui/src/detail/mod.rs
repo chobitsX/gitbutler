@@ -70,6 +70,7 @@ use crate::backend::{
 use crate::clipboard;
 use crate::clock;
 use crate::edits::Discard;
+use crate::links::{Tab, View};
 use crate::overlays::MenuItem;
 use crate::palette::score;
 use crate::state::{
@@ -77,6 +78,7 @@ use crate::state::{
     Selection, Side, Store, StoreEvent, Tile,
 };
 use crate::theme::Theme;
+use crate::ui::Text;
 use crate::ui::change_marks::{Change, ChangeMarks};
 use crate::ui::diff::{self, DiffRow};
 use crate::ui::fold::{FOLD, Folds, Slide, edge, inert};
@@ -93,8 +95,6 @@ actions!(
     [
         NextFile,
         PreviousFile,
-        PickNextFile,
-        PickPreviousFile,
         PickAllFiles,
         FirstFile,
         LastFile,
@@ -113,7 +113,6 @@ actions!(
         PreviousTab,
         ShowBrief,
         ShowBranchesWithBriefs,
-        PickCommitTarget,
         ToggleWrap,
         TogglePlainLines,
         ToggleSplit,
@@ -693,7 +692,7 @@ impl Detail {
                 StoreEvent::SelectionChanged
                 | StoreEvent::Reopened
                 | StoreEvent::TabAsked(_)
-                | StoreEvent::FileAsked(..)
+                | StoreEvent::FileAsked { .. }
                     if this.pinned.is_some() => {}
                 StoreEvent::SelectionChanged => this.follow_selection(window, cx),
                 // Picked again, as by its card or the crumb naming it, a project's page goes back
@@ -708,10 +707,14 @@ impl Detail {
                     _ => {}
                 },
                 StoreEvent::TabAsked(tab) => this.tab_asked(*tab, window, cx),
-                StoreEvent::FileAsked(selection, place) => {
+                StoreEvent::FileAsked {
+                    selection,
+                    place,
+                    says_missing,
+                } => {
                     this.pending_file = Some(PendingFile {
                         place: place.clone(),
-                        linked: Some(selection.clone()),
+                        linked: says_missing.then(|| selection.clone()),
                     });
                     // Shown already, the selection doesn't change, so no diff lands to open it.
                     if this.shown_diff().and_then(|diff| diff.selection.as_ref()) == Some(selection)
@@ -1058,6 +1061,42 @@ impl Detail {
     /// The tab of the project's page shown: the first, on any other page.
     pub(crate) fn project_tab(&self) -> ProjectTab {
         self.page.project_tab().unwrap_or_default()
+    }
+
+    pub(crate) fn current_view(&self) -> Option<View> {
+        let selection = self.selection()?;
+        let tab = match &selection {
+            Selection::Project(_) => Some(Tab::Project(self.project_tab())),
+            selection if has_tabs(selection) => {
+                (self.page.review()).map(|review| Tab::Page(review.tab))
+            }
+            _ => None,
+        };
+        let place = self.code_place();
+        Some(View::new(selection, tab, place))
+    }
+
+    fn code_place(&self) -> Option<CodePlace> {
+        let Some(diff) = (self.diff.as_ref()).filter(|diff| diff.selection == self.shows) else {
+            return self
+                .pending_file
+                .as_ref()
+                .map(|pending| pending.place.clone());
+        };
+        let file_ix = self.current_file()?;
+        let file = diff.files.get(file_ix)?;
+        let line = match self.reading {
+            None => (self.cursor.at.near())
+                .and_then(|hunk| file.hunks().get(hunk))
+                .and_then(|hunk| hunk.lines.iter().find_map(|line| line.new)),
+            Some(_) => (diff.rows.get(self.list.logical_scroll_top().item_ix))
+                .filter(|row| row.file() == Some(file_ix))
+                .and_then(|row| page::new_line_of(*row, &diff.files)),
+        };
+        Some(CodePlace::File {
+            path: file.file.path.clone(),
+            line,
+        })
     }
 
     /// The project whose page shows `tab`, while one does.
@@ -4440,8 +4479,6 @@ impl Render for Detail {
                     false => this.move_file(isize::MAX / 2, false, cx),
                 }
             }))
-            .on_action(cx.listener(|this, _: &PickNextFile, _, cx| this.pick_step(1, cx)))
-            .on_action(cx.listener(|this, _: &PickPreviousFile, _, cx| this.pick_step(-1, cx)))
             .on_action(cx.listener(|this, _: &PickAllFiles, _, cx| this.pick_all_files(cx)))
             .on_action(
                 cx.listener(|this, _: &NextHunk, window, cx| this.move_hunk(true, window, cx)),
@@ -4700,8 +4737,7 @@ fn welcome(store: &Entity<Store>, theme: &Theme, cx: &App) -> AnyElement {
                 .child(illustration(Illustration::Waving, theme, cx).mb(dp(14.)))
                 .child(
                     div()
-                        .text_size(dp(18.))
-                        .font_weight(gpui::FontWeight::SEMIBOLD)
+                        .text_h2()
                         .text_color(theme.text_1)
                         .child("Welcome to GitButler"),
                 )
@@ -4709,7 +4745,7 @@ fn welcome(store: &Entity<Store>, theme: &Theme, cx: &App) -> AnyElement {
                     div()
                         .max_w(dp(420.))
                         .text_center()
-                        .text_size(dp(13.))
+                        .text_13()
                         .text_color(theme.text_2)
                         .child(
                             "Add a repository your coding agents work in. What they change shows \
@@ -4786,7 +4822,7 @@ fn usage_notice(theme: &Theme) -> AnyElement {
     // One line the column centers, not `text_center`: GPUI maps a click on centered text as if
     // the line were left-aligned, so the links would miss.
     div()
-        .text_size(dp(12.))
+        .text_12()
         .text_color(theme.text_3)
         .child(gpui::InteractiveText::new("usage-notice", styled).on_click(
             vec![policy, opt_out],

@@ -26,9 +26,8 @@ use crate::overlays::MenuItem;
 use crate::state::{
     NavigatorPlace, Prefs, ProjectEntry, ProjectId, ScopeLines, Store, TerminalRuns, TileDragFeel,
 };
-use crate::theme::{
-    Accent, Appearance, CodeSize, ColorScheme, Corners, Density, Ground, Theme, UiScale,
-};
+use crate::theme::{Accent, Appearance, CodeSize, Corners, Density, Ground, Shade, Theme, UiScale};
+use crate::ui::Text;
 use crate::ui::fold::{self, Folds};
 use crate::ui::modal::{ModalSize, modal};
 use crate::ui::scrollbar::{Scroll, scrolled};
@@ -656,8 +655,8 @@ impl SettingsView {
     fn look_rows(&self, window: &Window, cx: &Context<Self>) -> Vec<Row> {
         let theme = Theme::get(cx);
         let prefs = &self.store.read(cx).prefs;
-        let own_colours = matches!(prefs.color_scheme, ColorScheme::GitButler);
-        let colours_note = "Only in GitButler's colours: a colour scheme brings its own.";
+        let own_colours = theme.own_colours();
+        let colours_note = "Only in GitButler's colours: a theme brings its own.";
         let (store, app) = (self.store.clone(), self.app.clone());
         let presets: Vec<_> = crate::theme::presets()
             .map(|(name, corners, density)| (Some((corners, density)), name))
@@ -878,28 +877,38 @@ impl SettingsView {
         );
         let appearance = Row::new(
             "Appearance",
-            match &prefs.color_scheme {
-                ColorScheme::Named(_) => "Your colour scheme is light or dark itself.",
-                ColorScheme::GitButler | ColorScheme::Ghostty => {
-                    "Light, dark, or whichever macOS is set to."
-                }
-            },
+            "Match the system's light or dark mode, or always use one theme.",
             appearance,
         );
-        let app = self.app.clone();
-        let scheme = select("color-scheme", prefs.color_scheme.label().to_owned(), theme).on_click(
-            move |_, window, cx| {
-                app.update_later(window, cx, |app, window, cx| {
-                    app.pick_color_scheme(window, cx)
-                })
-            },
-        );
-        let scheme = Row::new(
-            "Colour scheme",
-            "GitButler's colours, or a Ghostty theme for the app and its terminals alike.",
-            scheme,
+        let scheme_select = |shade: Shade| {
+            let (id, name) = match shade {
+                Shade::Light => ("light-scheme", "Light"),
+                Shade::Dark => ("dark-scheme", "Dark"),
+            };
+            let app = self.app.clone();
+            let label = prefs.scheme(shade).label().to_owned();
+            let scheme = select(id, label.clone(), theme)
+                .aria_label(format!("{name} theme {label}"))
+                .on_click(move |_, window, cx| {
+                    app.update_later(window, cx, move |app, window, cx| {
+                        app.pick_color_scheme(shade, window, cx)
+                    })
+                });
+            h_flex()
+                .gap(dp(8.))
+                .child(div().text_13().text_color(theme.text_2).child(name))
+                .child(scheme)
+        };
+        let schemes = Row::new(
+            "Theme",
+            "The colours the app and its terminals use in light and in dark mode.",
+            v_flex()
+                .items_end()
+                .gap(dp(8.))
+                .child(scheme_select(Shade::Light))
+                .child(scheme_select(Shade::Dark)),
         )
-        .with_keywords("color theme ghostty");
+        .with_keywords("colour color scheme ghostty light dark");
         let percent = |scale: UiScale| format!("{}%", scale.percent());
         let size = self.choice(
             "ui-scale",
@@ -1008,12 +1017,14 @@ impl SettingsView {
         let navigator = vec![
             Row::new(
                 "Show branches' commits",
-                "Branches in the navigator start with their commits listed. Off, each starts \
-                 folded to one row, which ⇧→ or its chevron opens.",
+                crate::ui::keys_text(
+                    "Branches in the navigator start with their commits listed. Off, each starts \
+                     folded to one row, which ↩ or its chevron opens.",
+                ),
                 self.pref_switch(
                     "branches-open",
-                    prefs.branches_start_open,
-                    |p| p.branches_start_open ^= true,
+                    !prefs.branches_start_folded,
+                    |p| p.branches_start_folded ^= true,
                     cx,
                 ),
             ),
@@ -1034,8 +1045,8 @@ impl SettingsView {
                  last click listed. Off, a click only selects it.",
                 self.pref_switch(
                     "branch-click-opens",
-                    !prefs.click_only_selects_branch,
-                    |p| p.click_only_selects_branch ^= true,
+                    prefs.click_opens_branch,
+                    |p| p.click_opens_branch ^= true,
                     cx,
                 ),
             ),
@@ -1116,8 +1127,8 @@ impl SettingsView {
             Card::new(
                 None,
                 vec![
-                    scheme,
                     appearance,
+                    schemes,
                     size,
                     navigator_place,
                     status_bar,
@@ -1759,8 +1770,8 @@ impl SettingsView {
             .children(card.heading.map(|heading| {
                 div()
                     .pl(dp(16.))
-                    .text_size(dp(12.))
-                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                    .text_12()
+                    .semibold()
                     .text_color(theme.text_3)
                     .child(heading)
             }))
@@ -1803,16 +1814,16 @@ impl SettingsView {
                     .gap(dp(6.))
                     .child(
                         div()
-                            .text_size(dp(15.))
-                            .font_weight(gpui::FontWeight::SEMIBOLD)
+                            .text_15()
+                            .semibold()
                             .text_color(theme.text_1)
                             .child(row.title),
                     )
                     .when(hint, |el| {
                         el.child(
                             div()
-                                .text_size(dp(12.))
-                                .line_height(dp(18.))
+                                .text_12()
+                                .body()
                                 .text_color(theme.text_2)
                                 .child(row.description),
                         )
@@ -1983,8 +1994,8 @@ impl Render for SettingsView {
                 div()
                     .px(dp(8.))
                     .pb(dp(8.))
-                    .text_size(dp(12.))
-                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                    .text_12()
+                    .semibold()
                     .text_color(theme.text_3)
                     .child(label)
             };
@@ -2056,8 +2067,8 @@ impl Render for SettingsView {
                     .px(dp(20.))
                     .pt(dp(20.))
                     .pb(dp(10.))
-                    .text_size(dp(16.))
-                    .font_weight(gpui::FontWeight::SEMIBOLD)
+                    .text_16()
+                    .semibold()
                     .text_color(theme.text_1)
                     .child("Settings"),
             )

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, path::PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context as _, bail};
 use bstr::{BStr, BString, ByteSlice};
@@ -69,15 +69,6 @@ impl Headers {
                 .into();
         }
         self
-    }
-
-    #[cfg(feature = "legacy")]
-    #[deprecated = "We want deterministic change-ids, use Headers::synthetic_change_id_from_commit_id() instead."]
-    pub fn new_with_random_change_id() -> Self {
-        Self {
-            change_id: Some(ChangeId::generate()),
-            conflicted: None,
-        }
     }
 
     /// Create a new instance, with the following rules for setting the change id header:
@@ -614,18 +605,6 @@ impl ConflictEntries {
             || !self.our_entries.is_empty()
             || !self.their_entries.is_empty()
     }
-
-    /// The total count of conflicted entries
-    pub fn total_entries(&self) -> usize {
-        let set = self
-            .ancestor_entries
-            .iter()
-            .chain(self.our_entries.iter())
-            .chain(self.their_entries.iter())
-            .collect::<HashSet<_>>();
-
-        set.len()
-    }
 }
 
 /// Derive GitButler conflict entry metadata from a `gix` tree-merge outcome.
@@ -716,9 +695,11 @@ pub fn conflict_entries_from_merge_outcome(
 
 mod conflict;
 use conflict::message_is_conflicted;
+mod message_format;
 pub use conflict::{
     add_conflict_markers, rewrite_conflict_markers_on_message_change, strip_conflict_markers,
 };
+pub use message_format::format_commit_message;
 pub mod padding;
 pub mod tree_expression;
 

@@ -44,12 +44,13 @@ use crate::overlays::{MenuItem, has_keys};
 use crate::state::{BranchStatus, Label, Overlay, Picks, ProjectId, ProjectTab, Selection, Store};
 use crate::theme::Theme;
 use crate::transfer::Moving;
+use crate::ui::Text;
 use crate::ui::illustration::Illustration;
 use crate::ui::person::{byline, byline_avatar};
 use crate::ui::text_input::TextInput;
 use crate::ui::{
     ButtonStyle, Icon, Tooltip, age_column, button, dp, error_summary, faint, fold_button, guide,
-    h_flex, icon, icon_button, loading_state, plural, quiet, review, shown_row, side_row,
+    h_flex, icon_at, icon_button, loading_state, plural, quiet, review, shown_row, side_row,
     small_icon, v_flex,
 };
 
@@ -1450,7 +1451,7 @@ impl Detail {
                             );
                             side_row(("stack-caption", ix), selected, solid, theme)
                                 .pl(dp(2.))
-                                .text_size(dp(12.))
+                                .text_12()
                                 .text_color(ink(theme.text_2))
                                 .child(step)
                                 .child(small_icon(Icon::Stack).text_color(ink(theme.text_3)))
@@ -1586,7 +1587,7 @@ impl Detail {
                                 // A branch's name is cut in the middle, as many share a start
                                 // (origin/hotfix/…) and differ at the end; a title at its end.
                                 .when(shown == shown_name(branch), |el| el.text_ellipsis_middle())
-                                .font_weight(gpui::FontWeight::SEMIBOLD)
+                                .semibold()
                                 .text_color(ink(title_color))
                                 .child(shown.into_owned());
                             // The target has it all: said, as the navigator says it of a branch
@@ -2151,7 +2152,7 @@ impl Detail {
                 h_flex()
                     .flex_none()
                     .gap(dp(3.))
-                    .child(icon(glyph).size(dp(14.)).text_color(color))
+                    .child(icon_at(glyph, 14.).text_color(color))
                     .child(format!("{state} #{}", review.number))
             });
         let commits = if branches.comparing {
@@ -2186,7 +2187,7 @@ impl Detail {
         let description = (branch.description.clone()).filter(|_| !branches.stack);
         let name_text = title_text(title.clone())
             .truncate()
-            .when(flat, |el| el.text_size(dp(18.)).line_height(dp(26.)));
+            .when(flat, |el| el.text_h2());
         let top = v_flex()
             .min_w_0()
             .gap(dp(8.))
@@ -2213,7 +2214,7 @@ impl Detail {
             );
         let description = description.map(|description| {
             div()
-                .text_size(dp(13.))
+                .text_13()
                 .text_color(theme.text_2)
                 .whitespace_normal()
                 .child(description)

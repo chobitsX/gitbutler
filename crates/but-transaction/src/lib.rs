@@ -25,7 +25,9 @@ use but_workspace::commit::{
     UncommitChangesFromCommitsOutcome, UncommitChangesSource,
     squash_commits::MessageCombinationStrategy,
 };
-use but_workspace::editor_workspace::{leave_unnecessary_workspace, workspace_tips};
+use but_workspace::editor_workspace::{
+    leave_unnecessary_workspace, switch_to_workspace, workspace_tips,
+};
 use gix::{
     ObjectId,
     refs::{
@@ -187,6 +189,8 @@ where
             pending_branch_metadata: Vec::new(),
             pending_ref_changes: PendingRefChanges::default(),
             pending_checkout: None,
+            pending_new_stacks: Vec::new(),
+            head_branch_removed: false,
             context_lines,
         };
 
@@ -210,6 +214,8 @@ where
             pending_branch_metadata,
             mut pending_ref_changes,
             pending_checkout,
+            pending_new_stacks,
+            head_branch_removed,
             context_lines: _,
         } = inner;
         let rebase = rebase.take().expect("rebase is always Some(_)");
@@ -219,17 +225,22 @@ where
         let workspace = if should_rollback {
             Ok(None)
         } else {
-            workspace_state_from_rebase(
-                rebase,
-                &repo,
-                pending_metadata_removals,
-                pending_branch_metadata,
-                FinalizeOptions {
-                    checkout: pending_checkout,
-                    dry_run,
-                },
-            )
-            .map(Some)
+            let checking_out = pending_checkout.is_some();
+            keep_head_on_a_branch(rebase, head_branch_removed && !checking_out)
+                .and_then(|rebase| apply_new_stacks(rebase, pending_new_stacks, checking_out))
+                .and_then(|rebase| {
+                    workspace_state_from_rebase(
+                        rebase,
+                        &repo,
+                        pending_metadata_removals,
+                        pending_branch_metadata,
+                        FinalizeOptions {
+                            checkout: pending_checkout,
+                            dry_run,
+                        },
+                    )
+                })
+                .map(Some)
         };
 
         let workspace = match workspace {
@@ -277,6 +288,15 @@ where
     pending_ref_changes: PendingRefChanges,
     // A checkout cannot happen until the in-memory rebase and its references are materialized.
     pending_checkout: Option<FullName>,
+    // Branches that became stacks of their own beside the one checked out on its own, each with
+    // its order among the stacks. Only GitButler's workspace holds two stacks, so it's entered
+    // with them once the callback is done, rather than when they're made: a checkout later in
+    // the transaction leaves `HEAD` on a branch of its own, which needs no workspace.
+    pending_new_stacks: Vec<(FullName, Option<usize>)>,
+    // The branch `HEAD` was on alone, maybe only since leaving the workspace earlier in the
+    // transaction, was removed. `HEAD` is put on a branch again once the callback is done, as
+    // operations after the removal can still move commits under it.
+    head_branch_removed: bool,
     // Commits given to `squash_commits`, `reword_commit`, etc are allowed to be the original
     // commits from live repo. This is used to map those to the rebased in-memory commits.
     //
@@ -471,8 +491,11 @@ where
 
     pub fn remove_reference(&mut self, ref_name: &FullNameRef) -> anyhow::Result<()> {
         let checkout_is_pending = self.inner.pending_checkout.is_some();
-        self.rebase(|mut editor, _| {
+        let removes_head_branch = self.rebase(|mut editor, _| {
             let ref_selector = editor.select_reference(ref_name)?;
+            // Without a target there's no workspace to enter, as for a new stack beside the branch.
+            let removes_head_branch =
+                editor.head() == Some(ref_selector) && editor.target_ref().is_some();
 
             let must_disconnect_child = 'must_disconnect: {
                 let Some(target_selector) = editor.target_selector() else {
@@ -555,8 +578,9 @@ where
             } else {
                 leave_unnecessary_workspace(rebase.into_editor())?
             };
-            Ok(((), rebase))
+            Ok((removes_head_branch, rebase))
         })?;
+        self.inner.head_branch_removed |= removes_head_branch;
         let repo = self.repo().clone();
         self.inner
             .pending_ref_changes
@@ -591,18 +615,41 @@ where
 
     /// Take `source_branch` out of its stack into a stack of its own, placed among the others
     /// at `order`, or after them all, as [`but_workspace::branch::tear_off_branch()`] says.
+    ///
+    /// With a branch checked out on its own and a target, GitButler's workspace is entered at the
+    /// end of the transaction to hold both stacks, unless a branch is checked out by then.
     pub fn tear_off_branch(
         &mut self,
         source_branch: &FullNameRef,
         order: impl Into<Option<usize>>,
     ) -> anyhow::Result<()> {
         let order = order.into();
-        self.rebase(|editor, _| {
-            let rebase = but_workspace::branch::tear_off_branch(editor, source_branch, order)?;
-            Ok(((), rebase))
+        let unreachable_stack = self.rebase(|editor, _| {
+            let outcome = but_workspace::branch::tear_off_branch(editor, source_branch, order)?;
+            Ok((outcome.unreachable_stack, outcome.rebase))
         })?;
-
+        if let Some(unreachable_stack) = unreachable_stack
+            && self.new_stack_enters_workspace()?
+        {
+            self.inner.pending_new_stacks.push(unreachable_stack);
+        }
         Ok(())
+    }
+
+    /// Whether a new stack makes the transaction enter GitButler's workspace when it ends: `HEAD`
+    /// is on a branch of its own, and there is a target other than that branch.
+    fn new_stack_enters_workspace(&self) -> anyhow::Result<bool> {
+        let workspace = (self.inner.rebase.as_ref())
+            .expect("rebase is always Some(_)")
+            .overlayed_graph()?
+            .into_workspace()?;
+        let target = workspace.graph.project_meta.target_ref.as_ref();
+        let beside_target = workspace.ref_name().is_some_and(|head| {
+            target.is_some_and(|target| target.as_local_full_name_ref() != head)
+        });
+        let in_single_branch_mode =
+            matches!(workspace.kind, but_graph::workspace::WorkspaceKind::AdHoc);
+        Ok(in_single_branch_mode && beside_target)
     }
 
     /// Create a new local branch at a commit already present in the editor.
@@ -657,6 +704,12 @@ where
         })
     }
 
+    /// Create `ref_name` at `anchor`, or as a new stack at `order` without one, as
+    /// [`but_workspace::branch::create_reference()`] does.
+    ///
+    /// In single-branch mode, a new stack makes the transaction enter GitButler's workspace when
+    /// it ends, unless a checkout is pending by then. Anywhere else outside a workspace, a new
+    /// stack is refused.
     pub fn create_reference<'name>(
         &mut self,
         ref_name: &FullNameRef,
@@ -665,7 +718,8 @@ where
     ) -> anyhow::Result<()> {
         let anchor = anchor.into();
         let order = order.into();
-        self.rebase(|editor, commit_mappings| {
+        let enters_workspace = self.new_stack_enters_workspace()?;
+        let unreachable_stack = self.rebase(|editor, commit_mappings| {
             let anchor = anchor
                 .map(|anchor| {
                     anyhow::Ok(match anchor {
@@ -680,9 +734,16 @@ where
                     })
                 })
                 .transpose()?;
-            let rebase = but_workspace::branch::create_reference(editor, ref_name, anchor, order)?;
-            Ok(((), rebase))
-        })
+            let outcome = but_workspace::branch::create_reference(editor, ref_name, anchor, order)?;
+            if enters_workspace {
+                Ok((outcome.unreachable_stack, outcome.rebase))
+            } else {
+                Ok((None, outcome.into_rebase_in_workspace()?))
+            }
+        })?;
+        self.inner.pending_new_stacks.extend(unreachable_stack);
+
+        Ok(())
     }
 
     /// Name the anonymous segment whose top commit is `top` as `ref_name`, as seen from
@@ -1024,6 +1085,38 @@ where
             Ok((outcome, rebase))
         })
     }
+}
+
+/// With the branch `HEAD` was on alone removed, `HEAD` follows it to what's below, detached unless
+/// a branch points there. Entering the workspace there and leaving it puts `HEAD` on the local
+/// target or a branch below instead, or keeps the workspace if neither has the same files.
+fn keep_head_on_a_branch<'rebase, M: RefMetadata>(
+    rebase: SuccessfulRebase<'rebase, 'rebase, M>,
+    head_branch_removed: bool,
+) -> anyhow::Result<SuccessfulRebase<'rebase, 'rebase, M>> {
+    if !head_branch_removed {
+        return Ok(rebase);
+    }
+    let (rebase, _) = switch_to_workspace(rebase.into_editor())?;
+    leave_unnecessary_workspace(rebase.into_editor())
+}
+
+fn apply_new_stacks<'rebase, M: RefMetadata>(
+    mut rebase: SuccessfulRebase<'rebase, 'rebase, M>,
+    new_stacks: Vec<(FullName, Option<usize>)>,
+    checking_out: bool,
+) -> anyhow::Result<SuccessfulRebase<'rebase, 'rebase, M>> {
+    // The branch checked out then has `HEAD` on its own, without a workspace.
+    if checking_out {
+        return Ok(rebase);
+    }
+    for (ref_name, order) in new_stacks {
+        // Local branches need no tracking configuration, which is only returned for remote ones.
+        rebase =
+            but_workspace::branch::apply_stack(rebase.into_editor(), ref_name.as_ref(), order)?
+                .rebase;
+    }
+    Ok(rebase)
 }
 
 struct FinalizeOptions {

@@ -15,6 +15,7 @@ use crate::keymap::{self, menus::BarItem, menus::BarMenu};
 use crate::overlays::{MenuItem, OVERLAY, overlay};
 use crate::state::Prefs;
 use crate::theme::Theme;
+use crate::ui::Text;
 use crate::ui::{HEADER_HEIGHT, Icon, dp, fixed, h_flex, icon_button};
 
 actions!(menu_bar, [OpenMenuBar, PreviousMenu, NextMenu]);
@@ -183,7 +184,7 @@ impl AppView {
         let theme = Theme::get(cx);
         let left = left(window, theme);
         let Some(open) = self.bar_menu_open() else {
-            let button = icon_button("menu-bar", Icon::Menu)
+            let button = icon_button("menu-bar", Icon::Burger)
                 .tooltip_for("Menu", &OpenMenuBar)
                 .dispatch(&OpenMenuBar);
             return Some(overlay(
@@ -207,7 +208,7 @@ impl AppView {
                 .h(dp(BUTTON))
                 .px(dp(8.))
                 .rounded(dp(theme.shape.card))
-                .text_size(dp(13.))
+                .text_13()
                 .text_color(theme.text_1)
                 .when(ix == open, |el| el.bg(theme.hover))
                 .hover(|el| el.bg(theme.hover))

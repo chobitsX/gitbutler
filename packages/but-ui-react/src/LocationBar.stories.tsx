@@ -1,4 +1,4 @@
-import { stories } from "../docs/stories.ts";
+import { stories } from "../stories/stories.ts";
 import { useState, type FC } from "react";
 import { Breadcrumbs, CrumbMenuButton, type Crumb } from "./Breadcrumbs.tsx";
 import { Button } from "./Button.tsx";
@@ -79,7 +79,7 @@ const Elsewhere: FC = () => (
 const Live: FC = () => (
 	<>
 		<span style={{ display: "inline-flex", alignItems: "center", columnGap: 6 }}>
-			<StatusLed online aria-hidden />
+			<StatusLed variant="safe" aria-hidden />
 			live
 		</span>
 		<Tooltip content="Refresh">

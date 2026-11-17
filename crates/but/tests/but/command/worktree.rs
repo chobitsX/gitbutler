@@ -2075,24 +2075,30 @@ wt wt-inside - [..]/worktrees/wt-inside
 "#]]);
 }
 
-/// A sandbox on `two-stacks` whose target, `origin/main`, has a commit adding `new` that
-/// `main` doesn't, as when a teammate pushed. Worktrees added before the first read start out
-/// archived.
+/// A sandbox on `two-stacks` whose target branch `main` has a commit adding `new` on top of
+/// `main^`, so worktrees made at `main^` are behind it. Worktrees added before the first read
+/// start out archived.
 fn sandbox_behind_the_target() -> Sandbox {
     let env = Sandbox::init_scenario_with_target_and_default_settings("two-stacks");
     env.setup_metadata(&["A", "B"]);
-    env.invoke_bash(
-        r#"
-blob=$(echo new | git hash-object -w --stdin)
-export GIT_INDEX_FILE=.git/teammate-index
-git read-tree main
-git update-index --add --cacheinfo 100644,$blob,new
-tree=$(git write-tree)
-rm .git/teammate-index
-git update-ref refs/remotes/origin/main $(git commit-tree $tree -p main -m teammate)
-"#,
-    );
+    commit_adding_on_main(&env, "new", "refs/heads/main");
     env
+}
+
+/// Point `ref_name` at a commit on top of `main` that adds the file `file`, without touching
+/// any checkout.
+fn commit_adding_on_main(env: &Sandbox, file: &str, ref_name: &str) {
+    env.invoke_bash(format!(
+        r#"
+blob=$(echo {file} | git hash-object -w --stdin)
+export GIT_INDEX_FILE=.git/commit-index
+git read-tree main
+git update-index --add --cacheinfo 100644,$blob,{file}
+tree=$(git write-tree)
+rm .git/commit-index
+git update-ref {ref_name} $(git commit-tree $tree -p main -m {file})
+"#
+    ));
 }
 
 #[test]
@@ -2102,14 +2108,14 @@ fn recycle_reuses_the_newest_clean_archived_worktree_on_a_new_branch_at_the_targ
         &env,
         "older",
         "-b older",
-        "main",
+        "main^",
         "2000-01-03 00:00:00 +0000",
     );
     add_worktree_at(
         &env,
         "newer",
         "-b newer",
-        "main",
+        "main^",
         "2000-01-04 00:00:00 +0000",
     );
     env.invoke_git("config branch.newer.remote origin");
@@ -2121,14 +2127,14 @@ fn recycle_reuses_the_newest_clean_archived_worktree_on_a_new_branch_at_the_targ
         .success()
         .stderr_eq(snapbox::str![])
         .stdout_eq(snapbox::str![[r#"
-Recycled worktree newer on 'a-branch-1' from 693ec71 at [..]/worktrees/newer
+Recycled worktree newer on 'a-branch-1' from 02a88ad at [..]/worktrees/newer
 
 "#]]);
 
     let checkout = env.app_data_dir().join("worktrees/newer");
     assert_eq!(
         env.invoke_git(&format!("-C {} rev-parse HEAD", checkout.display())),
-        env.invoke_git("rev-parse origin/main"),
+        env.invoke_git("rev-parse main"),
         "the recycled worktree is at the target's tip"
     );
     assert!(
@@ -2166,6 +2172,34 @@ older - [..]/worktrees/older
 }
 
 #[test]
+fn recycle_goes_to_the_local_target_when_its_upstream_is_ahead() {
+    let env = Sandbox::init_scenario_with_target_and_default_settings("two-stacks");
+    env.setup_metadata(&["A", "B"]);
+    add_worktree_at(&env, "old", "-b old", "main", "2000-01-03 00:00:00 +0000");
+    commit_adding_on_main(&env, "new", "refs/remotes/origin/main");
+
+    env.but("worktree recycle")
+        .assert()
+        .success()
+        .stderr_eq(snapbox::str![])
+        .stdout_eq(snapbox::str![[r#"
+Recycled worktree old on 'a-branch-1' from 0dc3733 at [..]/worktrees/old
+
+"#]]);
+
+    let checkout = env.app_data_dir().join("worktrees/old");
+    assert_eq!(
+        env.invoke_git(&format!("-C {} rev-parse HEAD", checkout.display())),
+        env.invoke_git("rev-parse main"),
+        "the local target branch is the target's tip, even with its upstream ahead"
+    );
+    assert!(
+        !checkout.join("new").exists(),
+        "without the upstream's files that `main` lacks"
+    );
+}
+
+#[test]
 fn recycle_creates_a_worktree_at_the_target_when_none_is_clean_and_behind() {
     let env = sandbox_behind_the_target();
     add_worktree_at(
@@ -2179,14 +2213,14 @@ fn recycle_creates_a_worktree_at_the_target_when_none_is_clean_and_behind() {
         &env,
         "dirty",
         "-b dirty",
-        "main",
+        "main^",
         "2000-01-04 00:00:00 +0000",
     );
     add_worktree_at(
         &env,
         "detached",
         "--detach",
-        "main",
+        "main^",
         "2000-01-05 00:00:00 +0000",
     );
     let at = |name: &str| env.app_data_dir().join("worktrees").join(name);
@@ -2209,7 +2243,7 @@ fn recycle_creates_a_worktree_at_the_target_when_none_is_clean_and_behind() {
   "name": "a-branch-1",
   "path": "[..]/home/.gitbutler-worktrees/[..]/a-branch-1",
   "refName": "refs/heads/a-branch-1",
-  "base": "693ec717bbaadb9ae14bea7469d29a709328dace"
+  "base": "02a88ad5808acc639cf9c3e7c00272b2d2887c6d"
 }
 "#]]
             .is_json(),

@@ -19,6 +19,7 @@ for what you are building, not all of them; each stands on its own.
 | Page                                                                                       | Read it when                                                     |
 | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
 | [Build from the library](../but-ui-react/design/getting-started/build-from-the-library.md) | Starting any UI in a React app, or the library seems to lack one |
+| [Build in Rust](../but-ui-react/design/getting-started/build-in-rust.md)                   | Building UI in the GPUI client, or reading a page's GPUI badge   |
 
 ## Foundations
 
@@ -29,6 +30,7 @@ for what you are building, not all of them; each stands on its own.
 | [Cursors](design/foundations/cursors.md)         | Anything clickable, or a drag                        |
 | [Minimums](design/foundations/minimums.md)       | A small control or small text                        |
 | [Radius](design/foundations/radius.md)           | A corner, especially one inside another              |
+| [Spacing](design/foundations/spacing.md)         | Room between cards, blocks or controls               |
 | [Line breaks](design/foundations/line-breaks.md) | Copy that wraps                                      |
 | [Motion](design/foundations/motion.md)           | A transition or an animation                         |
 | [Icons](design/foundations/icons.md)             | An icon, a file glyph, or a person's picture         |
@@ -61,6 +63,7 @@ Rules for one component that its docs don't carry yet.
 | Page                                                            | Read it when                                     |
 | --------------------------------------------------------------- | ------------------------------------------------ |
 | [Modals](design/patterns/modals.md)                             | A prompt, a confirmation or a short form         |
+| [Context menus](design/patterns/context-menus.md)               | A row's actions, or a right-click menu           |
 | [Empty states](design/patterns/empty-states.md)                 | Nothing to show yet, or a filter matched nothing |
 | [Blocked states](design/patterns/blocked-states.md)             | Something the user can't do yet                  |
 | [Toasts and snackbars](design/patterns/toasts-and-snackbars.md) | Telling the user something happened              |

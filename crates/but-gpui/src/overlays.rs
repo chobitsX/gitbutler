@@ -21,6 +21,7 @@ use crate::edits::Discard;
 use crate::help::{DOWNLOADS, OpenReleaseNotes};
 use crate::state::{Notice, Overlay, ProjectId, Selection, Store};
 use crate::theme::{Hue, Theme};
+use crate::ui::Text;
 use crate::ui::text_input::{InputEvent, TextInput};
 use crate::ui::{
     ButtonStyle, FocusedAt, Icon, ShowFocused, button, dp, error_summary, field, fixed, h_flex,
@@ -852,63 +853,61 @@ impl AppView {
                     .px(dp(14.))
                     .pt(dp(4.))
                     .pb(dp(2.))
-                    .text_size(dp(12.))
+                    .text_12()
                     .text_color(theme.text_3)
                     .child(heading)
                     .into_any_element()
             });
-            let row =
-                list_row(
-                    ("menu-item", ix),
-                    item.disabled.is_none() && menu.highlighted == Some(ix),
-                    theme,
-                )
-                .mx(dp(4.))
-                .gap(dp(16.))
-                .text_size(dp(13.))
-                .text_color(if item.danger {
-                    theme.danger
-                } else {
-                    theme.text_1
-                })
-                .child(v_flex().flex_1().child(item.label.clone()).children(
-                    item.disabled.clone().map(|reason| {
-                        div()
-                            .text_size(dp(11.))
-                            .text_color(theme.text_3)
-                            .child(reason)
-                    }),
-                ))
-                .when(item.disabled.is_some(), |el| {
-                    el.h_auto().min_h(dp(theme.sizes.control)).py(dp(5.))
-                })
-                .when_some(item.detail.clone(), |el, detail| {
-                    el.child(div().text_color(theme.text_3).child(detail))
-                })
-                .when_some(item.key.clone(), |el, key| el.child(keycap(&key, theme)))
-                // A row with a detail keeps the tick's place, so the details line up.
-                .when(item.ticked || item.detail.is_some(), |el| {
-                    el.child(small_icon(Icon::Tick).text_color(match item.ticked {
-                        true => theme.text_1,
-                        false => gpui::transparent_black(),
-                    }))
-                })
-                // The pointer moves the highlight too, so only one item is lit.
-                .on_mouse_move(cx.listener(move |this, _: &MouseMoveEvent, _, cx| {
-                    if let Some(menu) = this.menu.as_mut().filter(|m| m.highlighted != Some(ix)) {
-                        menu.highlighted = Some(ix);
-                        cx.notify();
-                    }
+            let row = list_row(
+                ("menu-item", ix),
+                item.disabled.is_none() && menu.highlighted == Some(ix),
+                theme,
+            )
+            .mx(dp(4.))
+            .gap(dp(16.))
+            .text_13()
+            .text_color(if item.danger {
+                theme.danger
+            } else {
+                theme.text_1
+            })
+            .child(
+                v_flex().flex_1().child(item.label.clone()).children(
+                    item.disabled
+                        .clone()
+                        .map(|reason| div().text_11().text_color(theme.text_3).child(reason)),
+                ),
+            )
+            .when(item.disabled.is_some(), |el| {
+                el.h_auto().min_h(dp(theme.sizes.control)).py(dp(5.))
+            })
+            .when_some(item.detail.clone(), |el, detail| {
+                el.child(div().text_color(theme.text_3).child(detail))
+            })
+            .when_some(item.key.clone(), |el, key| el.child(keycap(&key, theme)))
+            // A row with a detail keeps the tick's place, so the details line up.
+            .when(item.ticked || item.detail.is_some(), |el| {
+                el.child(small_icon(Icon::Tick).text_color(match item.ticked {
+                    true => theme.text_1,
+                    false => gpui::transparent_black(),
                 }))
-                .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
-                    this.run_menu_item(ix, window, cx)
-                }))
-                .when_some(item.disabled.clone(), |el, reason| {
-                    el.text_color(theme.text_3)
-                        .hover(|el| el.bg(gpui::transparent_black()))
-                        .tooltip(crate::ui::Tooltip::text(reason))
-                })
-                .into_any_element();
+            })
+            // The pointer moves the highlight too, so only one item is lit.
+            .on_mouse_move(cx.listener(move |this, _: &MouseMoveEvent, _, cx| {
+                if let Some(menu) = this.menu.as_mut().filter(|m| m.highlighted != Some(ix)) {
+                    menu.highlighted = Some(ix);
+                    cx.notify();
+                }
+            }))
+            .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
+                this.run_menu_item(ix, window, cx)
+            }))
+            .when_some(item.disabled.clone(), |el, reason| {
+                el.text_color(theme.text_3)
+                    .hover(|el| el.bg(gpui::transparent_black()))
+                    .tooltip(crate::ui::Tooltip::text(reason))
+            })
+            .into_any_element();
             line.into_iter().chain(heading).chain([row])
         });
         // A menu taller than the window, as one of many projects is, scrolls inside the margins
@@ -951,24 +950,14 @@ impl AppView {
                 v_flex()
                     .gap(dp(2.))
                     .children(prompt.place.clone().map(|place| muted(place, theme)))
-                    .child(
-                        div()
-                            .text_size(dp(14.))
-                            .font_weight(gpui::FontWeight::SEMIBOLD)
-                            .child(prompt.title.clone()),
-                    ),
+                    .child(div().text_14().semibold().child(prompt.title.clone())),
             )
             .when_some(prompt.detail.clone(), |el, detail| {
                 el.child(muted(detail, theme))
             })
             .child(field(&input, focused, theme).font_family(theme.mono_font.clone()))
             .when_some(prompt.hint.clone(), |el, hint| {
-                el.child(
-                    div()
-                        .text_size(dp(12.))
-                        .text_color(theme.danger)
-                        .child(hint),
-                )
+                el.child(div().text_12().text_color(theme.danger).child(hint))
             })
             .child(
                 h_flex()
@@ -1076,11 +1065,7 @@ impl AppView {
                                     .child(icon(Icon::Warning).text_color(theme.danger).mt(dp(2.)))
                                     .child(
                                         // A long title wraps rather than running off the card.
-                                        div()
-                                            .flex_1()
-                                            .min_w_0()
-                                            .font_weight(gpui::FontWeight::SEMIBOLD)
-                                            .child(title.clone()),
+                                        div().flex_1().min_w_0().semibold().child(title.clone()),
                                     ),
                             )
                             // Room for what a server or hook says to do, under what failed.
@@ -1189,12 +1174,7 @@ impl AppView {
                             .flex_1()
                             .min_w_0()
                             .gap(dp(2.))
-                            .child(
-                                div()
-                                    .text_size(dp(14.))
-                                    .font_weight(gpui::FontWeight::SEMIBOLD)
-                                    .child(title),
-                            )
+                            .child(div().text_14().semibold().child(title))
                             .child(muted(status, theme)),
                     ),
                 )

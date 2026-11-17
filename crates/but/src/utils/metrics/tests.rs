@@ -5,7 +5,6 @@ use crate::{
     bad_input,
 };
 
-#[cfg(feature = "legacy")]
 use crate::args::commit;
 
 use crate::args::atoms::CliIdArg;
@@ -73,7 +72,6 @@ fn metrics_use_invoked_command_names() {
         Subcommands::Branch(branch::Platform { cmd: None }),
         "branchList",
     );
-    #[cfg(feature = "legacy")]
     assert_command(
         Subcommands::Move(crate::args::r#move::Platform {
             switch: false,
@@ -99,17 +97,14 @@ fn metrics_use_invoked_command_names() {
         "updateInstall",
     );
 
-    #[cfg(feature = "legacy")]
-    {
-        assert_command(
-            Subcommands::Amend(crate::args::amend::Platform {
-                target: Some(CliIdArg("c1".into())),
-                sources: vec![CliIdArg("a1".into())],
-                allow_merged: Default::default(),
-            }),
-            "amend",
-        );
-    }
+    assert_command(
+        Subcommands::Amend(crate::args::amend::Platform {
+            target: Some(CliIdArg("c1".into())),
+            sources: vec![CliIdArg("a1".into())],
+            allow_merged: Default::default(),
+        }),
+        "amend",
+    );
 }
 
 #[test]
@@ -138,10 +133,7 @@ fn formerly_unknown_commands_use_explicit_names() {
         "config",
     );
 
-    #[cfg(feature = "legacy")]
-    {
-        assert_command(Subcommands::Teardown { checkout_to: None }, "teardown");
-    }
+    assert_command(Subcommands::Teardown { checkout_to: None }, "teardown");
 }
 
 #[test]
@@ -178,11 +170,6 @@ fn formerly_unclassified_commands_have_explicit_names() {
             },
             "agentLog",
         ),
-        #[cfg(feature = "legacy")]
-        (
-            Subcommands::Actions(crate::args::actions::Platform { cmd: None }),
-            "actions",
-        ),
     ];
 
     for (command, expected) in commands {
@@ -192,32 +179,28 @@ fn formerly_unclassified_commands_have_explicit_names() {
 
 #[test]
 fn extra_props_keep_useful_source_and_target_kinds() {
-    #[cfg(feature = "legacy")]
-    {
-        let moved = Subcommands::Move(crate::args::r#move::Platform {
-            switch: false,
-            branch: Some(Some(CliIdArg("main".to_owned()))),
-            above: None,
-            below: None,
-            unstack: false,
-            message: None,
-            file: None,
-            sources: Vec::from([CliIdArg("ci".to_owned())]),
-            allow_merged: Default::default(),
-        });
-        let props = moved.to_metrics_extra_props();
-        assert_eq!(
-            prop(&props, "sourceKind"),
-            Some(&serde_json::json!("commitOrBranch"))
-        );
-        assert_eq!(
-            prop(&props, "targetKind"),
-            Some(&serde_json::json!("commitOrBranchOrUnassigned"))
-        );
-    }
+    let moved = Subcommands::Move(crate::args::r#move::Platform {
+        switch: false,
+        branch: Some(Some(CliIdArg("main".to_owned()))),
+        above: None,
+        below: None,
+        unstack: false,
+        message: None,
+        file: None,
+        sources: Vec::from([CliIdArg("ci".to_owned())]),
+        allow_merged: Default::default(),
+    });
+    let props = moved.to_metrics_extra_props();
+    assert_eq!(
+        prop(&props, "sourceKind"),
+        Some(&serde_json::json!("commitOrBranch"))
+    );
+    assert_eq!(
+        prop(&props, "targetKind"),
+        Some(&serde_json::json!("commitOrBranchOrUnassigned"))
+    );
 }
 
-#[cfg(feature = "legacy")]
 #[test]
 fn commit_extra_props_describe_targeting_and_selection_without_ids() {
     let cases = [
@@ -376,7 +359,6 @@ fn initialization_errors_use_distinct_kind_without_private_details() {
     );
 }
 
-#[cfg(feature = "legacy")]
 #[test]
 fn explained_commit_rejections_omit_private_details() {
     let result = Err::<(), CliError>(
@@ -484,7 +466,6 @@ fn cli_error_metrics_use_low_cardinality_failure_details() {
     );
 }
 
-#[cfg(feature = "legacy")]
 #[test]
 fn parse_errors_name_the_command_reason_and_flag_without_user_text() {
     use clap::Parser;
@@ -543,7 +524,6 @@ fn parse_errors_name_the_command_reason_and_flag_without_user_text() {
     );
 }
 
-#[cfg(feature = "legacy")]
 #[test]
 fn rejected_subcommand_words_are_kept_unless_they_look_like_a_name() {
     use clap::Parser;
@@ -614,7 +594,6 @@ fn agent_setup_outcome_properties_are_centralized() {
     }
 }
 
-#[cfg(feature = "legacy")]
 #[test]
 fn commit_outcome_properties_are_low_cardinality() {
     use crate::{
@@ -839,6 +818,28 @@ fn command_rejections_bypass_sampling() {
             &serde_json::json!(1.0)
         ),
         "typed failures should use the full sampling rate"
+    );
+}
+
+#[test]
+fn failures_outside_a_repository_use_the_command_rate() {
+    let result = Err::<(), CliError>(
+        bad_input("No git repository found")
+            .code(crate::setup::NO_GIT_REPOSITORY)
+            .into(),
+    );
+    let props = || Props::from_cli_error_result(std::time::Instant::now(), &result);
+
+    assert!(
+        sample_props(props(), CommandName::Status, true, 0.5).is_none(),
+        "a loop of `but status` outside a repository is sampled like successful runs"
+    );
+    let props = sample_props(props(), CommandName::Status, true, 0.005)
+        .expect("draw below the rate should capture");
+    assert_eq!(
+        props.values["samplingRate"],
+        serde_json::json!(0.01),
+        "the event carries the rate it was sampled at"
     );
 }
 

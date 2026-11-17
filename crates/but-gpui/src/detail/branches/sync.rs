@@ -5,6 +5,7 @@ use crate::backend::branches::sync::{
     self as remote, BranchSync, PullStrategy, SyncAction, SyncBranch, SyncOutcome, SyncState,
 };
 use crate::palette::Choice;
+use crate::ui::Text;
 
 pub(super) fn status_mark(status: &BranchSync, solid: bool, theme: &Theme) -> impl IntoElement {
     let upstream = status
@@ -38,7 +39,7 @@ pub(super) fn status_mark(status: &BranchSync, solid: bool, theme: &Theme) -> im
         .min_w(dp(64.))
         .justify_end()
         .gap(dp(5.))
-        .text_size(dp(11.))
+        .text_11()
         .when_some(label, |el, label| {
             el.child(div().text_color(ink(theme.text_3)).child(label))
         })
@@ -522,7 +523,7 @@ impl Detail {
             )
             .child(
                 div()
-                    .text_size(dp(12.))
+                    .text_12()
                     .text_color(theme.text_2)
                     .child("Commits that differ from upstream"),
             );
@@ -580,12 +581,7 @@ impl Detail {
                                 .truncate()
                                 .child(crate::ui::commit_title(&commit.title)),
                         )
-                        .child(
-                            div()
-                                .text_size(dp(11.))
-                                .text_color(theme.text_2)
-                                .child(id.short()),
-                        )
+                        .child(div().text_11().text_color(theme.text_2).child(id.short()))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.select_branch_commit(&reference, id, cx)
                         }))

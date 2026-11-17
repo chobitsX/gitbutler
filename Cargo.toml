@@ -53,9 +53,6 @@ members = [
     # 👉Could be exemplary after review.
     "crates/but-update", # 📄Retrieve information about available program versions to guide updates.
     # 👉Unclear purpose (a mix of everything?); lacks tests and docs. Uses legacy crates (a lot).
-    "crates/but-action", # 📄TBD
-    # 👉Unclear purpose (a mix of everything?); lacks tests and docs. Uses legacy crates (a lot).
-    "crates/but-tools", # 📄TBD
     # 👉No tests, lacks top-level docs, purpose somewhat unclear.
     "crates/but-llm", # 📄TBD
     # 👉lacks top-level docs and docs.
@@ -110,6 +107,7 @@ members = [
     # Should be reviewed to mostly use `but-api`, to be renamed to `but-tauri` or something.
     "crates/gitbutler-tauri",
     "crates/but-gpui", # An experimental native client on GPUI.
+    "crates/but-ui-gpui", # GitButler's design system on GPUI, which but-gpui draws with.
     "crates/but-tty",  # The GPUI client's embedded terminals, without a screen.
     # GitButler installation binary
     "crates/but-installer",
@@ -158,9 +156,6 @@ but-db = { path = "crates/but-db" }
 but-path = { path = "crates/but-path" }
 but-graph = { path = "crates/but-graph" }
 but-meta = { path = "crates/but-meta" }
-but-action = { path = "crates/but-action" }
-but-bot = { path = "crates/but-bot" }
-but-tools = { path = "crates/but-tools" }
 but-api = { path = "crates/but-api" }
 but-api-macros = { path = "crates/but-api-macros" }
 but-gerrit = { path = "crates/but-gerrit" }
@@ -188,6 +183,8 @@ but-server = { path = "crates/but-server" }
 but-agentlog = { path = "crates/but-agentlog" }
 but-transaction = { path = "crates/but-transaction" }
 but-tty = { path = "crates/but-tty" }
+but-ui-gpui = { path = "crates/but-ui-gpui" }
+gpui = { git = "https://github.com/zed-industries/zed", rev = "28d0a3547f16b9609b301b48ab363bfca649c864" }
 
 gitbutler-git = { path = "crates/gitbutler-git" }
 gitbutler-watcher = { path = "crates/gitbutler-watcher" }
@@ -197,12 +194,9 @@ gitbutler-oplog = { path = "crates/gitbutler-oplog" }
 gitbutler-repo = { path = "crates/gitbutler-repo" }
 gitbutler-project = { path = "crates/gitbutler-project" }
 gitbutler-user = { path = "crates/gitbutler-user" }
-gitbutler-branch = { path = "crates/gitbutler-branch" }
 gitbutler-reference = { path = "crates/gitbutler-reference" }
-gitbutler-commit = { path = "crates/gitbutler-commit" }
 gitbutler-operating-modes = { path = "crates/gitbutler-operating-modes" }
 gitbutler-edit-mode = { path = "crates/gitbutler-edit-mode" }
-gitbutler-workspace = { path = "crates/gitbutler-workspace" }
 
 # Bundled to ensure a consistent SQLite version across all platforms.
 rusqlite = { version = "0.39.0", features = ["bundled"] }
@@ -411,6 +405,7 @@ fancy-regex = { opt-level = 3 }
 regex-automata = { opt-level = 3 }
 # Rebuilding the GPUI client whole after a small change takes 15s, incrementally under 5s.
 but-gpui = { incremental = true }
+but-ui-gpui = { incremental = true }
 # Its build script picks Zig's Debug mode from `debug`, whatever `opt-level` says, and that
 # verifies the whole page for every cell a terminal prints in a hyperlink.
 libghostty-vt-sys = { opt-level = 3, debug = false }
@@ -428,6 +423,7 @@ strip = true    # Strip symbols from binary
 # CLI's highlighting shares any of them, which only gets faster.
 [profile.release.package]
 but-gpui = { opt-level = 3 }
+but-ui-gpui = { opt-level = 3 }
 libghostty-vt-sys = { opt-level = 3, debug = false }
 gpui = { opt-level = 3 }
 gpui_apple = { opt-level = 3 }

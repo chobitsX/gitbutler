@@ -1153,7 +1153,6 @@ dependencies = [
  "arboard",
  "boolean-enums",
  "bstr",
- "but-action",
  "but-agentlog",
  "but-api",
  "but-askpass",
@@ -1185,7 +1184,6 @@ dependencies = [
  "but-update",
  "but-utils",
  "but-workspace",
- "cfg-if",
  "chrono",
  "clap",
  "clap_complete",
@@ -1194,9 +1192,7 @@ dependencies = [
  "crossterm 0.29.0",
  "dirs",
  "fuzzy-matcher",
- "gitbutler-branch",
  "gitbutler-branch-actions",
- "gitbutler-commit",
  "gitbutler-edit-mode",
  "gitbutler-git",
  "gitbutler-operating-modes",
@@ -1240,39 +1236,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "but-action"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "bstr",
- "but-core",
- "but-ctx",
- "but-db",
- "but-error",
- "but-graph",
- "but-hunk-assignment",
- "but-llm",
- "but-rebase",
- "but-serde",
- "but-workspace",
- "chrono",
- "gitbutler-branch-actions",
- "gitbutler-operating-modes",
- "gitbutler-oplog",
- "gitbutler-reference",
- "gix",
- "rmcp",
- "schemars 1.2.1",
- "serde",
- "serde-error",
- "serde_json",
- "strum 0.27.2",
- "tempfile",
- "tracing",
- "uuid",
-]
-
-[[package]]
 name = "but-agentlog"
 version = "0.0.0"
 dependencies = [
@@ -1302,7 +1265,6 @@ dependencies = [
  "anyhow",
  "boolean-enums",
  "bstr",
- "but-action",
  "but-api",
  "but-api-macros",
  "but-askpass",
@@ -1335,9 +1297,7 @@ dependencies = [
  "but-workspace",
  "chrono",
  "futures",
- "gitbutler-branch",
  "gitbutler-branch-actions",
- "gitbutler-commit",
  "gitbutler-edit-mode",
  "gitbutler-git",
  "gitbutler-operating-modes",
@@ -1665,7 +1625,6 @@ dependencies = [
  "but-schemars",
  "but-testsupport",
  "chrono",
- "gitbutler-commit",
  "gix",
  "schemars 1.2.1",
  "serde",
@@ -1722,7 +1681,6 @@ dependencies = [
  "backtrace",
  "block2 0.6.2",
  "bstr",
- "but-action",
  "but-api",
  "but-askpass",
  "but-bitbucket",
@@ -1746,6 +1704,7 @@ dependencies = [
  "but-transaction",
  "but-tty",
  "but-ui-control",
+ "but-ui-gpui",
  "but-workspace",
  "chrono",
  "deltoids",
@@ -1880,7 +1839,6 @@ dependencies = [
  "async-openai",
  "but-core",
  "but-secret",
- "but-tools",
  "futures",
  "gix",
  "reqwest",
@@ -2099,19 +2057,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "but-tools"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "async-openai",
- "but-core",
- "but-ctx",
- "gix",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "but-transaction"
 version = "0.0.0"
 dependencies = [
@@ -2128,7 +2073,6 @@ dependencies = [
  "but-rebase",
  "but-testsupport",
  "but-workspace",
- "gitbutler-branch-actions",
  "gix",
  "snapbox",
  "tracing",
@@ -2175,6 +2119,18 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "but-ui-gpui"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "but-tty",
+ "gpui",
+ "serde",
+ "serde_json",
+ "snapbox",
 ]
 
 [[package]]
@@ -2227,7 +2183,6 @@ dependencies = [
  "but-workspace",
  "chrono",
  "git2",
- "gitbutler-commit",
  "gitbutler-git",
  "gitbutler-reference",
  "gitbutler-repo",
@@ -4775,21 +4730,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gitbutler-branch"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "bstr",
- "but-core",
- "but-schemars",
- "gitbutler-reference",
- "gix",
- "lazy_static",
- "schemars 1.2.1",
- "serde",
-]
-
-[[package]]
 name = "gitbutler-branch-actions"
 version = "0.0.0"
 dependencies = [
@@ -4811,14 +4751,11 @@ dependencies = [
  "but-testsupport",
  "but-workspace",
  "ctor 0.6.3",
- "gitbutler-branch",
- "gitbutler-commit",
  "gitbutler-operating-modes",
  "gitbutler-oplog",
  "gitbutler-project",
  "gitbutler-reference",
  "gitbutler-repo",
- "gitbutler-workspace",
  "gix",
  "md5",
  "pretty_assertions",
@@ -4828,15 +4765,6 @@ dependencies = [
  "tempfile",
  "tracing",
  "url",
-]
-
-[[package]]
-name = "gitbutler-commit"
-version = "0.0.0"
-dependencies = [
- "bstr",
- "but-core",
- "gix",
 ]
 
 [[package]]
@@ -4855,10 +4783,8 @@ dependencies = [
  "but-testsupport",
  "git-meta-lib",
  "git2",
- "gitbutler-commit",
  "gitbutler-operating-modes",
  "gitbutler-oplog",
- "gitbutler-workspace",
  "gix",
  "schemars 1.2.1",
  "serde",
@@ -5040,7 +4966,6 @@ dependencies = [
  "anyhow",
  "backtrace",
  "but",
- "but-action",
  "but-api",
  "but-askpass",
  "but-core",
@@ -5131,19 +5056,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
-]
-
-[[package]]
-name = "gitbutler-workspace"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "but-core",
- "but-ctx",
- "but-oxidize",
- "git2",
- "gix",
- "tempfile",
 ]
 
 [[package]]

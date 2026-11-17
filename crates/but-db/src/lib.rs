@@ -51,7 +51,7 @@
 //! #### Add a new field
 //!
 //! ```text
-//! Add a new optional string named 'note' to ClaudePermissionRequest in @crates/but-db/tests/db/table/claude.rs
+//! Add a new optional string named 'note' to ForgeReview in @crates/but-db/tests/db/table/forge_review.rs
 //! ```
 #![expect(clippy::inconsistent_digit_grouping)]
 use but_utils::OnDemand;
@@ -70,9 +70,6 @@ pub mod worktrees;
 pub use table::{
     hunk_assignments::{HunkAssignmentsHandleMut, HunkAssignmentsHandle, HunkAssignment},
     branch_order::{BranchOrderEntry, BranchOrderHandle, BranchOrderHandleMut, BranchOrderSnapshot},
-    butler_actions::ButlerAction,
-    claude::{ClaudeMessage, ClaudePermissionRequest, ClaudeSession},
-    file_write_locks::FileWriteLock,
     fetch_status::FetchStatus,
     gerrit_metadata::{GerritMeta, GerritMetadataHandle},
     obs_markers::{ObsMarker, ObsMarkersHandle, ObsMarkersHandleMut},
@@ -129,9 +126,6 @@ pub const MIGRATIONS: &[&[M<'static>]] = &[
     table::M_FULLY_REMOVED,
     table::hunk_assignments::M,
     table::branch_order::M,
-    table::butler_actions::M,
-    table::claude::M,
-    table::file_write_locks::M,
     table::fetch_status::M,
     table::gerrit_metadata::M,
     table::forge_reviews::M,

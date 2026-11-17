@@ -14,6 +14,8 @@ use gpui::{
     MouseButton, MouseDownEvent, Role, Subscription, Window, div, list, prelude::*, relative,
 };
 
+use super::cursor::{Step, Stops, step_to};
+use super::rename::{on_terminal_name, terminal_name_input};
 use super::rows::{CARD_PADDING, GUIDE_AT as ICON_MIDDLE, ROW_LEFT};
 use super::{CARD_BAR_HEIGHT, CARD_BAR_INSET, RowStyle, card_bar, status_mark};
 use crate::app::{
@@ -27,8 +29,9 @@ use crate::palette::StatusGroup;
 use crate::state::{Axis, NavigatorPlace, ProjectId, Store, TerminalGrouping};
 use crate::terminal::TerminalId;
 use crate::theme::Theme;
+use crate::ui::Text;
 use crate::ui::fold::{Folds, Place, clipped};
-use crate::ui::text_input::{InputEvent, TextInput};
+use crate::ui::text_input::TextInput;
 use crate::ui::{
     Icon, dp, faint, field, fixed, fold_button, guide, icon_button, section_label, small_icon,
     v_flex,
@@ -364,8 +367,8 @@ impl TerminalOverview {
     }
 
     /// Step `delta` rows from the one selected, the keys staying here, as the navigator's rows
-    /// do: onto a terminal, showing it, or onto a heading, which shows nothing. From
-    /// none selected, forward starts at the top and back at the bottom.
+    /// do ([`step_to`]): onto a terminal, showing it, or onto a heading, which shows nothing. In
+    /// the card under its tab, up off the first row goes back onto the tab.
     fn step(&mut self, delta: isize, window: &mut Window, cx: &mut Context<Self>) {
         if self.folded_away(cx) {
             return;
@@ -376,15 +379,23 @@ impl TerminalOverview {
             (Item::Terminal(id), None) => Some(*id) == shown,
             (Item::Heading(..), None) | (Item::Terminal(_), Some(_)) => false,
         });
-        let last = self.items.len().saturating_sub(1);
-        let next = match at {
-            Some(at) => (at as isize + delta).clamp(0, last as isize) as usize,
-            None if delta > 0 => 0,
-            None => last,
+        let next = match step_to(
+            at,
+            self.items.len(),
+            Stops {
+                tab: self.in_tab(cx),
+                ..Stops::default()
+            },
+            delta,
+        ) {
+            Some(Step::Item(next)) => next,
+            Some(Step::Tab) => {
+                return (self.app).update_later(window, cx, |app, window, cx| {
+                    app.focus_navigator(&FocusNavigator, window, cx)
+                });
+            }
+            Some(Step::Bar) | None => return,
         };
-        if Some(next) == at {
-            return;
-        }
         match self.items.get(next) {
             Some(Item::Heading(group, _)) => {
                 self.on_heading = Some(group.clone());
@@ -463,24 +474,18 @@ impl TerminalOverview {
         let Some(current) = self.store.read(cx).terminals.title(id).cloned() else {
             return;
         };
-        let input = cx.new(|cx| {
-            let mut input = TextInput::new("Terminal name", false, cx);
-            input.load(current.to_string(), cx);
-            input.select_all_text(cx);
-            input
-        });
-        let typed = cx.subscribe_in(&input, window, move |this, input, event, window, cx| {
-            let name = match event {
-                InputEvent::Submit => Some(input.read(cx).text().to_owned()),
-                InputEvent::Cancel => None,
-                InputEvent::Changed => return,
-            };
-            this.renaming = None;
-            window.focus(&this.focus, cx);
-            if let Some(name) = name {
-                (this.store).update(cx, |store, cx| store.name_terminal(id, &name, cx))
-            }
-        });
+        let input = terminal_name_input(&current, cx);
+        let typed = on_terminal_name(
+            &input,
+            self.store.clone(),
+            id,
+            |this: &mut Self, window, cx| {
+                this.renaming = None;
+                window.focus(&this.focus, cx)
+            },
+            window,
+            cx,
+        );
         // The keys go where the click went. GPUI blurs it as another app comes in front too,
         // which leaves it as it is for when the window's back.
         let left = cx.on_blur(&input.focus_handle(cx), window, |this, window, cx| {
@@ -683,7 +688,7 @@ impl TerminalOverview {
                     .flex_none()
                     .max_w(relative(0.4))
                     .truncate()
-                    .text_size(dp(11.))
+                    .text_11()
                     .text_color(style.quiet())
                     .child(place),
             )

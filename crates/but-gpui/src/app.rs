@@ -30,11 +30,12 @@ use crate::state::{
     Tiling, Zones, along_edge, snack, tile_beside, up_to_date,
 };
 use crate::terminal::{NewTerminal, TerminalId};
-use crate::theme::{ColorScheme, Hue, Theme, UiScale};
+use crate::theme::{ColorScheme, Hue, Shade, Theme, UiScale};
 use crate::transfer::{
     Changes, Dragged, Move, Moving, Op, Place, ProjectDrag, TerminalDrag, Transfer,
     terminal_preview,
 };
+use crate::ui::Text;
 use crate::ui::fold::{OnTop, Slide, edge, inert, on_top};
 use crate::ui::{
     Button, ButtonStyle, HEADER_HEIGHT, Icon, TILE_BAR, TILE_MARGIN, commit_title, dp, fixed,
@@ -247,8 +248,9 @@ pub struct AppView {
     #[cfg(target_os = "macos")]
     lights_away: bool,
     pub palette: Option<Palette>,
-    /// The colour scheme selected in its picker, which the window draws in until that closes.
-    previewed_scheme: Option<ColorScheme>,
+    /// The colour scheme selected in its picker, and whether it's light's or dark's, which the
+    /// window draws in until that closes.
+    previewed_scheme: Option<(Shade, ColorScheme)>,
     /// The modal on screen, if any, what takes its keys, its card's own, which Tab keeps
     /// to, the subscription that closes it, and what had the keys before it opened, to give
     /// them back.
@@ -540,8 +542,8 @@ impl AppView {
                     window,
                     cx,
                 ),
-                StoreEvent::LinkOpened { project, at } => {
-                    crate::links::land(this, project.clone(), at, window, cx)
+                StoreEvent::LinkOpened { project, at, from } => {
+                    crate::links::land(this, project.clone(), at, *from, window, cx)
                 }
                 StoreEvent::TilingChanged => {
                     this.drop_stale_tile_drag(cx);
@@ -637,6 +639,8 @@ impl AppView {
                         store.recheck_folders(cx);
                     });
                     crate::keymap::reload(cx);
+                } else {
+                    this.keep_view(cx);
                 }
             }),
             // Keys go to what's focused, so when it leaves the screen, as the Branches page's
@@ -727,10 +731,11 @@ impl AppView {
         cx.refresh_windows();
     }
 
-    /// Draw the window in `scheme` without keeping it, or with none, in the one in use again.
+    /// Draw the window in `scheme`, light or dark as its shade is, without keeping it, or with
+    /// none, in the one in use again.
     pub fn preview_scheme(
         &mut self,
-        scheme: Option<ColorScheme>,
+        scheme: Option<(Shade, ColorScheme)>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
@@ -741,10 +746,10 @@ impl AppView {
     }
 
     /// List the colour schemes, GitButler's, the Ghostty config's and every Ghostty theme, to
-    /// pick one to draw the app and its terminals in. It opens on the one in use, and the
-    /// window draws in whichever is selected.
-    pub fn pick_color_scheme(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let current = self.store.read(cx).prefs.color_scheme.clone();
+    /// pick the one the app and its terminals draw in while they're `shade`. It opens on the one
+    /// kept for it, and the window draws in whichever is selected, as `shade` would.
+    pub fn pick_color_scheme(&mut self, shade: Shade, window: &mut Window, cx: &mut Context<Self>) {
+        let current = self.store.read(cx).prefs.scheme(shade).clone();
         let named = but_tty::Ghostty::themes()
             .into_iter()
             .map(ColorScheme::Named);
@@ -752,28 +757,38 @@ impl AppView {
             .chain(named)
             .map(|scheme| {
                 let in_use = scheme == current;
-                let detail = match &scheme {
-                    _ if in_use => Some("In use"),
-                    ColorScheme::GitButler => Some("Light or dark, as Appearance says"),
-                    ColorScheme::Ghostty => Some("The themes your Ghostty config sets"),
-                    ColorScheme::Named(_) => None,
+                let detail = match (&scheme, shade) {
+                    _ if in_use => Some("Current"),
+                    (ColorScheme::GitButler, Shade::Light) => Some("GitButler's light colours"),
+                    (ColorScheme::GitButler, Shade::Dark) => Some("GitButler's dark colours"),
+                    (ColorScheme::Ghostty, Shade::Light) => {
+                        Some("The light theme your Ghostty config sets")
+                    }
+                    (ColorScheme::Ghostty, Shade::Dark) => {
+                        Some("The dark theme your Ghostty config sets")
+                    }
+                    (ColorScheme::Named(_), _) => None,
                 };
                 let previews = scheme.clone();
                 let choice = Choice::new(scheme.label().to_owned(), move |app, window, cx| {
                     app.previewed_scheme = None;
                     (app.store).update(cx, |store, cx| {
-                        store.set_prefs(|prefs| prefs.color_scheme = scheme, cx)
+                        store.set_prefs(|prefs| prefs.set_scheme(shade, scheme), cx)
                     });
                     app.apply_appearance(window, cx);
                 })
-                .previews(previews, in_use);
+                .previews(shade, previews, in_use);
                 match detail {
                     Some(detail) => choice.detail(detail),
                     None => choice,
                 }
             })
             .collect();
-        self.open_picker(None, "Search colour schemes", "Use", choices, window, cx);
+        let prompt = match shade {
+            Shade::Light => "Search light themes",
+            Shade::Dark => "Search dark themes",
+        };
+        self.open_picker(None, prompt, "Use", choices, window, cx);
     }
 
     pub fn pick_diff_font(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -872,6 +887,7 @@ impl AppView {
     /// ask instead, and quit on a yes: quitting would stop the operation partway and end what
     /// runs in the terminal.
     fn can_quit(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        self.keep_view(cx);
         let store = self.store.read(cx);
         let operations = match store.unfinished() {
             0 => None,
@@ -909,6 +925,16 @@ impl AppView {
             cx.quit()
         });
         false
+    }
+
+    fn keep_view(&mut self, cx: &mut Context<Self>) {
+        let view = self.detail.read(cx).current_view();
+        self.store.update(cx, |store, cx| store.keep_view(view, cx));
+    }
+
+    fn save_view(&mut self, cx: &mut Context<Self>) {
+        self.keep_view(cx);
+        self.store.update(cx, |store, _| store.save());
     }
 
     pub fn set_ui_scale(&mut self, scale: UiScale, cx: &mut Context<Self>) {
@@ -1078,13 +1104,14 @@ impl AppView {
             snack(&self.store, "Wait for the running operations to finish", cx);
             return;
         }
+        self.save_view(cx);
         let store = self.store.clone();
         let (sender, mut progress) = futures::channel::mpsc::unbounded();
         store.update(cx, |store, cx| {
             store.updating = Some(0);
             cx.notify();
         });
-        cx.spawn(async move |_, cx| {
+        cx.spawn(async move |this, cx| {
             // Off the UI thread: on Windows, starting a process can run the window's
             // message loop, which would enter the app again while this holds it.
             let installed = backend::run(move || {
@@ -1112,6 +1139,7 @@ impl AppView {
                     .timer(std::time::Duration::from_millis(100))
                     .await;
             }
+            this.update(cx, |app, cx| app.save_view(cx)).ok();
             // The Windows installer it started closes this app and starts the new one itself.
             if !cfg!(windows)
                 && let Err(err) = backend::run(|| Ok(crate::relaunch(false)?)).await
@@ -2217,22 +2245,6 @@ impl AppView {
         }
     }
 
-    fn in_composer(
-        &self,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-        act: impl FnOnce(&mut crate::detail::Detail, &mut Window, &mut Context<crate::detail::Detail>),
-    ) {
-        if self.covered() {
-            return;
-        }
-        self.detail.update(cx, |detail, cx| {
-            if detail.composing() {
-                act(detail, window, cx)
-            }
-        });
-    }
-
     /// Whether a menu, prompt, picker or modal is open over the window.
     fn covered(&self) -> bool {
         self.menu.is_some()
@@ -2307,8 +2319,15 @@ impl AppView {
         self.set_detail(!self.detail_open, window, cx);
     }
 
+    /// Pick the colour scheme the window draws in now, light's or dark's.
     fn change_theme(&mut self, _: &ChangeTheme, window: &mut Window, cx: &mut Context<Self>) {
-        self.pick_color_scheme(window, cx);
+        let shade = self
+            .store
+            .read(cx)
+            .prefs
+            .appearance
+            .shade(window.appearance());
+        self.pick_color_scheme(shade, window, cx);
     }
 
     fn command_palette(&mut self, _: &CommandPalette, window: &mut Window, cx: &mut Context<Self>) {
@@ -2875,8 +2894,8 @@ impl AppView {
                 .size(dp(72.))
                 .rounded(dp(theme.shape.popup))
                 .bg(theme.pop)
-                .text_size(dp(36.))
-                .font_weight(gpui::FontWeight::SEMIBOLD)
+                .text_off_scale(36.)
+                .semibold()
                 .text_color(theme.bg_1)
                 .child(SharedString::from(letter.to_ascii_uppercase().to_string()));
             Some(
@@ -3112,7 +3131,7 @@ impl AppView {
                     .bg(theme.bg_1)
                     .border_1()
                     .border_color(theme.hue(hue(ix)))
-                    .text_size(dp(11.))
+                    .text_11()
                     .text_color(theme.text_1)
                     .child(text);
                 Some((placed(biggest).flex().items_center().justify_center()).child(label))
@@ -3148,7 +3167,7 @@ impl AppView {
                 .bg(theme.bg_1)
                 .border_1()
                 .border_color(color)
-                .text_size(dp(11.))
+                .text_11()
                 .text_color(theme.text_1)
                 .child(text);
             Some(
@@ -4255,8 +4274,8 @@ impl AppView {
         };
         let zoomed = self.zoomed() == Some(tile);
         let (icon, label, style) = match zoomed {
-            true => (Icon::TileUnzoom, "Zoom out", ButtonStyle::Pop),
-            false => (Icon::TileZoom, "Zoom", ButtonStyle::Ghost),
+            true => (Icon::FullscreenExit, "Zoom out", ButtonStyle::Pop),
+            false => (Icon::FullscreenEnter, "Zoom", ButtonStyle::Ghost),
         };
         let (this, target) = (cx.entity().downgrade(), tile.clone());
         let zoom = icon_button(SharedString::from(format!("zoom-{tile:?}")), icon)
@@ -4273,7 +4292,7 @@ impl AppView {
         vec![
             zoom,
             button(Axis::Across, Icon::SplitRight, "Split right", &SplitRight),
-            button(Axis::Down, Icon::SplitBelow, "Split below", &SplitBelow),
+            button(Axis::Down, Icon::SplitBottom, "Split below", &SplitBelow),
         ]
     }
 
@@ -4810,7 +4829,7 @@ fn tile_bar(
         .pl(dp(8.))
         .pr(dp(2.))
         .gap(dp(6.))
-        .text_size(dp(12.))
+        .text_12()
         .text_color(theme.text_2)
         .child(small_icon(kind).text_color(theme.text_3))
         .child(div().flex_grow(1.).min_w_0().truncate().child(title))
@@ -5722,12 +5741,6 @@ impl Render for AppView {
             .on_action(cx.listener(Self::toggle_detail))
             .on_action(cx.listener(Self::command_palette))
             .on_action(cx.listener(Self::change_theme))
-            // The composer's keys, pressed with the focus elsewhere, like the navigator.
-            .on_action(
-                cx.listener(|this, _: &crate::detail::PickCommitTarget, window, cx| {
-                    this.in_composer(window, cx, Detail::pick_commit_target)
-                }),
-            )
             // The diff's own keys, pressed with the focus elsewhere, like the navigator: Space
             // there reads the diff beside it.
             .on_action(
@@ -5825,8 +5838,7 @@ impl Render for AppView {
             .when(!ligatures, |el| {
                 el.font_features(FontFeatures(std::sync::Arc::new(vec![("liga".into(), 0)])))
             })
-            .text_size(dp(13.))
-            .line_height(dp(18.))
+            .text_13()
             // Keeping its height as it slides, the bottom edge coming down over the panes.
             .when(tabs_share > 0., |el| {
                 el.child(
@@ -5961,14 +5973,17 @@ pub(crate) fn place_traffic_lights(away: bool, window: &Window, cx: &App) {
     window.set_traffic_light_position(point(left, top));
 }
 
-/// The theme the appearance setting and the system call for, in `previewed` over the scheme
-/// in use.
-fn theme_for(store: &Store, previewed: Option<&ColorScheme>, window: &Window) -> Theme {
+/// The theme the appearance setting and the system call for, or, while a scheme is
+/// `previewed`, that scheme in its shade.
+fn theme_for(store: &Store, previewed: Option<&(Shade, ColorScheme)>, window: &Window) -> Theme {
     let prefs = &store.prefs;
-    let (scheme, system) = (
-        previewed.unwrap_or(&prefs.color_scheme),
-        window.appearance(),
-    );
+    let (shade, scheme) = match previewed {
+        Some((shade, scheme)) => (*shade, scheme),
+        None => {
+            let shade = prefs.appearance.shade(window.appearance());
+            (shade, prefs.scheme(shade))
+        }
+    };
     let ghostty = but_tty::Ghostty::load();
     let digit = |family: &str| crate::ui::digit_advance(family, window.text_system());
     let installed = |family: &str| digit(family).is_some();
@@ -5977,7 +5992,7 @@ fn theme_for(store: &Store, previewed: Option<&ColorScheme>, window: &Window) ->
         true => (prefs.ground, prefs.accent, prefs.corners, prefs.density),
         false => Default::default(),
     };
-    Theme::new(prefs.appearance, scheme, system, prefs.code_size, &ghostty)
+    Theme::new(shade, scheme, prefs.code_size, &ghostty)
         .with_ground(ground)
         .with_accent(accent, &prefs.accent_color)
         .with_corners(corners)

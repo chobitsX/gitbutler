@@ -1,4 +1,6 @@
-import { stories } from "../docs/stories.ts";
+import { stories } from "../stories/stories.ts";
+import { Button } from "./Button.tsx";
+import { Icon } from "./Icon.tsx";
 import { CiStatus, MetaCount, type MetaCountType } from "./MetaCount.tsx";
 import { Tooltip } from "./Tooltip.tsx";
 
@@ -87,26 +89,21 @@ export const Kinds = meta.story({
 });
 
 /**
- * Counts that do their next step: ↓ updates the branch, ↑ pushes it. They read as the counts beside
- * them until the pointer reaches one, and each tooltip says what pressing it does.
+ * A count with a next step, as a branch row ends: a count isn't pressed, so the step is a small
+ * `Button` in its place, in the count's colour (`info` for unpushed, `warning` for behind): the
+ * number and then the count's glyph, 4px after the counts before it. Its tooltip says what pressing
+ * it does.
  */
-export const Pressable = meta.story({
+export const WithNextStep = meta.story({
 	render: () => (
-		<div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-			<Tooltip content="Update from main">
-				<MetaCount type="behind" onClick={() => {}}>
-					2
-				</MetaCount>
+		<div style={{ display: "flex", columnGap: 4, alignItems: "center" }}>
+			<CiStatus status="working" />
+			<Tooltip content="Push 5 commits">
+				<Button size="small" variant="info" aria-label="Push 5 commits">
+					5
+					<Icon name="arrow-up" />
+				</Button>
 			</Tooltip>
-			<Tooltip content="Push 1 commit">
-				<MetaCount type="unpushed" onClick={() => {}}>
-					1
-				</MetaCount>
-			</Tooltip>
-			<MetaCount type="age">27d</MetaCount>
-			<MetaCount type="unpushed" onClick={() => {}} disabled aria-label="Pushing 4 commits">
-				4
-			</MetaCount>
 		</div>
 	),
 });

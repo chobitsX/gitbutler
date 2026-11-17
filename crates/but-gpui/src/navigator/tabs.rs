@@ -17,18 +17,22 @@ use std::time::{Duration, Instant};
 use but_tty::Status;
 use gpui::{
     AnyElement, App, ClickEvent, Context, DispatchPhase, Div, DragMoveEvent, ElementId, Entity,
-    FocusHandle, Focusable, Hsla, MouseExitEvent, MouseMoveEvent, Pixels, Point, Render, Role,
-    ScrollHandle, SharedString, Stateful, StyleRefinement, Task, TextRun, Window, deferred, div,
-    font, linear_color_stop, linear_gradient, point, prelude::*, relative,
+    FocusHandle, Focusable, Hsla, MouseButton, MouseDownEvent, MouseExitEvent, MouseMoveEvent,
+    Pixels, Point, Render, Role, ScrollHandle, SharedString, Stateful, StyleRefinement, Task,
+    TextRun, Window, deferred, div, font, linear_color_stop, linear_gradient, point, prelude::*,
+    relative,
 };
 
+use super::cursor::{RowAction, row_actions};
+use super::drop::on_any_drag_move;
+use super::frame::{Built, RowsIn};
 use super::order::moving_worktree;
 use super::rows::{CARD_PADDING, Rows, listed_with};
 use super::{
     MAIN_WORKTREE, Navigator, Row, RowStyle, TerminalOverview, drawer_title, project_glyph,
     status_mark, worktree_icon, worktrees_listed,
 };
-use crate::app::{AppHandle, Cancel, Collapse, Expand, SelectNext, SelectPrevious, ToggleFold};
+use crate::app::{AppHandle, AppView, Cancel};
 use crate::backend::Checkout;
 use crate::clock;
 use crate::overlays::OVERLAY;
@@ -36,7 +40,7 @@ use crate::state::{NavigatorPlace, Part, ProjectId, Selection, Store, WatchedOrd
 use crate::theme::Theme;
 use crate::transfer::{Dragged, Moving, Op, ProjectDrag, Slot};
 use crate::ui::fold::{FOLD, Glide, Reorder, Slide, inert};
-use crate::ui::{HEADER_HEIGHT, Icon, above_drag, dp, fixed, h_flex, icon, popover, v_flex};
+use crate::ui::{HEADER_HEIGHT, Icon, above_drag, dp, fixed, h_flex, icon_at, popover, v_flex};
 
 /// How tall a tab's ground is, and how far down the strip it starts.
 const TAB_HEIGHT: f32 = 28.;
@@ -84,8 +88,8 @@ const POINTER_STRIDE: f32 = 6.;
 const MARK_ROOM: f32 = 12. + ICON_GAP;
 
 /// What a tab names: a watched project, one of its checkouts, the projects not watched, which
-/// share a tab as they share the drawer beside the panes, or the terminal overview, which has its
-/// own at the strip's right end.
+/// share a tab as they share the drawer beside the panes, or the terminal overview. The last two
+/// stay at the strip's right end.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(super) enum TabKey {
     Project(ProjectId),
@@ -104,7 +108,7 @@ impl TabKey {
 
     /// What a click on the tab selects, if it's anything: the projects not watched and the
     /// terminals are only there to pick from.
-    fn selection(&self) -> Option<Selection> {
+    pub(super) fn selection(&self) -> Option<Selection> {
         match self {
             TabKey::Project(id) => Some(Selection::Project(id.clone())),
             TabKey::Checkout(id, checkout) => {
@@ -173,10 +177,10 @@ impl Laid {
     }
 }
 
-/// Lay `groups` out left to right, each opened out as far as `share` says, then the tab of the
-/// projects not watched, `more` wide. Worktrees slide out from behind their project's tab, so the
-/// last comes first, and what's after them moves over to make room.
-fn lay_out(groups: &[Group], more: f32, share: impl Fn(&ProjectId) -> f32) -> Laid {
+/// Lay `groups` out left to right, each opened out as far as `share` says. Worktrees slide out from
+/// behind their project's tab, so the last comes first, and what's after them moves over to make
+/// room.
+fn lay_out(groups: &[Group], share: impl Fn(&ProjectId) -> f32) -> Laid {
     let mut laid = Laid::default();
     let mut at = 0.;
     for group in groups {
@@ -214,12 +218,7 @@ fn lay_out(groups: &[Group], more: f32, share: impl Fn(&ProjectId) -> f32) -> La
         }
         at += PROJECT_GAP;
     }
-    laid.tabs.push(Placed {
-        key: TabKey::More,
-        left: at,
-        width: more,
-    });
-    laid.end = at + more;
+    laid.end = (at - PROJECT_GAP).max(0.);
     laid
 }
 
@@ -253,30 +252,6 @@ fn nearest_slot<T: Clone>(
     match off(left) < nearest.0 {
         true => Slot::End,
         false => nearest.1,
-    }
-}
-
-/// Where a step of the keys in a tab's card goes.
-#[derive(Debug, PartialEq, Eq)]
-enum CardStep {
-    /// Up off the card's first row, onto the tab.
-    Tab,
-    /// Nowhere: up from the tab, which is the strip's top.
-    Stay,
-    /// Through the card's rows, as a step through the navigator's goes.
-    Rows,
-}
-
-/// Where a step of `delta` goes from item `at` of a card's, or from off them, as from its tab,
-/// unless the keys are `on_bar`, or what's `moving` steps through where it can land. From the
-/// tab it's down into the card only: a step back from off the navigator's rows starts at their
-/// bottom, which here would take the keys round from the tab to the card's last row.
-fn card_step(at: Option<usize>, on_bar: bool, delta: isize, moving: bool) -> CardStep {
-    match at {
-        _ if moving || delta >= 0 => CardStep::Rows,
-        Some(0) => CardStep::Tab,
-        None if !on_bar => CardStep::Stay,
-        Some(_) | None => CardStep::Rows,
     }
 }
 
@@ -422,6 +397,9 @@ struct Card {
     rows_height: f32,
 }
 
+/// Where a tab was last drawn, from the window's left, and how wide, in unscaled pixels.
+type DrawnAt = Rc<Cell<Option<(f32, f32)>>>;
+
 pub struct NavigatorTabs {
     app: AppHandle,
     /// Takes the keys, which step along the tabs and down the card's rows.
@@ -432,9 +410,11 @@ pub struct NavigatorTabs {
     navigator: Entity<Navigator>,
     /// The terminal overview, which the card under the terminals' tab holds.
     terminals: Entity<TerminalOverview>,
-    /// Where the terminals' tab was last drawn, in unscaled pixels from the window's left, as it
-    /// stays at the strip's right end rather than being laid out in it.
-    terminals_left: Rc<Cell<Option<f32>>>,
+    /// Where the tabs of the projects not watched and of the terminals were last drawn, from the
+    /// window's left, and how wide, in unscaled pixels, as they stay at the strip's right end
+    /// rather than being laid out in it.
+    more_drawn: DrawnAt,
+    terminals_drawn: DrawnAt,
     scroll: ScrollHandle,
     /// The project opened out, none while the selection's in one not watched, and those on
     /// their way there or back.
@@ -458,9 +438,13 @@ pub struct NavigatorTabs {
     /// The tab under the pointer, and whether the card is.
     pointed: Option<TabKey>,
     over_card: bool,
-    /// The pointer's left the window. Hovers don't follow it out, so the two above still say
-    /// where it last was, until it moves in again ([`Self::pointing`]).
+    /// The pointer's left the window, or a menu opened from the card covered it. Hovers don't
+    /// follow it out, so the two above still say where it last was, until it moves again
+    /// ([`Self::pointing`]).
     outside: bool,
+    /// A right-click in the card opened a menu, which the card stays down under until it
+    /// closes ([`Self::follow_menu`]).
+    card_menu: bool,
     /// The card going to a tab once the pointer rests, or back once it's strayed.
     waiting: Option<(Option<TabKey>, Task<()>)>,
     /// Where the pointer was last, and a stride back, which say which way it's going.
@@ -519,7 +503,8 @@ impl NavigatorTabs {
             store,
             navigator,
             terminals,
-            terminals_left: Rc::default(),
+            more_drawn: Rc::default(),
+            terminals_drawn: Rc::default(),
             scroll: ScrollHandle::new(),
             current: None,
             opening: HashMap::new(),
@@ -535,6 +520,7 @@ impl NavigatorTabs {
             card: None,
             pointed: None,
             outside: false,
+            card_menu: false,
             over_card: false,
             waiting: None,
             pointer: Default::default(),
@@ -912,6 +898,16 @@ impl NavigatorTabs {
         Some((label, width))
     }
 
+    /// Where `key`'s tab was last drawn and how wide, while it's one that stays at the strip's
+    /// right end.
+    fn pinned_drawn(&self, key: &TabKey) -> Option<&DrawnAt> {
+        match key {
+            TabKey::More => Some(&self.more_drawn),
+            TabKey::Terminals => Some(&self.terminals_drawn),
+            TabKey::Project(_) | TabKey::Checkout(..) => None,
+        }
+    }
+
     /// `project`'s checkouts that get a tab, each with what it says.
     fn checkouts(&self, project: &ProjectId, cx: &App) -> Vec<(Checkout, SharedString)> {
         let store = self.store.read(cx);
@@ -1042,8 +1038,35 @@ impl NavigatorTabs {
                 self.waiting = None;
                 self.show(key, cx);
             }
-            None if self.under_pointer().is_none() && !self.held => self.hide(window, cx),
+            None if self.under_pointer().is_none() && !self.held && !self.card_menu => {
+                self.hide(window, cx)
+            }
             None => {}
+        }
+    }
+
+    /// Keep the card down under the menu a right-click in it or on its tab opens.
+    fn keep_card_for_menu(&mut self, cx: &mut Context<Self>) {
+        self.card_menu = true;
+        self.waiting = None;
+        // Drawn again, so `follow_menu` lets it go if no menu came of it.
+        cx.notify();
+    }
+
+    /// Keep the card down while a menu opened from it is open, as it covers the card and takes
+    /// its hover. Once it's closed, the card follows the pointer from its next move, which says
+    /// what it's over.
+    fn follow_menu(&mut self, window: &Window, cx: &App) {
+        if !self.card_menu {
+            return;
+        }
+        let open = window.root::<AppView>().flatten().is_some_and(|app| {
+            let app = app.read(cx);
+            app.menu.is_some() || app.pending_menu.is_some()
+        });
+        if !open {
+            self.card_menu = false;
+            self.outside = true;
         }
     }
 
@@ -1140,38 +1163,39 @@ impl NavigatorTabs {
         self.scroll_to_current(cx);
     }
 
-    /// Step the keys down the card's rows, or back up them and on to the tab. Not while a
-    /// project or a worktree is being moved, which goes along the tabs ([`Self::step`]).
-    fn step_row(&mut self, delta: isize, window: &mut Window, cx: &mut Context<Self>) {
-        if moving_tab(self.store.read(cx)).is_some() {
-            return;
-        }
+    /// Do what a key does to the rows of the card the keys are on, as the navigator does to its
+    /// own, and scroll to where the keys go. A step of one row goes nowhere while a project or a
+    /// worktree is being moved, which goes along the tabs ([`Self::step`]).
+    fn act_on_card_rows(&mut self, action: RowAction, window: &mut Window, cx: &mut Context<Self>) {
         let Some(key) = self.keyed.clone() else {
             return;
         };
-        // The overview's rows take the keys themselves.
-        if key == TabKey::Terminals {
-            return window.focus(&self.terminals.focus_handle(cx), cx);
-        }
-        let row = (self.navigator).update(cx, |navigator, cx| {
-            navigator.step_in(&key, delta, window, cx)
-        });
-        if let Some((row, card)) = row.zip(self.card.as_ref()) {
-            card.pane.scroll.scroll_to_item(row);
-        }
-    }
-
-    /// Fold or unfold the selected row of the card, as `fold` does the navigator's.
-    fn fold_row(
-        &mut self,
-        fold: impl FnOnce(&mut Navigator, &mut Window, &mut Context<Navigator>),
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        if let Some(key) = self.keyed.clone().filter(|key| *key != TabKey::Terminals) {
-            (self.navigator).update(cx, |navigator, cx| {
-                navigator.in_scope(&key, cx, |navigator, cx| fold(navigator, window, cx))
-            });
+        let going = match action {
+            RowAction::Step(_) | RowAction::Section { .. } => true,
+            RowAction::Expand
+            | RowAction::Collapse
+            | RowAction::ToggleFold
+            | RowAction::Confirm => false,
+        };
+        match key {
+            _ if matches!(action, RowAction::Step(-1 | 1))
+                && moving_tab(self.store.read(cx)).is_some() => {}
+            // The overview's rows take the keys themselves, down from the tab, which is the top.
+            TabKey::Terminals if matches!(action, RowAction::Step(1..)) => {
+                window.focus(&self.terminals.focus_handle(cx), cx)
+            }
+            TabKey::Terminals => {}
+            TabKey::Project(_) | TabKey::Checkout(..) | TabKey::More => {
+                let row = (self.navigator).update(cx, |navigator, cx| {
+                    navigator.in_scope(&key, cx, |navigator, cx| {
+                        navigator.act_on_rows(action, window, cx);
+                        navigator.selected_card_row(cx)
+                    })
+                });
+                if let Some((row, card)) = row.filter(|_| going).zip(self.card.as_ref()) {
+                    card.pane.scroll.scroll_to_item(row);
+                }
+            }
         }
     }
 
@@ -1279,7 +1303,7 @@ impl NavigatorTabs {
     /// Have the card go where the pointer says: to the tab it's on at once, but for one it
     /// crossed on its way down into the card, and back once it's strayed from both.
     fn follow_pointer(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.scrolled_away || self.keyed.is_some() || self.held {
+        if self.scrolled_away || self.keyed.is_some() || self.held || self.card_menu {
             return;
         }
         let showing = (self.card.as_ref())
@@ -1435,25 +1459,23 @@ impl NavigatorTabs {
             self.card = None;
         }
         let terminals = self.terminals.clone();
-        let terminals_width = self.terminals_tab(now, window, cx).map(|(_, width)| width);
-        let terminals_left = self.terminals_left.get();
+        let pinned = (self.card.as_ref())
+            .and_then(|card| self.pinned_drawn(&card.pane.key))
+            .map(|drawn| drawn.get());
         let card = self.card.as_mut()?;
         // Where its tab comes to rest on screen. The tab may be on its way there, and a worktree's
         // starts out from behind its project's, so going by where it is now sends the card there
         // and back.
-        let at_rest = match &card.pane.key {
+        let at_rest = match pinned {
             // At the strip's right end, where it was drawn, as it's not laid out in the strip.
-            TabKey::Terminals => match (terminals_width, terminals_left) {
-                (Some(width), Some(left)) => Some((left, width)),
-                // Drawn for the first time in this frame, where the card goes in the next.
-                (Some(_), None) => {
-                    window.request_animation_frame();
-                    return None;
-                }
-                (None, _) => None,
-            },
-            key => (rest.place(key)).map(|tab| {
-                let slid = slid(&self.reorder, key);
+            Some(Some(drawn)) => Some(drawn),
+            // Drawn for the first time in this frame, where the card goes in the next.
+            Some(None) => {
+                window.request_animation_frame();
+                return None;
+            }
+            None => (rest.place(&card.pane.key)).map(|tab| {
+                let slid = slid(&self.reorder, &card.pane.key);
                 (
                     strip_left + OUTLINE + tab.left - rest_offset + slid,
                     tab.width,
@@ -1640,7 +1662,18 @@ impl NavigatorTabs {
                 this.over_card = *hovered;
                 this.follow_pointer(window, cx);
             }))
+            .on_mouse_down(
+                MouseButton::Right,
+                cx.listener(|this, _, _, cx| this.keep_card_for_menu(cx)),
+            )
             .map(|el| (self.navigator).update(cx, |navigator, cx| navigator.takes_drags(el, cx)))
+            // GPUI takes its hover away as a drag begins and gives it back only once the pointer
+            // moves after the drop, so a drop on it would read as the pointer having left.
+            .map(|el| {
+                on_any_drag_move(el, cx, |this, at, bounds, _, _| {
+                    this.over_card = bounds.contains(&at)
+                })
+            })
             .child(inert(
                 div()
                     .relative()
@@ -1719,19 +1752,14 @@ impl NavigatorTabs {
         };
         let glyph = match key {
             TabKey::Project(id) => project_glyph(store, id, glyph_color, theme),
-            TabKey::More => icon(Icon::Kebab)
-                .size(dp(TAB_ICON))
+            TabKey::More => icon_at(Icon::Kebab, TAB_ICON)
                 .text_color(glyph_color)
                 .into_any_element(),
-            TabKey::Terminals => icon(Icon::TextCode)
-                .size(dp(TAB_ICON))
+            TabKey::Terminals => icon_at(Icon::TextCode, TAB_ICON)
                 .text_color(glyph_color)
                 .into_any_element(),
-            TabKey::Checkout(id, checkout) => {
-                let changed = (store.workspace(id))
-                    .and_then(|ws| ws.uncommitted_in(checkout))
-                    .is_some_and(|files| !store.uncommitted_shown(id, checkout, files).is_empty());
-                worktree_icon(checkout.is_linked(), changed, style).into_any_element()
+            TabKey::Checkout(_, checkout) => {
+                worktree_icon(checkout.is_linked(), style).into_any_element()
             }
         };
         let mark_share = self.mark_share(key, now);
@@ -1791,7 +1819,7 @@ impl NavigatorTabs {
     ) -> impl IntoElement + use<> {
         let key = tab.key.clone();
         let current = self.active.as_ref() == Some(&key);
-        let (hovered, clicked) = (key.clone(), key.clone());
+        let (hovered, clicked, right_clicked) = (key.clone(), key.clone(), key.clone());
         let tab_drag = |el, navigator: &mut Navigator, cx: &mut Context<Navigator>| {
             navigator.tab_drag(el, &key, label.clone(), cx)
         };
@@ -1816,6 +1844,29 @@ impl NavigatorTabs {
                     });
                 }
             }))
+            // What the row it names offers in the navigator, the card staying down under it.
+            .on_mouse_down(
+                MouseButton::Right,
+                cx.listener(move |this, event: &MouseDownEvent, window, cx| {
+                    let Some(target) = right_clicked.selection() else {
+                        return;
+                    };
+                    // The keys go on the strip, as they go on the rows right-clicked in the
+                    // side's navigator, so the menu offers what they do there, as Move. The card
+                    // goes to the tab, from the one they were on.
+                    if this.store.read(cx).moving.is_none() {
+                        window.focus(&this.focus, cx);
+                        this.keyed = Some(right_clicked.clone());
+                        this.show(right_clicked.clone(), cx);
+                    }
+                    let strip = this.focus.is_focused(window);
+                    (this.navigator).update(cx, |navigator, cx| {
+                        navigator.strip_has_keys = strip;
+                        navigator.open_row_menu(&target, event.position, window, cx)
+                    });
+                    this.keep_card_for_menu(cx);
+                }),
+            )
             .map(|el| (self.navigator).update(cx, |navigator, cx| tab_drag(el, navigator, cx)))
             .map(|el| Self::takes_drops(el, cx))
     }
@@ -1865,9 +1916,9 @@ impl NavigatorTabs {
                 TabKey::Checkout(..) | TabKey::More | TabKey::Terminals => None,
             })
             .collect();
-        let more = (self.rest.place(&TabKey::More)).map_or(self.rest.end, |tab| tab.left);
         // Each with its worktrees, up to the gap before what comes next.
-        let ends = (projects.iter().skip(1).map(|(_, left)| *left)).chain([more]);
+        let ends =
+            (projects.iter().skip(1).map(|(_, left)| *left)).chain([self.rest.end + PROJECT_GAP]);
         let groups: Vec<(&ProjectId, f32, f32)> = (projects.iter().zip(ends))
             .map(|((id, left), end)| (*id, *left, end - left - PROJECT_GAP))
             .collect();
@@ -2010,6 +2061,7 @@ impl Render for NavigatorTabs {
         let now = clock::now();
         let projects = self.watched(cx);
         self.follow_selection(&projects, now, cx);
+        self.follow_menu(window, cx);
         // First, as the keys going to what's being held leave the card down.
         self.follow_hold(window, cx);
         self.follow_keys(window, cx);
@@ -2017,32 +2069,48 @@ impl Render for NavigatorTabs {
         let key = (self.card.as_ref()).filter(|card| card.open);
         let key = key.map(|card| card.pane.key.clone());
         (self.navigator).update(cx, |navigator, _| navigator.set_card_key(key));
-        // On until they've stopped, as what lands ends the hold just as the rows start closing up.
+        // While a card shows rows, even only hovered or on its way out, or the keys or a hold need
+        // them, and on until they've stopped, as what lands ends the hold just as the rows start
+        // closing up.
         let rows_sliding = self.navigator.read(cx).reorder.any();
-        if self.keyed.is_some() || self.held || rows_sliding {
-            let (sliding, reveal) =
-                (self.navigator).update(cx, |navigator, cx| navigator.frame_for_card(window, cx));
-            if sliding {
+        if self.card.is_some() || self.keyed.is_some() || self.held || rows_sliding {
+            let (moving, reveal) = (self.navigator).update(cx, |navigator, cx| {
+                let moving = navigator.prepare(RowsIn::Card, window, cx);
+                (moving, navigator.take_card_reveal(cx))
+            });
+            if moving {
                 window.request_animation_frame();
             }
             if let Some((row, card)) = reveal.zip(self.card.as_ref()) {
                 card.pane.scroll.scroll_to_item(row);
             }
         }
-        let (groups, mut labels) = self.groups(&projects, now, window, cx);
+        let (groups, labels) = self.groups(&projects, now, window, cx);
         self.follow_marks(&groups, now, cx);
         let more_label = SharedString::from(drawer_title(projects.is_empty()));
         let more = self.tab_width(&more_label, window, cx)
             + MARK_ROOM * self.mark_share(&TabKey::More, now);
-        labels.insert(TabKey::More, more_label);
         let terminals = self.terminals_tab(now, window, cx);
-        let laid = lay_out(&groups, more, |id| self.share(id, now));
+        // The tabs at the strip's right end, in order, and where each records where it's drawn.
+        let terminals = terminals.map(|(label, width)| {
+            (
+                TabKey::Terminals,
+                label,
+                width,
+                self.terminals_drawn.clone(),
+            )
+        });
+        let pinned: Vec<_> =
+            std::iter::once((TabKey::More, more_label, more, self.more_drawn.clone()))
+                .chain(terminals)
+                .collect();
+        let laid = lay_out(&groups, |id| self.share(id, now));
         self.order = (laid.tabs.iter().map(|tab| tab.key.clone()))
-            .chain(terminals.as_ref().map(|_| TabKey::Terminals))
+            .chain(pinned.iter().map(|(key, ..)| key.clone()))
             .collect();
         self.follow_order(&laid, cx);
         // As the tabs will be once they've stopped, which what goes to a tab aims for.
-        let rest = lay_out(&groups, more, |id| if self.opens(id) { 1. } else { 0. });
+        let rest = lay_out(&groups, |id| if self.opens(id) { 1. } else { 0. });
         self.glide_scroll(&rest, now, cx);
         let rest_offset = self.scroll_at_rest(&rest, cx);
 
@@ -2065,20 +2133,35 @@ impl Render for NavigatorTabs {
         let under_card =
             (card.as_ref()).filter(|_| self.keyed.is_some() && card_key == self.active.as_ref());
         let offset = -f32::from(self.scroll.offset().x) / theme.scale;
-        let ground = (self.active.as_ref())
-            .and_then(|key| rest.place(key))
-            .map(|tab| {
-                let at_rest = tab.left - rest_offset + offset + self.slid(&tab.key);
-                let (left, width) = match under_card {
-                    Some(card) => (card.left, card.width),
-                    None => (
-                        self.active_left.at(at_rest, now),
-                        self.active_width.at(tab.width, now),
-                    ),
-                };
-                self.active_drawn = Some((left, width));
-                (left, width)
-            });
+        // A tab at the strip's right end has its ground where it's drawn, but what glides to or
+        // from it goes along the strip, past its end, where the strip cuts it off.
+        let pinned_active = (self.active.as_ref())
+            .and_then(|key| self.pinned_drawn(key))
+            .and_then(|drawn| drawn.get());
+        let at_rest = (self.active.as_ref()).and_then(|key| match rest.place(key) {
+            Some(tab) => Some((
+                tab.left - rest_offset + offset + self.slid(&tab.key),
+                tab.width,
+            )),
+            None => {
+                pinned_active.map(|(left, width)| (left - strip_left - OUTLINE + offset, width))
+            }
+        });
+        let ground = at_rest.map(|(at_rest, width)| {
+            let (left, width) = match under_card {
+                Some(card) => (card.left, card.width),
+                None => (
+                    self.active_left.at(at_rest, now),
+                    self.active_width.at(width, now),
+                ),
+            };
+            self.active_drawn = Some((left, width));
+            (left, width)
+        });
+        // One under the card is there already, as the card is.
+        let pinned_ground =
+            pinned_active.filter(|_| under_card.is_some() || !self.active_left.moving(now));
+        let ground = ground.filter(|_| pinned_ground.is_none());
         let highlight = ground.and_then(|at| self.highlight(at, &laid, &labels, now, &theme, cx));
         self.rest = rest;
         // A solid one shows the tabs it's over itself, so it goes over them; a faint one goes
@@ -2118,7 +2201,7 @@ impl Render for NavigatorTabs {
             }
         }
         let edge = self.edge(&theme);
-        let ground = ground.map(|(left, width)| {
+        let ground_at = |left: f32, width: f32| {
             div()
                 .absolute()
                 .top(dp(TAB_TOP))
@@ -2129,7 +2212,9 @@ impl Render for NavigatorTabs {
                 .bg(theme.bg_1)
                 .border_1()
                 .border_color(edge)
-        });
+        };
+        let ground = ground.map(|(left, width)| ground_at(left, width));
+        let pinned_ground = pinned_ground.map(|(left, width)| ground_at(left, width));
         let neck = |left: f32, card: &DrawnCard| {
             div()
                 .absolute()
@@ -2145,10 +2230,11 @@ impl Render for NavigatorTabs {
                 .border_color(edge)
                 .opacity(card.fade)
         };
-        // The terminals' tab isn't in the strip, so the tab reaching down into its card goes under
-        // the strip rather than in it, where the strip doesn't cut it off.
-        let pinned = (self.card.as_ref()).is_some_and(|card| card.pane.key == TabKey::Terminals);
-        let (neck, pinned_neck) = match (card.as_ref(), pinned) {
+        // The tabs at the strip's right end aren't in the strip, so the tab reaching down into its
+        // card goes under the strip rather than in it, where the strip doesn't cut it off.
+        let is_pinned =
+            (self.card.as_ref()).is_some_and(|card| self.pinned_drawn(&card.pane.key).is_some());
+        let (neck, pinned_neck) = match (card.as_ref(), is_pinned) {
             (Some(card), true) => (
                 None,
                 Some(neck(card.left + strip_left + OUTLINE - offset, card)),
@@ -2297,35 +2383,40 @@ impl Render for NavigatorTabs {
         let controls = self
             .navigator
             .update(cx, |navigator, cx| navigator.strip_controls(cx));
-        // At the strip's right end, which scrolls under it.
-        let terminals_tab = terminals.map(|(label, width)| {
+        // At the strip's right end, which scrolls under them.
+        let scale = theme.scale;
+        let mut pinned_tabs = Vec::with_capacity(pinned.len());
+        for (key, label, width, drawn_at) in pinned {
             let tab = Placed {
-                key: TabKey::Terminals,
+                key,
                 left: 0.,
                 width,
             };
-            let drawn_at = self.terminals_left.clone();
-            let scale = theme.scale;
-            div()
-                .relative()
-                .flex_none()
-                .h(dp(HEADER_HEIGHT))
-                .w(dp(width))
-                .child(self.tab(&tab, 0., &label, now, cx))
-                .child(
-                    gpui::canvas(
-                        move |bounds, window, _| {
-                            let left = Some(f32::from(bounds.left()) / scale);
-                            if drawn_at.replace(left) != left {
-                                window.request_animation_frame();
-                            }
-                        },
-                        |_, _, _, _| {},
-                    )
-                    .absolute()
-                    .inset_0(),
-                )
-        });
+            pinned_tabs.push(
+                div()
+                    .relative()
+                    .flex_none()
+                    .h(dp(HEADER_HEIGHT))
+                    .w(dp(width))
+                    .child(self.tab(&tab, 0., &label, now, cx))
+                    .child(
+                        gpui::canvas(
+                            move |bounds, window, _| {
+                                let drawn = Some((
+                                    f32::from(bounds.left()) / scale,
+                                    f32::from(bounds.size.width) / scale,
+                                ));
+                                if drawn_at.replace(drawn) != drawn {
+                                    window.request_animation_frame();
+                                }
+                            },
+                            |_, _, _, _| {},
+                        )
+                        .absolute()
+                        .inset_0(),
+                    ),
+            );
+        }
 
         let moving = (self.card.as_ref()).is_some_and(|card| {
             card.slide.openness(now).is_some()
@@ -2367,31 +2458,7 @@ impl Render for NavigatorTabs {
                     .map(|el| {
                         (self.navigator).update(cx, |navigator, cx| navigator.key_actions(el, cx))
                     })
-                    .on_action(
-                        cx.listener(|this, _: &SelectNext, window, cx| {
-                            this.step_row(1, window, cx)
-                        }),
-                    )
-                    .on_action(cx.listener(|this, _: &SelectPrevious, window, cx| {
-                        this.step_row(-1, window, cx)
-                    }))
-                    .on_action(cx.listener(|this, action: &Expand, window, cx| {
-                        this.fold_row(|nav, window, cx| nav.expand(action, window, cx), window, cx)
-                    }))
-                    .on_action(cx.listener(|this, action: &Collapse, window, cx| {
-                        this.fold_row(
-                            |nav, window, cx| nav.collapse(action, window, cx),
-                            window,
-                            cx,
-                        )
-                    }))
-                    .on_action(cx.listener(|this, action: &ToggleFold, window, cx| {
-                        this.fold_row(
-                            |nav, window, cx| nav.toggle_fold(action, window, cx),
-                            window,
-                            cx,
-                        )
-                    }))
+                    .map(|el| row_actions(el, cx, NavigatorTabs::act_on_card_rows))
                     .on_action(cx.listener(|this, _: &Cancel, window, cx| {
                         // A move under way lets go first, as it does in the navigator.
                         match this.store.read(cx).moving.is_some() {
@@ -2400,9 +2467,10 @@ impl Render for NavigatorTabs {
                         }
                     })),
             )
+            .children(pinned_ground)
             .children(pinned_neck)
             .child(scroller)
-            .children(terminals_tab)
+            .children(pinned_tabs)
             .children(controls)
             .children(card.into_iter().flat_map(|card| card.elements))
     }
@@ -2485,25 +2553,28 @@ impl Navigator {
         } = self.rows_now(cx);
         // The rows of the tab the selection's in are the navigator's own, keys and all.
         let own = self.top_scope(cx).as_ref() == Some(scope);
-        let held_card = self.held_card.take();
-        let held_worktree = self.held_worktree.take();
-        let keys = (!own).then(|| std::mem::take(&mut self.row_keys));
-        let rows = std::mem::replace(&mut self.rows, rows);
-        let insets = std::mem::replace(&mut self.insets, insets);
-        let guides = std::mem::replace(&mut self.guides, guides);
-        let moving = std::mem::replace(&mut self.moving, moving);
-        let drawer = std::mem::replace(&mut self.drawer, drawer);
+        let row_keys = match own {
+            true => std::mem::take(&mut self.built.row_keys),
+            false => Vec::new(),
+        };
+        // Every field named, so one added to `Built` has to say what it is in the card.
+        let card = Built {
+            rows,
+            insets,
+            guides,
+            moving,
+            drawer,
+            row_keys,
+            // Held and edged as the list draws them, which the card doesn't.
+            held_card: None,
+            held_worktree: None,
+        };
+        let list = std::mem::replace(&mut self.built, card);
         let done = act(self, cx);
-        self.rows = rows;
-        self.insets = insets;
-        self.guides = guides;
-        self.moving = moving;
-        self.drawer = drawer;
-        if let Some(keys) = keys {
-            self.row_keys = keys;
+        let card = std::mem::replace(&mut self.built, list);
+        if own {
+            self.built.row_keys = card.row_keys;
         }
-        self.held_worktree = held_worktree;
-        self.held_card = held_card;
         self.scope = outer;
         done
     }
@@ -2519,7 +2590,7 @@ impl Navigator {
         self.scoped_keys = window.focused(cx);
         self.in_scope(scope, cx, |this, cx| {
             if *scope != TabKey::More {
-                return (0..this.rows.len())
+                return (0..this.built.rows.len())
                     .map(|ix| this.row_in_card(ix, window, cx))
                     .collect();
             }
@@ -2528,42 +2599,21 @@ impl Navigator {
             let bar = this
                 .drawer_bar(alone, window, &theme, cx)
                 .into_any_element();
-            let rows = (0..this.drawer.rows.len()).map(|ix| this.render_drawer_row(ix, window, cx));
+            let rows =
+                (0..this.built.drawer.rows.len()).map(|ix| this.render_drawer_row(ix, window, cx));
             std::iter::once(bar).chain(rows).collect()
         })
     }
 
-    /// Step the selection `delta` through what `scope` shows, as a step through the navigator's
-    /// rows does, or from its first row back up to what the tab selects, as [`card_step`] says,
-    /// and say which of the card's rows that is.
-    pub(super) fn step_in(
-        &mut self,
-        scope: &TabKey,
-        delta: isize,
-        window: &mut Window,
-        cx: &mut Context<Self>,
-    ) -> Option<usize> {
-        self.in_scope(scope, cx, |this, cx| {
-            let store = this.store.read(cx);
-            let at = (store.selection.as_ref())
-                .and_then(|selected| this.items().iter().position(|item| *item == selected));
-            let moving = store.moving.is_some();
-            match (
-                card_step(at, this.on_drawer_bar, delta, moving),
-                scope.selection(),
-            ) {
-                (CardStep::Tab, Some(tab)) => this.select(tab, window, cx),
-                (CardStep::Tab, None) | (CardStep::Stay, _) => {}
-                (CardStep::Rows, _) => this.step(delta, window, cx),
-            }
-            let selected = this.store.read(cx).selection.clone()?;
-            let row = |rows: &[Row]| {
-                let at = |row: &Row| matches!(row, Row::Item(item) if *item == selected);
-                rows.iter().position(at)
-            };
-            // The drawer's bar comes before its rows.
-            row(&this.rows).or_else(|| row(&this.drawer.rows).map(|row| row + 1))
-        })
+    /// Which of the card's rows the selection is, in [`Self::in_scope`].
+    pub(super) fn selected_card_row(&self, cx: &App) -> Option<usize> {
+        let selected = self.store.read(cx).selection.clone()?;
+        let row = |rows: &[Row]| {
+            let at = |row: &Row| matches!(row, Row::Item(item) if *item == selected);
+            rows.iter().position(at)
+        };
+        // The drawer's bar comes before its rows.
+        row(&self.built.rows).or_else(|| row(&self.built.drawer.rows).map(|row| row + 1))
     }
 
     /// What the navigator's header has but its filter, at the strip's right end.
@@ -2595,8 +2645,8 @@ mod tests {
     use gpui::point;
 
     use super::{
-        CardStep, Group, Laid, PROJECT_GAP, TabKey, WORKTREE_GAP, card_step, heading_down, lay_out,
-        nearest_slot, scrolled_to, stepped,
+        Group, Laid, PROJECT_GAP, TabKey, WORKTREE_GAP, heading_down, lay_out, nearest_slot,
+        scrolled_to, stepped,
     };
     use crate::backend::Checkout;
     use crate::state::ProjectId;
@@ -2620,22 +2670,22 @@ mod tests {
     fn a_project_opening_out_moves_what_follows_it_over_by_as_much_as_shows() {
         let groups = [group("a", &[50., 60.]), group("b", &[])];
         let whole = 50. + 60. + 2. * WORKTREE_GAP;
-        let shut = lay_out(&groups, 90., |_| 0.);
+        let shut = lay_out(&groups, |_| 0.);
         assert_eq!(
             left_of(&shut, "b"),
             100. + PROJECT_GAP,
             "shut, its tab is all it takes"
         );
-        let half = lay_out(&groups, 90., |id| if id.as_ref() == "a" { 0.5 } else { 0. });
+        let half = lay_out(&groups, |id| if id.as_ref() == "a" { 0.5 } else { 0. });
         assert_eq!(
             left_of(&half, "b"),
             100. + whole / 2. + PROJECT_GAP,
             "halfway, the next tab has moved over halfway"
         );
-        let open = lay_out(&groups, 90., |id| if id.as_ref() == "a" { 1. } else { 0. });
+        let open = lay_out(&groups, |id| if id.as_ref() == "a" { 1. } else { 0. });
         assert_eq!(
             open.end,
-            100. + whole + PROJECT_GAP + 100. + PROJECT_GAP + 90.,
+            100. + whole + PROJECT_GAP + 100.,
             "open, the strip ends past all of it"
         );
     }
@@ -2643,42 +2693,13 @@ mod tests {
     #[test]
     fn worktrees_slide_out_from_behind_their_project() {
         let groups = [group("a", &[50.])];
-        let half = lay_out(&groups, 90., |_| 0.5);
+        let half = lay_out(&groups, |_| 0.5);
         let whole = 50. + WORKTREE_GAP;
         let tab = half.tabs.get(1).map_or(f32::NAN, |tab| tab.left);
         assert_eq!(
             tab,
             100. + whole / 2. - whole + WORKTREE_GAP,
             "what isn't out yet is still behind the project's tab"
-        );
-    }
-
-    #[test]
-    fn up_from_the_tab_stays_on_it() {
-        assert_eq!(
-            card_step(None, false, -1, false),
-            CardStep::Stay,
-            "the tab is the top, so the keys don't go round to the card's last row"
-        );
-        assert_eq!(
-            card_step(Some(0), false, -1, false),
-            CardStep::Tab,
-            "up off the first row is the tab"
-        );
-        assert_eq!(
-            card_step(None, false, 1, false),
-            CardStep::Rows,
-            "down from the tab goes into the card"
-        );
-        assert_eq!(
-            card_step(None, true, -1, false),
-            CardStep::Rows,
-            "on the drawer's bar the keys are in the card, though nothing's selected there"
-        );
-        assert_eq!(
-            card_step(None, false, -1, true),
-            CardStep::Rows,
-            "what's moving steps through where it can land"
         );
     }
 
@@ -2827,24 +2848,20 @@ mod tests {
     }
 
     #[test]
-    fn the_projects_not_watched_come_after_the_rest() {
-        let groups = [group("a", &[50.]), group("b", &[])];
-        let laid = lay_out(&groups, 90., |_| 1.);
-        let more = laid.place(&TabKey::More).map_or(f32::NAN, |tab| tab.left);
+    fn with_no_projects_watched_the_strip_is_empty() {
+        let laid = lay_out(&[], |_| 1.);
         assert_eq!(
-            more,
-            left_of(&laid, "b") + 100. + PROJECT_GAP,
-            "their tab follows the last project's"
+            laid.end, 0.,
+            "the tab of the projects not watched is past the strip, beside the terminals'"
         );
-        assert_eq!(laid.end, more + 90., "and the strip ends with it");
     }
 
     #[test]
     fn a_project_kept_open_leaves_the_tab_clicked_after_it_where_it_was() {
         let groups = [group("a", &[50., 60.]), group("b", &[70.])];
-        let before = lay_out(&groups, 90., |id| if id.as_ref() == "a" { 1. } else { 0. });
+        let before = lay_out(&groups, |id| if id.as_ref() == "a" { 1. } else { 0. });
         for b in [0.25, 0.5, 1.] {
-            let opening = lay_out(&groups, 90., |id| if id.as_ref() == "a" { 1. } else { b });
+            let opening = lay_out(&groups, |id| if id.as_ref() == "a" { 1. } else { b });
             assert_eq!(
                 left_of(&opening, "b"),
                 left_of(&before, "b"),

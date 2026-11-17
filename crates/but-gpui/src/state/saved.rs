@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 use super::{Seen, Selection, Store};
 use crate::backend::saved::Database;
 use crate::clock;
-use crate::theme::Appearance;
+use crate::links::{Route, View};
+use crate::theme::{Appearance, ColorScheme, Shade};
 use crate::ui::fold::Glide;
 
 /// How long a pane takes to slide back to its default width.
@@ -44,7 +45,7 @@ impl Store {
 
     /// Write the saved state now, as on quit: the process may end before a background save
     /// would.
-    pub(super) fn save(&mut self) {
+    pub(crate) fn save(&mut self) {
         let (version, rows) = self.next_save();
         self.saved_db.write(version, rows);
     }
@@ -74,6 +75,16 @@ impl Store {
                 .collect(),
             selection: (self.selection.as_ref().map(|s| s.project().to_string()))
                 .or_else(|| self.restored.selection.clone()),
+            place: match &self.selection {
+                None => self.restored.place.clone(),
+                Some(selection) => {
+                    let change = match selection {
+                        Selection::Commit(project, id) => self.key_of(project, *id),
+                        _ => None,
+                    };
+                    place_to_save(selection, self.view.as_ref(), change)
+                }
+            },
             seen: self.seen.clone(),
             widths: self.widths.clone(),
             window: self.window.clone(),
@@ -396,6 +407,43 @@ pub(super) struct Restored {
     pub(super) handed: Option<Selection>,
     /// Nothing was saved before, as on the first launch.
     pub(super) fresh: bool,
+    pub(super) place: Option<SavedPlace>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub(super) struct SavedPlace {
+    pub(super) project: String,
+    pub(super) at: Vec<(String, String)>,
+}
+
+fn place_to_save(
+    selection: &Selection,
+    view: Option<&View>,
+    change: Option<String>,
+) -> Option<SavedPlace> {
+    let (tab, place) = match view {
+        Some(view) if view.selection == *selection => (view.tab, view.place.clone()),
+        _ => (None, None),
+    };
+    let route = Route::Select {
+        selection: selection.clone(),
+        tab,
+        place,
+        change,
+    };
+    Some(SavedPlace {
+        project: selection.project().to_string(),
+        at: crate::links::write(&route)?,
+    })
+}
+
+pub(super) fn place_to_restore(
+    restored: &Restored,
+    expanded: impl Fn(&str) -> bool,
+) -> Option<SavedPlace> {
+    (restored.place.clone()).filter(|place| {
+        restored.selection.as_deref() == Some(place.project.as_str()) && expanded(&place.project)
+    })
 }
 
 /// How file lists show their files, as but.dev's can.
@@ -506,6 +554,7 @@ pub(super) struct Saved {
     /// The watched projects, in the order the navigator shows them.
     pub(super) expanded: Vec<String>,
     pub(super) selection: Option<String>,
+    pub(super) place: Option<SavedPlace>,
     pub(super) seen: Seen,
     pub(super) widths: HashMap<Pane, f32>,
     pub(super) window: Option<WindowPlace>,
@@ -541,7 +590,10 @@ pub struct ProjectGroup {
 #[serde(default)]
 pub struct Prefs {
     pub appearance: Appearance,
-    pub color_scheme: crate::theme::ColorScheme,
+    /// The colour scheme the app draws in while it's light.
+    pub light_scheme: ColorScheme,
+    /// The colour scheme the app draws in while it's dark.
+    pub dark_scheme: ColorScheme,
     /// The colour GitButler's own colours pick things out in.
     pub accent: crate::theme::Accent,
     /// A custom accent, as typed, kept while another one is picked.
@@ -657,16 +709,16 @@ pub struct Prefs {
     /// The common notes a click leaves on a brief, the stock ones if never changed.
     pub brief_shortcuts: Option<Vec<String>>,
     pub branches_status: BranchStatus,
-    /// The navigator's branches start with their commits listed, rather than folded to a
-    /// row each.
-    pub branches_start_open: bool,
+    /// The navigator's branches start folded to a row each, rather than with their commits
+    /// listed. Off unless picked.
+    pub branches_start_folded: bool,
     /// The navigator's open branches list all their commits, rather than the first few and
     /// how many more.
     pub all_branch_commits: bool,
-    /// A click on a navigator branch only selects it, rather than listing its commits too and
-    /// folding the ones a click listed before, which with several branches keeps moving the
-    /// rows. Off unless picked.
-    pub click_only_selects_branch: bool,
+    /// A click on a navigator branch lists its commits too and folds the ones a click listed
+    /// before, rather than only selecting it. Off unless picked, as with several branches it
+    /// keeps moving the rows.
+    pub click_opens_branch: bool,
     /// The commit composer opens with every file left out, for what goes in to be checked,
     /// rather than with them all in.
     pub composer_starts_unchecked: bool,
@@ -745,6 +797,21 @@ impl Prefs {
         }
     }
 
+    /// The colour scheme kept for `shade`.
+    pub fn scheme(&self, shade: Shade) -> &ColorScheme {
+        match shade {
+            Shade::Light => &self.light_scheme,
+            Shade::Dark => &self.dark_scheme,
+        }
+    }
+
+    pub fn set_scheme(&mut self, shade: Shade, scheme: ColorScheme) {
+        match shade {
+            Shade::Light => self.light_scheme = scheme,
+            Shade::Dark => self.dark_scheme = scheme,
+        }
+    }
+
     /// The commands "New terminal with command" offers.
     pub fn terminal_launchers(&self) -> Vec<String> {
         (self.terminal_launchers.clone())
@@ -812,6 +879,14 @@ impl Saved {
     /// What `value` saved, but for what this build can't read: a choice a newer build saved
     /// that this one doesn't know, as a new size, goes back to its default alone.
     fn parse(mut value: serde_json::Value) -> Self {
+        if let Some(prefs) = value.get_mut("prefs").and_then(|p| p.as_object_mut()) {
+            // One scheme was kept for both before each had its own.
+            if let Some(scheme) = prefs.remove("color_scheme") {
+                for key in ["light_scheme", "dark_scheme"] {
+                    prefs.entry(key).or_insert_with(|| scheme.clone());
+                }
+            }
+        }
         Self::deserialize(&value).unwrap_or_else(|err| {
             tracing::warn!("reading only some of the saved state: {err}");
             if let Some(prefs) = value.get_mut("prefs") {
@@ -835,7 +910,103 @@ impl Saved {
 
 #[cfg(test)]
 mod tests {
-    use super::Saved;
+    use super::{Restored, Saved, SavedPlace, place_to_restore, place_to_save};
+    use crate::backend::{CommitId, FullName};
+    use crate::links::{Route, Tab, View};
+    use crate::state::Selection;
+
+    fn params(at: &[(&str, &str)]) -> Vec<(String, String)> {
+        (at.iter())
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+            .collect()
+    }
+
+    #[test]
+    fn place_follows_the_selection_not_a_stale_view() {
+        let branch = Selection::Branch(
+            "p".into(),
+            Some(FullName::try_from("refs/heads/a").expect("a valid ref")),
+        );
+        let hash = "8c5a2f0e4a2b7c43c0d9a3a8bfbb4e4b2b2d1f6a";
+        let commit = Selection::Commit(
+            "p".into(),
+            CommitId(gix::ObjectId::from_hex(hash.as_bytes()).expect("a hash")),
+        );
+        let review = Some(Tab::Page(crate::detail::PageTab::Review));
+        let view = View::new(branch.clone(), review, None);
+        let reopens = |selection: &Selection, change: Option<String>| {
+            let saved = place_to_save(selection, Some(&view), change)?;
+            assert_eq!(saved.project, "p", "kept under the row's project");
+            crate::links::read(&saved.at, &"p".into())
+        };
+        assert_eq!(
+            reopens(&branch, None),
+            Some(Route::Select {
+                selection: branch.clone(),
+                tab: review,
+                place: None,
+                change: None,
+            }),
+            "the row as the window shows it"
+        );
+        assert_eq!(
+            reopens(&commit, Some("xyz".into())),
+            Some(Route::Select {
+                selection: commit.clone(),
+                tab: None,
+                place: None,
+                change: Some("xyz".into()),
+            }),
+            "a view of another row is left out, and a commit is kept with its change id"
+        );
+        let terminal = Selection::Terminal("p".into(), crate::terminal::TerminalId(1));
+        assert_eq!(
+            place_to_save(&terminal, None, None),
+            None,
+            "no link names a terminal, so the project id stands in"
+        );
+    }
+
+    #[test]
+    fn place_is_restored_only_for_the_saved_watched_project() {
+        let place = SavedPlace {
+            project: "p".into(),
+            at: params(&[("to", "uncommitted")]),
+        };
+        let restored = |selection: &str| Restored {
+            selection: Some(selection.into()),
+            place: Some(place.clone()),
+            ..Restored::default()
+        };
+        assert_eq!(
+            place_to_restore(&restored("p"), |_| true),
+            Some(place.clone()),
+            "the project saved as selected, and watched"
+        );
+        assert_eq!(
+            place_to_restore(&restored("q"), |_| true),
+            None,
+            "an older build moved on to another project"
+        );
+        assert_eq!(
+            place_to_restore(&restored("p"), |_| false),
+            None,
+            "a folded project stays folded"
+        );
+    }
+
+    #[test]
+    fn a_place_this_build_cant_read_loses_only_itself() {
+        let newer = r#"{ "selection": "a", "expanded": ["a"], "place": { "project": 1 } }"#;
+        let saved = Saved::parse(serde_json::from_str(newer).expect("it's JSON"));
+        assert_eq!(
+            saved.selection.as_deref(),
+            Some("a"),
+            "the selection is kept"
+        );
+        assert_eq!(saved.expanded, ["a"], "the watched projects are kept");
+        assert_eq!(saved.place, None, "the place is dropped");
+    }
 
     #[test]
     fn project_groups_preserve_membership_and_folds_across_restarts() {
@@ -958,6 +1129,18 @@ mod tests {
         assert!(
             !saved.prefs.confirm_terminal_close,
             "what was saved before the setting closes at once"
+        );
+    }
+
+    #[test]
+    fn the_one_colour_scheme_kept_before_becomes_both() {
+        let older = r#"{ "prefs": { "color_scheme": { "Named": "Dracula" } } }"#;
+        let saved = Saved::parse(serde_json::from_str(older).expect("it's JSON"));
+        let dracula = crate::theme::ColorScheme::Named("Dracula".into());
+        assert_eq!(
+            [&saved.prefs.light_scheme, &saved.prefs.dark_scheme],
+            [&dracula; 2],
+            "the app draws as it did, light or dark"
         );
     }
 

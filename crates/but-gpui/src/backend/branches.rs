@@ -467,7 +467,7 @@ mod tests {
             );
             let dev = branches
                 .iter()
-                .find(|b| b.ref_name.to_string() == "refs/remotes/origin/dev")
+                .find(|b| b.ref_name == "refs/remotes/origin/dev")
                 .expect("the remote dev branch is listed");
             assert_eq!(
                 dev.tip.0.to_string(),
@@ -532,7 +532,7 @@ mod tests {
             );
             let backup = remotes
                 .iter()
-                .find(|b| b.ref_name.to_string() == "refs/remotes/backup/main")
+                .find(|b| b.ref_name == "refs/remotes/backup/main")
                 .expect("backup/main is listed");
             assert_eq!(
                 backup.tip.0.to_string(),
