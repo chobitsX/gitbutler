@@ -1340,34 +1340,37 @@ impl AppView {
             .map(|row| self.store.read(cx).place(&row));
         // What right-clicking the selection offers, worded as there until something's typed,
         // which finds a command by its title.
-        let selected = items.into_iter().map(|item| match item.command {
-            Some(command) => {
-                let phrase = (item.label != command.title()).then_some(item.label);
-                let risky = item.danger || command.risky();
-                let choice = command_choice(command, item.key);
-                (
-                    Some(command.title()),
-                    Choice {
-                        phrase,
-                        risky,
-                        ..choice
-                    },
-                )
-            }
-            None => {
-                let handler = item.handler;
-                let choice = Choice {
-                    key: item.key,
-                    detail: item.detail,
-                    risky: item.danger || item.risky,
-                    aliases: item.aliases,
-                    ..Choice::new(item.label, move |this, window, cx| {
-                        handler(this, window, cx)
-                    })
-                };
-                (None, choice)
-            }
-        });
+        let selected = items
+            .into_iter()
+            .filter(|item| item.disabled.is_none())
+            .map(|item| match item.command {
+                Some(command) => {
+                    let phrase = (item.label != command.title()).then_some(item.label);
+                    let risky = item.danger || command.risky();
+                    let choice = command_choice(command, item.key);
+                    (
+                        Some(command.title()),
+                        Choice {
+                            phrase,
+                            risky,
+                            ..choice
+                        },
+                    )
+                }
+                None => {
+                    let handler = item.handler;
+                    let choice = Choice {
+                        key: item.key,
+                        detail: item.detail,
+                        risky: item.danger || item.risky,
+                        aliases: item.aliases,
+                        ..Choice::new(item.label, move |this, window, cx| {
+                            handler(this, window, cx)
+                        })
+                    };
+                    (None, choice)
+                }
+            });
         let rest = commands.into_iter().map(|command| {
             // What pressing it would run from where the keys were, not another place's.
             let key = shortcut_here(command, window, cx);

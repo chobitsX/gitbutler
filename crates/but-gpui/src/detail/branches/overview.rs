@@ -418,6 +418,7 @@ mod tests {
             ref_name: crate::backend::model::build::full(&format!("refs/heads/{name}")),
             name: name.to_owned(),
             local: true,
+            sync: None,
             local_ref: Some(crate::backend::model::build::full(&format!(
                 "refs/heads/{name}"
             ))),

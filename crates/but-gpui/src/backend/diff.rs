@@ -69,6 +69,11 @@ pub enum DiffSource {
     /// The uncommitted changes of the linked worktree with this name, like an agent's.
     Linked(BString),
     Commit(CommitId),
+    /// The exact difference between two committed tips, without a target or merge-base substitution.
+    Between {
+        base: CommitId,
+        tip: CommitId,
+    },
     /// Everything from `oldest` (inclusive) up to `newest`, like a whole branch.
     Range {
         oldest: CommitId,
@@ -139,6 +144,7 @@ pub fn load_diff(
         DiffSource::Commit(id) => {
             tree_changes(present_first_parent(&repo.find_commit(id.0)?), id.0)?
         }
+        DiffSource::Between { base, tip } => tree_changes(Some(base.0), tip.0)?,
         DiffSource::Range { oldest, newest } => {
             let base = present_first_parent(&repo.find_commit(oldest.0)?);
             let changes = tree_changes(base, newest.0)?;

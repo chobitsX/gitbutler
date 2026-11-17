@@ -814,7 +814,10 @@ impl Detail {
             DiffSource::Linked(name) => return Some((None, Checkout::Linked(name.clone()))),
             DiffSource::Commit(id) => *id,
             DiffSource::Range { .. } => made()?,
-            DiffSource::Commits(_) | DiffSource::Branch { .. } | DiffSource::Snapshot { .. } => {
+            DiffSource::Commits(_)
+            | DiffSource::Between { .. }
+            | DiffSource::Branch { .. }
+            | DiffSource::Snapshot { .. } => {
                 return None;
             }
         };

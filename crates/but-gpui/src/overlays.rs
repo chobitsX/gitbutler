@@ -72,6 +72,8 @@ pub struct MenuItem {
     pub key: Option<SharedString>,
     /// A word on it, quieter, before the keys: how many it would show, say.
     pub detail: Option<SharedString>,
+    /// Kept visible with an explanation, but never run by pointer, keyboard or the palette.
+    pub disabled: Option<SharedString>,
     /// Shown as destructive, in red.
     pub danger: bool,
     /// What [`Command::risky`] says of the command it runs, so a list typed into finds it by
@@ -111,6 +113,7 @@ impl MenuItem {
             label: label.into(),
             key: None,
             detail: None,
+            disabled: None,
             danger: false,
             risky: false,
             separated: false,
@@ -189,6 +192,11 @@ impl MenuItem {
 
     pub fn found_by(mut self, aliases: &'static [&'static str]) -> Self {
         self.aliases = aliases;
+        self
+    }
+
+    pub fn disabled_because(mut self, reason: Option<impl Into<SharedString>>) -> Self {
+        self.disabled = reason.map(Into::into);
         self
     }
 
@@ -432,6 +440,14 @@ impl AppView {
 
     /// Run the menu's item `ix` from where the keys were before it opened, closing it.
     fn run_menu_item(&mut self, ix: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if self
+            .menu
+            .as_ref()
+            .and_then(|menu| menu.items.get(ix))
+            .is_some_and(|item| item.disabled.is_some())
+        {
+            return;
+        }
         backend::metrics::input(backend::metrics::Via::Menu);
         let handler = (self.menu.as_ref())
             .and_then(|menu| menu.items.get(ix))
@@ -470,12 +486,19 @@ impl AppView {
         let Some(menu) = &mut self.menu else {
             return;
         };
-        let last = menu.items.len().saturating_sub(1);
-        menu.highlighted = Some(match (menu.highlighted, delta < 0) {
-            (None, false) => 0,
-            (None, true) => last,
-            (Some(at), _) => at.saturating_add_signed(delta).min(last),
-        });
+        let enabled = |ix: &usize| {
+            menu.items
+                .get(*ix)
+                .is_some_and(|item| item.disabled.is_none())
+        };
+        let next = if delta < 0 {
+            (0..menu.highlighted.unwrap_or(menu.items.len()))
+                .rev()
+                .find(enabled)
+        } else {
+            (menu.highlighted.map_or(0, |ix| ix + 1)..menu.items.len()).find(enabled)
+        };
+        menu.highlighted = next.or(menu.highlighted);
         cx.notify();
     }
 
@@ -834,7 +857,12 @@ impl AppView {
                     .child(heading)
                     .into_any_element()
             });
-            let row = list_row(("menu-item", ix), menu.highlighted == Some(ix), theme)
+            let row =
+                list_row(
+                    ("menu-item", ix),
+                    item.disabled.is_none() && menu.highlighted == Some(ix),
+                    theme,
+                )
                 .mx(dp(4.))
                 .gap(dp(16.))
                 .text_size(dp(13.))
@@ -843,7 +871,17 @@ impl AppView {
                 } else {
                     theme.text_1
                 })
-                .child(div().flex_1().child(item.label.clone()))
+                .child(v_flex().flex_1().child(item.label.clone()).children(
+                    item.disabled.clone().map(|reason| {
+                        div()
+                            .text_size(dp(11.))
+                            .text_color(theme.text_3)
+                            .child(reason)
+                    }),
+                ))
+                .when(item.disabled.is_some(), |el| {
+                    el.h_auto().min_h(dp(theme.sizes.control)).py(dp(5.))
+                })
                 .when_some(item.detail.clone(), |el, detail| {
                     el.child(div().text_color(theme.text_3).child(detail))
                 })
@@ -865,6 +903,11 @@ impl AppView {
                 .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                     this.run_menu_item(ix, window, cx)
                 }))
+                .when_some(item.disabled.clone(), |el, reason| {
+                    el.text_color(theme.text_3)
+                        .hover(|el| el.bg(gpui::transparent_black()))
+                        .tooltip(crate::ui::Tooltip::text(reason))
+                })
                 .into_any_element();
             line.into_iter().chain(heading).chain([row])
         });

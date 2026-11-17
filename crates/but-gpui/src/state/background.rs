@@ -164,7 +164,7 @@ impl Store {
 
     /// Note that a fetch of `project` worked, or with `any_remote` false that it found no
     /// remote to fetch from, which isn't a fetch and holds off the next one a while.
-    pub(super) fn fetched_now(&mut self, project: &ProjectId, any_remote: bool) {
+    pub(crate) fn fetched_now(&mut self, project: &ProjectId, any_remote: bool) {
         self.fetch_soon.remove(project);
         match any_remote {
             true => {

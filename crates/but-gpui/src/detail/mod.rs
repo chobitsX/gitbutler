@@ -601,6 +601,8 @@ pub struct Detail {
     /// What's fetched of other machines' branches; see `detail/machine.rs`.
     mesh: machine::MeshFetches,
     _branch_commits_load: Task<()>,
+    _branch_compare_load: Task<()>,
+    _branch_sync_load: Task<()>,
     /// Each History page's operations, the same way, and its filter.
     history: HashMap<ProjectId, history::History>,
     history_filter: Entity<TextInput>,
@@ -981,6 +983,8 @@ impl Detail {
             _branches_load: Task::ready(()),
             mesh: machine::MeshFetches::default(),
             _branch_commits_load: Task::ready(()),
+            _branch_compare_load: Task::ready(()),
+            _branch_sync_load: Task::ready(()),
             history: HashMap::new(),
             history_filter,
             history_scroll: panes::side_list_state(),

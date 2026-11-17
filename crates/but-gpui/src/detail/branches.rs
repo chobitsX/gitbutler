@@ -12,6 +12,7 @@ use gpui::{
 };
 
 mod overview;
+mod sync;
 
 actions!(
     branches,
@@ -63,6 +64,9 @@ pub(super) struct Branches {
     /// The selection is the caption of `selected`'s stack, which names its top branch: that
     /// one's changes are the whole stack's.
     stack: bool,
+    comparing: bool,
+    comparison: Option<branches::sync::Comparison>,
+    compare_error: Option<String>,
     /// The branches whose commits show under them, by ref: folded until opened, as the
     /// navigator's are.
     open: HashSet<FullName>,
@@ -141,6 +145,12 @@ impl Branches {
         // Which branches were open and their commits, of those still listed, and the
         // selected commit while its branch stays selected.
         let listed = |ref_name: &FullName| list.iter().any(|b| b.ref_name == *ref_name);
+        let comparing = previous
+            .as_ref()
+            .is_some_and(|b| b.comparing && b.selected == selected);
+        let comparison = previous.as_ref().and_then(|b| b.comparison.clone()).filter(|c| {
+            list.iter().any(|b| b.ref_name == c.branch && b.tip == c.local_tip && b.sync.as_ref().is_some_and(|s| matches!(s.state, branches::sync::SyncState::Known { tip, .. } if tip == c.remote_tip)))
+        });
         let (who, recency) = (previous.as_ref())
             .map(|b| (b.who.clone(), b.recency))
             .unwrap_or_default();
@@ -164,6 +174,9 @@ impl Branches {
             list,
             selected,
             stack,
+            comparing,
+            comparison,
+            compare_error: None,
             open,
             folded,
             commits,
@@ -283,6 +296,7 @@ impl Detail {
         // What the listing depends on: the project's branches, as its last full load saw them.
         let seen = (self.store.read(cx).workspace(project)).map_or(0, |ws| ws.refs);
         if !force && self.branches_for(project).is_some_and(|b| b.seen == seen) {
+            self.load_branch_comparison(project, cx);
             return;
         }
         let project = project.clone();
@@ -321,6 +335,7 @@ impl Detail {
                 let branches = Branches::read(project.clone(), seen, all, previous);
                 this.branches.insert(project.clone(), branches);
                 this.load_open_commits(&project, cx);
+                this.load_branch_comparison(&project, cx);
                 if shown {
                     this.open_waiting(true, cx);
                     // The filter may hide what's selected now.
@@ -376,8 +391,9 @@ impl Detail {
     /// Whether the keys are on a branch's own row of the Branches page's list.
     fn on_branch_row(&self, project: &ProjectId, window: &Window) -> bool {
         self.side_list_focused(window)
-            && (self.branches_for(project))
-                .is_some_and(|branches| branches.commit.is_none() && !branches.stack)
+            && (self.branches_for(project)).is_some_and(|branches| {
+                branches.commit.is_none() && !branches.stack && !branches.comparing
+            })
     }
 
     fn opened_branch(&self, project: &ProjectId) -> Option<FullName> {
@@ -388,6 +404,9 @@ impl Detail {
     /// selected one.
     pub(crate) fn branch_cherry_picks(&self) -> Option<usize> {
         let branches = self.page_branches()?;
+        if branches.comparing {
+            return None;
+        }
         Some(branches.cherry_picks(branches.commit?).len())
     }
 
@@ -417,6 +436,14 @@ impl Detail {
         let branch = self.selected_other_branch(project)?;
         let branches = self.branches_for(project)?;
         let id = branches.commit?;
+        if branches.comparing {
+            let comparison = branches.comparison.as_ref()?;
+            return comparison
+                .local
+                .iter()
+                .chain(&comparison.remote)
+                .find(|c| c.id == id);
+        }
         let (_, commits) = branches.commits.get(&branch.ref_name)?;
         commits.iter().find(|c| c.id == id)
     }
@@ -436,6 +463,19 @@ impl Detail {
         let branch = self.selected_other_branch(project)?;
         if let Some(id) = self.selected_branch_commit(project) {
             return Some(DiffSource::Commit(id));
+        }
+        if let Some(comparison) = self
+            .branches_for(project)
+            .filter(|b| b.comparing)
+            .and_then(|b| b.comparison.as_ref())
+        {
+            return Some(DiffSource::Between {
+                base: comparison.remote_tip,
+                tip: comparison.local_tip,
+            });
+        }
+        if self.branches_for(project).is_some_and(|b| b.comparing) {
+            return None;
         }
         Some(DiffSource::Branch {
             tip: branch.tip,
@@ -796,6 +836,9 @@ impl Detail {
         self.close_message();
         if let Some(branches) = self.page_branches_mut() {
             branches.selected = ref_name;
+            branches.comparing = false;
+            branches.comparison = None;
+            branches.compare_error = None;
             branches.stack = stack;
             branches.commit = None;
             branches.picked.clear();
@@ -1001,12 +1044,12 @@ impl Detail {
             return Vec::new();
         };
         let local = branch.local && !branch.applied && !branch.target;
-        let mut items = Vec::new();
+        let mut items = self.branch_sync_menu(project, branch, cx);
         if !branch.applied && !branch.target {
             items.push(MenuItem::command(&ApplyBranch, cx));
         }
         items.extend([
-            MenuItem::command(&NewWorktreeFromBranch, cx),
+            MenuItem::command(&NewWorktreeFromBranch, cx).separated(),
             MenuItem::command(&OpenPullRequest, cx),
             MenuItem::command(&CopyBranchName, cx).separated(),
         ]);
@@ -1331,9 +1374,14 @@ impl Detail {
             let title = "Couldn't list the branches".to_owned();
             return list_empty(Illustration::Papers, title, error_summary(err), theme, cx);
         }
+        if branches.comparing {
+            return self.render_branch_comparison(project, theme, cx);
+        }
         let filter = self.branch_filter_bar(project, window, cx);
         let chips = self.branch_filter_chips(cx);
         let rows = self.branch_rows(branches, cx);
+        let compact =
+            f32::from(self.branches_scroll.viewport_bounds().size.width) / theme.scale < 360.;
         let ref_at = |ix: usize| branches.list.get(ix).map(|b| b.ref_name.clone());
         let (rows, places) = self.page_folds.place(
             rows,
@@ -1490,7 +1538,8 @@ impl Detail {
                             let selected = is_selected(branches, row);
                             let ref_name = branch.ref_name.clone();
                             // The target has it all: merged, as a merged pull request shows.
-                            let is_merged = !branch.target
+                            let incoming = branch.sync.as_ref().is_some_and(|sync| matches!(sync.state, branches::sync::SyncState::Known { behind, .. } if behind > 0));
+                            let is_merged = !incoming && !branch.target
                                 && !branch.applied
                                 && match &branch.review {
                                     Some(review) => review.state == ReviewState::Merged,
@@ -1520,7 +1569,7 @@ impl Detail {
                             // the target has it.
                             let title_color = match &branch.review {
                                 Some(review) => review::title_color(review.state, theme),
-                                None if branch.ahead == Some(0) => theme.text_2,
+                                None if branch.ahead == Some(0) && !incoming => theme.text_2,
                                 None => theme.text_1,
                             };
                             // What's asked for is what's been explained, by what it's called.
@@ -1545,7 +1594,7 @@ impl Detail {
                             let standing = match (branch.target, branch.applied, branch.ahead) {
                                 (true, _, _) => Some("Target"),
                                 (_, true, _) => Some("In use"),
-                                (_, _, Some(0)) => Some("In target"),
+                                (_, _, Some(0)) if !incoming => Some("In target"),
                                 _ => None,
                             };
                             let (project, menu_ref) = (branches.project.clone(), ref_name.clone());
@@ -1574,12 +1623,22 @@ impl Detail {
                                 }))
                                 .child(name)
                                 .children(brief_mark)
-                                .when_some(standing, |el, standing| {
-                                    el.child(quiet(faint(standing, theme), on, theme))
-                                })
+                                .children(
+                                    branch
+                                        .sync
+                                        .as_ref()
+                                        .map(|status| sync::status_mark(status, on, theme)),
+                                )
+                                .child(
+                                    div().flex_none().w(dp(52.)).children(
+                                        standing.map(|standing| {
+                                            quiet(faint(standing, theme), on, theme)
+                                        }),
+                                    ),
+                                )
                                 // Who made its newest commit, to pick out a teammate's at a
                                 // glance; a click lists only theirs.
-                                .when_some(branch.author.clone(), |el, author| {
+                                .when_some(branch.author.clone().filter(|_| !compact), |el, author| {
                                     let tip = match &branch.agent {
                                         Some(agent) => format!(
                                             "Last commit by {author}, written by {}. Click \
@@ -1610,7 +1669,7 @@ impl Detail {
                                 })
                                 // Its slot kept for an author without a time, so the
                                 // avatars line up.
-                                .when(branch.time.is_some() || branch.author.is_some(), |el| {
+                                .when(!compact && (branch.time.is_some() || branch.author.is_some()), |el| {
                                     el.child(quiet(age_column(branch.time, theme), on, theme))
                                 })
                                 // A click selects it; only the chevron, ⇧← and ⇧→ fold its commits,
@@ -2095,17 +2154,28 @@ impl Detail {
                     .child(icon(glyph).size(dp(14.)).text_color(color))
                     .child(format!("{state} #{}", review.number))
             });
-        let commits = match (branch.ahead, branches.stack) {
-            (Some(0), false) => format!("in {target}"),
-            (_, true) => (stack.iter().map(|b| b.own_commits).sum::<Option<usize>>()).map_or_else(
-                || "commits uncounted".to_owned(),
-                |own| plural(own, "commit"),
-            ),
-            // The history read ends before where it forked, as in a shallow clone.
-            (_, false) => (branch.own_commits).map_or_else(
-                || "commits uncounted".to_owned(),
-                |own| plural(own, "commit"),
-            ),
+        let commits = if branches.comparing {
+            let upstream = branch
+                .sync
+                .as_ref()
+                .and_then(|s| s.upstream.as_ref())
+                .map(|r| r.shorten().to_string())
+                .unwrap_or_else(|| "upstream".into());
+            format!("Compared with {upstream}")
+        } else {
+            match (branch.ahead, branches.stack) {
+                (Some(0), false) => format!("in {target}"),
+                (_, true) => (stack.iter().map(|b| b.own_commits).sum::<Option<usize>>())
+                    .map_or_else(
+                        || "commits uncounted".to_owned(),
+                        |own| plural(own, "commit"),
+                    ),
+                // The history read ends before where it forked, as in a shallow clone.
+                (_, false) => (branch.own_commits).map_or_else(
+                    || "commits uncounted".to_owned(),
+                    |own| plural(own, "commit"),
+                ),
+            }
         };
         let byline = (branch.author.as_ref())
             .zip(branch.time)
@@ -2268,6 +2338,7 @@ mod tests {
                 ref_name: full(&format!("refs/remotes/origin/{name}")),
                 name: name.to_owned(),
                 local: false,
+                sync: None,
                 local_ref: None,
                 target: name == "main",
                 applied,

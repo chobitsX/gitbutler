@@ -489,6 +489,96 @@ pub fn workspace_branch_and_ancestors_push_only(
     Ok(result)
 }
 
+/// Push exactly one local branch to its configured fetch upstream, without force or ancestor
+/// branches. The caller fetches first; both the local tip and tracking configuration must still
+/// match what was reviewed. This only changes remote refs, so it creates no undo snapshot.
+pub fn branch_push_upstream(
+    ctx: &Context,
+    branch: &gix::refs::FullNameRef,
+    expected_tip: gix::ObjectId,
+    expected_upstream: &gix::refs::FullNameRef,
+    run_hooks: bool,
+) -> Result<()> {
+    use gitbutler_git::GitContextExt as _;
+    use gix::prelude::ObjectIdExt as _;
+    use std::str::FromStr as _;
+    let repo = ctx.repo.get()?;
+    anyhow::ensure!(
+        branch.category() == Some(gix::refs::Category::LocalBranch),
+        "Select a local branch to push"
+    );
+    let tip = repo.find_reference(branch)?.peel_to_id()?.detach();
+    anyhow::ensure!(
+        tip == expected_tip,
+        "The local branch changed; review it before pushing again"
+    );
+    let upstream = repo
+        .branch_remote_tracking_ref_name(branch, gix::remote::Direction::Fetch)
+        .transpose()?
+        .context("Set an upstream branch before pushing")?;
+    anyhow::ensure!(
+        upstream.as_ref() == expected_upstream,
+        "The upstream changed; review it before pushing again"
+    );
+    let (destination, remote) = repo
+        .upstream_branch_and_remote_for_tracking_branch(expected_upstream)?
+        .context("The upstream does not name a configured remote branch")?;
+    let remote_name = remote
+        .name()
+        .context("The upstream remote has no name")?
+        .as_bstr()
+        .to_str()?
+        .to_owned();
+    let remote_tip = repo
+        .try_find_reference(expected_upstream)?
+        .map(|mut r| r.peel_to_id().map(|id| id.detach()))
+        .transpose()?;
+    // Never publish a managed workspace's synthetic commit, including through another local ref.
+    let mut walk = repo.rev_walk([tip]);
+    if let Some(remote_tip) = remote_tip {
+        walk = walk.with_hidden([remote_tip]);
+    }
+    for commit in walk.all()? {
+        let id = commit?.id;
+        anyhow::ensure!(
+            !but_workspace::WorkspaceCommit::from_id(id.attach(&repo))
+                .is_ok_and(|c| c.is_managed()),
+            "This branch contains GitButler's workspace commit; rebase its own work onto the target first"
+        );
+    }
+    if run_hooks {
+        let url = remote
+            .url(gix::remote::Direction::Push)
+            .or_else(|| remote.url(gix::remote::Direction::Fetch))
+            .context("The upstream remote has no URL")?;
+        let result = gitbutler_repo::hooks::pre_push(
+            &repo,
+            &remote_name,
+            &url.to_bstring().to_str_lossy(),
+            tip,
+            &gitbutler_reference::RemoteRefname::from_str(
+                expected_upstream.as_bstr().to_str()?,
+            )?,
+            ctx.legacy_project.husky_hooks_enabled,
+        )?;
+        if let gitbutler_repo::hooks::HookResult::Failure(failure) = result {
+            anyhow::bail!("pre-push hook failed: {}", failure.error);
+        }
+    }
+    let refspec = format!("{tip}:{}", destination.as_bstr().to_str()?);
+    drop(repo);
+    ctx.push(
+        tip,
+        expected_upstream,
+        false,
+        true,
+        Some(refspec),
+        Some(None),
+        Vec::new(),
+    )?;
+    Ok(())
+}
+
 pub mod json {
     use serde::Serialize;
 

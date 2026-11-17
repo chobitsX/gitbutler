@@ -1641,7 +1641,19 @@ impl Detail {
             return div().into_any_element();
         };
         let mark = ProjectIcon::parse(store.project_icon(project)).render(theme.scaled(16.), theme);
-        let fetch = self.upstream_for(project).map(|u| u.fetch.clone());
+        let mut fetch = self.upstream_for(project).map(|u| u.fetch.clone());
+        if let Some(at) = store
+            .fetched_at(project)
+            .and_then(|at| at.duration_since(std::time::SystemTime::UNIX_EPOCH).ok())
+            .map(|at| at.as_secs() as i64)
+            && fetch
+                .as_ref()
+                .and_then(|f| f.as_ref())
+                .and_then(|(at, _)| *at)
+                .is_none_or(|previous| at > previous)
+        {
+            fetch = Some(Some((Some(at), None)));
+        }
         let picked = project.clone();
         // As wide as the other pages' icons, so the titles line up.
         let trigger = div()

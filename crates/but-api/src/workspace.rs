@@ -294,6 +294,24 @@ pub fn workspace_fetch_from_remotes(
     ctx: &mut but_ctx::Context,
     action: Option<String>,
 ) -> anyhow::Result<()> {
+    fetch_remotes(ctx, action, None)
+}
+
+/// Fetch one explicitly selected remote. Unlike a workspace-wide fetch, failure of that
+/// remote is always fatal: cached refs must not authorize an upstream integration.
+pub fn workspace_fetch_remote(
+    ctx: &mut but_ctx::Context,
+    remote: &str,
+    action: Option<String>,
+) -> anyhow::Result<()> {
+    fetch_remotes(ctx, action, Some(remote))
+}
+
+fn fetch_remotes(
+    ctx: &mut but_ctx::Context,
+    action: Option<String>,
+    only: Option<&str>,
+) -> anyhow::Result<()> {
     let askpass_action = Some(action.unwrap_or_else(|| "unknown".to_owned()));
     // `Ok(Some(errors))` is a partial success: the remotes the workspace depends on fetched
     // fine while unrelated ones failed, so the operation succeeds but the errors are kept for
@@ -303,10 +321,17 @@ pub fn workspace_fetch_from_remotes(
         let (remotes, depended_remotes) = {
             let repo = ctx.repo.get()?;
             let remote_names = repo.remote_names();
-            let remotes = remote_names
+            let mut remotes = remote_names
                 .iter()
                 .map(|name| name.to_str().map(str::to_owned))
                 .collect::<Result<Vec<_>, _>>()?;
+            if let Some(only) = only {
+                anyhow::ensure!(
+                    remotes.iter().any(|name| name == only),
+                    "Remote {only} is no longer configured"
+                );
+                remotes.retain(|name| name == only);
+            }
             // The remotes the workspace depends on: the target branch's remote plus, when it
             // differs, the configured push remote (its remote-tracking refs drive push status).
             // A remote that isn't configured (stale metadata) is treated like no target at all:
@@ -335,6 +360,7 @@ pub fn workspace_fetch_from_remotes(
                     }
                     Some(depended)
                 });
+            let depended_remotes = only.map(|name| vec![name.to_owned()]).or(depended_remotes);
             (remotes, depended_remotes)
         };
         // Overlapping `git fetch` runs of the same repository can fail on Git's per-ref locks,
@@ -347,6 +373,19 @@ pub fn workspace_fetch_from_remotes(
             .iter()
             .filter_map(|remote| {
                 gitbutler_git::fetch_with_askpass(&repo_path, remote, askpass_action.clone())
+                    .and_then(|()| {
+                        // A branch sync must notice a deleted upstream before it can publish
+                        // or integrate it. Ordinary workspace fetch retains its existing policy.
+                        if only.is_some() {
+                            gitbutler_git::prune_with_askpass(
+                                &repo_path,
+                                remote,
+                                askpass_action.clone(),
+                            )
+                        } else {
+                            Ok(())
+                        }
+                    })
                     .err()
                     .map(|err| (remote, err))
             })

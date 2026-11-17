@@ -12,12 +12,16 @@ use super::reviews::from_cache;
 use super::upstream::{TargetCommit, target_commit};
 use super::{Agent, CommitId, Review, open};
 
+pub mod sync;
+
 #[derive(Debug, Clone)]
 pub struct OtherBranch {
     /// The exact local or remote-tracking ref this row displays.
     pub ref_name: super::FullName,
     pub name: String,
     pub local: bool,
+    /// This local branch against its configured upstream, independent of the project target.
+    pub sync: Option<sync::BranchSync>,
     /// Its local counterpart, if any, also for a remote row whose tip differs from it.
     pub local_ref: Option<super::FullName>,
     /// This ref is the local target or the target's configured upstream.
@@ -69,6 +73,7 @@ pub fn all_branches(path: &Path) -> Result<Vec<OtherBranch>> {
     let target = super::target_source(&repo, &ctx.project_meta()?);
     let stacks = but_api::branch::branch_list(&ctx)?;
     let mut remote_group = stacks.len();
+    let mut divergence = HashMap::new();
     let (mut local, mut remotes) = (Vec::new(), Vec::new());
     for (stack, listed_stack) in stacks.into_iter().enumerate() {
         let applied = listed_stack.status == ListedStackStatus::Applied;
@@ -89,6 +94,14 @@ pub fn all_branches(path: &Path) -> Result<Vec<OtherBranch>> {
                 ref_name: branch.ref_name.clone(),
                 name: branch.display_name.to_str_lossy().into_owned(),
                 local: branch.has_local,
+                sync: branch.has_local.then(|| {
+                    sync::read(
+                        &repo,
+                        &branch.ref_name,
+                        CommitId(branch.tip),
+                        &mut divergence,
+                    )
+                }),
                 local_ref: branch.has_local.then(|| branch.ref_name.clone()),
                 target: is_target,
                 applied,
@@ -121,6 +134,7 @@ pub fn all_branches(path: &Path) -> Result<Vec<OtherBranch>> {
                 let mut remote = row.clone();
                 remote.ref_name = ref_name;
                 remote.local = false;
+                remote.sync = None;
                 remote.target = target.as_ref() == Some(&remote.ref_name);
                 remote.description = None;
                 remote.stack = remote_group;

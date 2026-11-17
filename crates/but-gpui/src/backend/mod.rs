@@ -574,7 +574,7 @@ fn git_operation(repo: &gix::Repository) -> Option<&'static str> {
     })
 }
 
-/// A hash of every local and remote branch's name and tip.
+/// A hash of every local and remote branch's name and tip, and local tracking configuration.
 fn refs_fingerprint(repo: &gix::Repository) -> Result<u64> {
     use std::hash::{Hash as _, Hasher as _};
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
@@ -584,6 +584,11 @@ fn refs_fingerprint(repo: &gix::Repository) -> Result<u64> {
     for reference in (refs.local_branches()?.chain(refs.remote_branches()?)).filter_map(Result::ok)
     {
         reference.name().as_bstr().hash(&mut hasher);
+        if reference.name().category() == Some(gix::refs::Category::LocalBranch) {
+            repo.branch_remote_tracking_ref_name(reference.name(), gix::remote::Direction::Fetch)
+                .map(|result| result.map_err(|err| err.to_string()))
+                .hash(&mut hasher);
+        }
         reference
             .target()
             .try_id()

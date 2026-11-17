@@ -115,6 +115,9 @@ pub fn integrate_branch_with_steps<'ws, 'meta, M: RefMetadata>(
     // The editor maps every segment in the graph, including the remote
     // reference of the branch we're integrating.
     let mut editor = Editor::create(workspace, meta, repo, db)?;
+    // An explicitly updated local branch may be outside HEAD's mutable graph. Its ref still
+    // has to move to the integration result, while the other non-HEAD refs remain immutable.
+    editor.replace_reference(ref_name, ref_name.to_owned())?;
     // Step 1: We prepare the steps before building.
     // At this point, we construct the commits for the squash steps in memory.
     let prepared_steps = prepare_integration_steps_for_editor(&editor, &integration.steps)?;

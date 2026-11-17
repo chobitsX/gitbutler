@@ -1671,8 +1671,9 @@ pub fn get_initial_branch_integration_with_perm(
     perm: &RepoShared,
 ) -> anyhow::Result<InitialBranchIntegration> {
     let mut meta = ctx.meta()?;
+    let project_meta = ctx.project_meta()?;
     let (repo, ws, mut db) = ctx.workspace_and_db_mut_with_perm(perm)?;
-    let mut ws = ws.clone();
+    let mut ws = integration_workspace(&repo, &meta, project_meta, &ws, &mut db, branch)?;
     but_workspace::branch::integrate_branch_upstream::get_initial_integration_steps_for_branch(
         branch, strategy, &mut ws, &mut meta, &repo, &mut db,
     )
@@ -1711,14 +1712,29 @@ pub fn apply_branch_integration_with_perm(
     dry_run: DryRun,
     perm: &mut RepoExclusive,
 ) -> anyhow::Result<IntegrateBranchResult> {
+    // The normal snapshot covers the active checkout. Preserve an unchecked branch's ref
+    // explicitly as well; linked checkouts are deliberately excluded from snapshot-only undo.
+    let unchecked = if dry_run == DryRun::No {
+        let repo = ctx.repo.get()?;
+        let reference = repo.find_reference(branch)?;
+        but_core::branch::SafeDelete::new(&repo)?
+            .worktree_dirs_with_ref(&reference)
+            .is_none()
+    } else {
+        false
+    };
+    let refs: Vec<_> = unchecked.then_some(branch).into_iter().collect();
     branch_mutation_with_snapshot(
         ctx,
         perm,
         OperationKind::GenericBranchUpdate,
+        &refs,
         dry_run,
         |ctx, perm| {
             let mut meta = ctx.meta()?;
+            let project_meta = ctx.project_meta()?;
             let (repo, mut ws, mut db) = ctx.workspace_mut_and_db_mut_with_perm(perm)?;
+            ws = integration_workspace(&repo, &meta, project_meta, &ws, &mut db, branch)?;
             let rebase = but_workspace::branch::integrate_branch_with_steps(
                 branch,
                 integration,
@@ -1733,6 +1749,39 @@ pub fn apply_branch_integration_with_perm(
             })
         },
     )
+}
+
+/// A branch outside the current checkout still needs to be present in the editor. Add it as
+/// a traversal tip while retaining the real HEAD as entrypoint; this never checks it out or
+/// applies it. Already represented branches keep the existing workspace graph.
+fn integration_workspace(
+    repo: &gix::Repository,
+    meta: &impl RefMetadata,
+    project_meta: ProjectMeta,
+    workspace: &but_graph::Workspace,
+    db: &mut but_db::DbHandle,
+    branch: &gix::refs::FullNameRef,
+) -> anyhow::Result<but_graph::Workspace> {
+    if workspace.graph.segment_by_ref_name(branch).is_some() {
+        return Ok(workspace.clone());
+    }
+    let tip = repo.find_reference(branch)?.peel_to_id()?.detach();
+    but_graph::Graph::from_commit_traversal_with_extra_tips(
+        repo.head_id()?,
+        repo.head_name()?,
+        [but_graph::init::Tip::reachable(
+            tip,
+            Some(branch.to_owned()),
+        )],
+        meta,
+        project_meta,
+        db,
+        but_graph::init::Options {
+            worktrees: true,
+            ..but_graph::init::Options::default()
+        },
+    )?
+    .into_workspace()
 }
 
 /// Moves a branch using the behavior described by [`move_branch_with_perm()`].
@@ -1869,15 +1918,17 @@ fn branch_mutation_with_snapshot<T, F>(
     ctx: &mut but_ctx::Context,
     perm: &mut RepoExclusive,
     operation_kind: OperationKind,
+    ref_names: &[&gix::refs::FullNameRef],
     dry_run: DryRun,
     operation: F,
 ) -> anyhow::Result<T>
 where
     F: FnOnce(&mut but_ctx::Context, &mut RepoExclusive) -> anyhow::Result<T>,
 {
-    let maybe_oplog_entry = but_oplog::UnmaterializedOplogSnapshot::from_details_with_perm(
+    let maybe_oplog_entry = but_oplog::UnmaterializedOplogSnapshot::from_details_with_refs_and_perm(
         ctx,
         SnapshotDetails::new(operation_kind),
+        ref_names,
         perm.read_permission(),
         dry_run,
     );
