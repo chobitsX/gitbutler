@@ -2,6 +2,7 @@ import { goto } from "$app/navigation";
 import { showToast, showWarning } from "$lib/notifications/toasts";
 import { projectPath } from "$lib/routes/routes.svelte";
 import { TestId } from "@gitbutler/ui-svelte";
+import { translate } from "@gitbutler/ui-svelte/utils/i18n";
 // Inlined to avoid circular import with forge/.
 type ForgeName = "github" | "gitlab" | "bitbucket" | "azure" | "default";
 import type { ApiProject, ForgeUser } from "@gitbutler/but-sdk";
@@ -86,8 +87,8 @@ export function handleAddProjectOutcome(
 			return true;
 		case "alreadyExists":
 			showWarning(
-				`Project '${outcome.subject.title}' already exists`,
-				`The project at "${outcome.subject.path}" is already added`,
+				translate("Project '{value0}' already exists", { value0: outcome.subject.title }),
+				translate('The project at "{value0}" is already added', { value0: outcome.subject.path }),
 				{
 					label: "Open project",
 					testId: TestId.AddProjectAlreadyExistsModalOpenProjectButton,
@@ -139,7 +140,7 @@ export function handleAddProjectOutcome(
 		case "notAGitRepository":
 			showWarning(
 				"Not a Git repository",
-				`Unable to add project: ${outcome.subject}`,
+				translate("Unable to add project: {value0}", { value0: outcome.subject }),
 				undefined,
 				TestId.AddProjectNotAGitRepoModal,
 			);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		showFrame?: boolean;
@@ -14,8 +15,10 @@
 </script>
 
 <div data-testid={TestId.LargeDiffMessage} class="large-diff-message" class:frame-box={showFrame}>
-	<p class="text-13">Change hidden as large diffs may slow down the UI</p>
-	<Button testId={TestId.LargeDiffMessageButton} kind="outline" onclick={show}>Show anyways</Button>
+	<p class="text-13">{$t("Change hidden as large diffs may slow down the UI")}</p>
+	<Button testId={TestId.LargeDiffMessageButton} kind="outline" onclick={show}
+		>{$t("Show anyways")}</Button
+	>
 </div>
 
 <style>

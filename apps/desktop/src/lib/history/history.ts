@@ -5,6 +5,7 @@ import type { IBackend } from "$lib/backend";
 import type { Snapshot } from "$lib/history/types";
 import type { BackendApi } from "$lib/state/backendApi";
 import type { TreeChange } from "@gitbutler/but-sdk";
+import type { Language } from "@gitbutler/ui-svelte/utils/i18n";
 
 const snapshotDiffAdapter = createEntityAdapter({
 	selectId: (tc: TreeChange) => tc.path,
@@ -134,10 +135,15 @@ export class HistoryService {
 }
 
 /** Formats a date (milliseconds since epoch) as a human-readable day string. */
-export function createdOnDay(epochMs: number) {
+export function createdOnDay(epochMs: number, language: Language = "en") {
 	const d = new Date(epochMs);
 	const t = new Date();
-	return `${t.toDateString() === d.toDateString() ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" })}, ${d.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+	const today = new Intl.RelativeTimeFormat(language, { numeric: "auto" }).format(0, "day");
+	const day =
+		t.toDateString() === d.toDateString()
+			? today.charAt(0).toUpperCase() + today.slice(1)
+			: d.toLocaleDateString(language, { weekday: "short" });
+	return `${day}, ${d.toLocaleDateString(language, { month: "short", day: "numeric" })}`;
 }
 
 function injectEndpoints(api: BackendApi) {

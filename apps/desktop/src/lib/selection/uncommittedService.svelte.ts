@@ -17,6 +17,7 @@ import {
 import { InjectionToken } from "@gitbutler/core/context";
 import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 import { type Reactive } from "@gitbutler/shared/storeUtils";
+import { translate } from "@gitbutler/ui-svelte/utils/i18n";
 import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 import type { UnifiedDiff } from "$lib/hunks/diff";
 import type { ChangeDiff, DiffService } from "$lib/hunks/diffService.svelte";
@@ -316,7 +317,10 @@ export class UncommittedService {
 			showToast({
 				style: "info",
 				title: "Some selections skipped",
-				message: `The diff for ${label} shifted since you selected it. Please reselect to commit those changes.`,
+				message: translate(
+					"The diff for {value0} shifted since you selected it. Please reselect to commit those changes.",
+					{ value0: label },
+				),
 			});
 		}
 

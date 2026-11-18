@@ -91,6 +91,8 @@ default = ["custom-protocol", "devtools", "opener"]
 builtin-but = ["dep:but", "but-api/builtin-but"]
 ## Start the experimental native client instead of the web one when run with `--gpui`.
 builtin-gpui = ["dep:but-gpui"]
+## Build the native client on macOS without the optional Xcode Metal toolchain.
+gpui-runtime-shaders = ["builtin-gpui", "but-gpui/runtime-shaders"]
 ## Enable experimental CLI commands and features for nightly releases only.
 nightly = ["but?/nightly"]
 ## A very specific utility flag to make clear that the 'but' binary is managed by a package manager.

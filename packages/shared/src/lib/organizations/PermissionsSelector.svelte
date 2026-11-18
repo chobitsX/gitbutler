@@ -5,6 +5,7 @@
 	import { ShareLevel } from "$lib/permissions";
 	import { inject } from "@gitbutler/core/context";
 	import { ContextMenuItem, ContextMenuSection, DropdownButton } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		repositoryId: string;
@@ -48,13 +49,13 @@
 <Loading loadable={project.current}>
 	{#snippet children(project)}
 		<DropdownButton bind:this={dropDownButton} loading={!dropDownEnabled} kind="outline">
-			{options.find((option) => option.key === project.permissions.shareLevel)?.label}
+			{$t(options.find((option) => option.key === project.permissions.shareLevel)?.label ?? "")}
 
 			{#snippet contextMenuSlot()}
 				<ContextMenuSection>
 					{#each options as option}
 						<ContextMenuItem
-							label={option.label}
+							label={$t(option.label)}
 							disabled={option.key === project.permissions.shareLevel}
 							onclick={() => updatePermission(option.key)}
 						/>

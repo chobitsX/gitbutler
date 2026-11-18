@@ -27,6 +27,7 @@
 	import { throttle } from "$lib/utils/misc";
 	import { inject } from "@gitbutler/core/context";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui-svelte/drag/dragStateService.svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { resizeObserver } from "@gitbutler/ui-svelte/utils/resizeObserver";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import { flip } from "svelte/animate";
@@ -178,7 +179,7 @@
 				onUnfold={() => unfoldLane(laneId)}
 			/>
 		{:else}
-			<ErrorBoundary title="Something went wrong in this stack">
+			<ErrorBoundary title={$t("Something went wrong in this stack")}>
 				<StackView
 					{projectId}
 					{stack}
@@ -318,35 +319,35 @@
 			>
 				{#snippet title()}
 					{#if stacks.length === 0}
-						No branches in Workspace
+						{$t("No branches in Workspace")}
 					{/if}
 				{/snippet}
 				{#snippet description()}
 					{#if stacks.length === 0}
-						Drop files to start a branch,
+						{$t("Drop files to start a branch,")}
 						<br />
-						apply from the
+						{$t("apply from the")}
 						<a
 							class="pointer-events underline-dotted clr-text-2 link-hover-2"
-							aria-label="Branches view"
-							href={branchesPath(projectId)}>branches view</a
+							aria-label={$t("Branches view")}
+							href={branchesPath(projectId)}>{$t("branches view")}</a
 						>
 						↗
 						<br />
-						or
+						{$t("or")}
 						<button
 							type="button"
 							class="underline-dotted pointer-events clr-text-2 link-hover-2"
-							onclick={() => createBranchModal?.show()}>create a new branch</button
+							onclick={() => createBranchModal?.show()}>{$t("create a new branch")}</button
 						> +
 					{:else}
-						Drop files to start a branch,
+						{$t("Drop files to start a branch,")}
 						<br />
-						or
+						{$t("or")}
 						<button
 							type="button"
 							class="underline-dotted pointer-events clr-text-2 link-hover-2"
-							onclick={() => createBranchModal?.show()}>create a new branch</button
+							onclick={() => createBranchModal?.show()}>{$t("create a new branch")}</button
 						> +
 					{/if}
 				{/snippet}

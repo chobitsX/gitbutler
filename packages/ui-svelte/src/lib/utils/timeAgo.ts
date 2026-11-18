@@ -1,17 +1,21 @@
 import dayjs from "dayjs";
+import "dayjs/locale/zh-cn";
 import localizedFormat from "dayjs/plugin/localizedFormat";
 import relativeTime from "dayjs/plugin/relativeTime";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { writable, type Readable } from "svelte/store";
+import type { Language } from "$lib/utils/i18n";
 
 dayjs.extend(relativeTime);
 dayjs.extend(localizedFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-function customFormatDistance(date: Date, addSuffix: boolean): string {
-	const distance = dayjs(date).fromNow(!addSuffix);
+function customFormatDistance(date: Date, addSuffix: boolean, language: Language): string {
+	const distance = dayjs(date)
+		.locale(language === "zh-CN" ? "zh-cn" : "en")
+		.fromNow(!addSuffix);
 	return distance.replace(
 		/\b(seconds?|minutes?|hours?|days?|months?|years?)\b/g,
 		(match) => unitShorthandMap[match] ?? "",
@@ -33,14 +37,18 @@ function getSecondsUntilUpdate(seconds: number) {
 	}
 }
 
-export function getTimeAgo(input: Date | number, addSuffix: boolean = true): string {
+export function getTimeAgo(
+	input: Date | number,
+	addSuffix: boolean = true,
+	language: Language = "en",
+): string {
 	const date = typeof input === "number" ? new Date(input) : input;
 
 	const seconds = Math.round(Math.abs((new Date().getTime() - date.getTime()) / 1000.0));
 	if (seconds < 10) {
-		return "just now";
+		return language === "zh-CN" ? "刚刚" : "just now";
 	} else {
-		return customFormatDistance(date, addSuffix);
+		return customFormatDistance(date, addSuffix, language);
 	}
 }
 
@@ -76,8 +84,13 @@ function createTimeBasedStore(
 export function createTimeAgoStore(
 	date: Date | undefined,
 	addSuffix: boolean = false,
+	language: Language = "en",
 ): Readable<string> | undefined {
-	return createTimeBasedStore(date, (d) => getTimeAgo(d, addSuffix), getSecondsUntilUpdate);
+	return createTimeBasedStore(
+		date,
+		(d) => getTimeAgo(d, addSuffix, language),
+		getSecondsUntilUpdate,
+	);
 }
 
 /**
@@ -99,7 +112,7 @@ export function getAbsoluteTimestamp(input: Date | number | undefined, locale?: 
 		minute: "2-digit",
 	});
 
-	return `${dateStr} at ${timeStr}`;
+	return locale?.startsWith("zh") ? `${dateStr} ${timeStr}` : `${dateStr} at ${timeStr}`;
 }
 
 /**
@@ -108,7 +121,7 @@ export function getAbsoluteTimestamp(input: Date | number | undefined, locale?: 
  * - < 24 hours: shows time without seconds using browser locale
  * - > 24 hours: shows date and time without seconds using browser locale
  */
-export function getTimestamp(input: Date | number): string {
+export function getTimestamp(input: Date | number, locale?: string): string {
 	const date = typeof input === "number" ? new Date(input) : input;
 	const seconds = Math.round(Math.abs((new Date().getTime() - date.getTime()) / 1000.0));
 
@@ -117,24 +130,24 @@ export function getTimestamp(input: Date | number): string {
 
 	if (seconds < twoMinutes) {
 		// Show time with seconds using browser locale
-		return date.toLocaleTimeString(undefined, {
+		return date.toLocaleTimeString(locale, {
 			hour: "2-digit",
 			minute: "2-digit",
 			second: "2-digit",
 		});
 	} else if (seconds < day) {
 		// Show time without seconds using browser locale
-		return date.toLocaleTimeString(undefined, {
+		return date.toLocaleTimeString(locale, {
 			hour: "2-digit",
 			minute: "2-digit",
 		});
 	} else {
 		// Show date and time without seconds using browser locale
-		const dateStr = date.toLocaleDateString(undefined, {
+		const dateStr = date.toLocaleDateString(locale, {
 			month: "2-digit",
 			day: "2-digit",
 		});
-		const timeStr = date.toLocaleTimeString(undefined, {
+		const timeStr = date.toLocaleTimeString(locale, {
 			hour: "2-digit",
 			minute: "2-digit",
 		});
@@ -161,8 +174,15 @@ function getSecondsUntilTimestampUpdate(seconds: number): number {
 /**
  * Creates a store that displays a timestamp with dynamic formatting that updates intelligently
  */
-export function createTimestampStore(date: Date | undefined): Readable<string> | undefined {
-	return createTimeBasedStore(date, getTimestamp, getSecondsUntilTimestampUpdate);
+export function createTimestampStore(
+	date: Date | undefined,
+	language?: Language,
+): Readable<string> | undefined {
+	return createTimeBasedStore(
+		date,
+		(d) => getTimestamp(d, language),
+		getSecondsUntilTimestampUpdate,
+	);
 }
 
 // SHORTHAND WORDS

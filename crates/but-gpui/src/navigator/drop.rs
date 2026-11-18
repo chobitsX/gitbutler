@@ -304,7 +304,7 @@ impl Navigator {
             .text_12()
             .text_color(theme.text_2)
             .child(small_icon(Icon::Branch).text_color(theme.text_2))
-            .child("New independent branch")
+            .child(crate::i18n::t("navigator-drop-new-independent-branch"))
             .drag_over::<Dragged>(move |style, _, _, _| {
                 style.bg(wash).border_color(highlight).text_color(highlight)
             });

@@ -27,7 +27,7 @@ pub(super) struct Renaming {
 
 pub(super) fn terminal_name_input(current: &str, cx: &mut App) -> Entity<TextInput> {
     cx.new(|cx| {
-        let mut input = TextInput::new("Terminal name", false, cx);
+        let mut input = TextInput::localized("navigator-rename-terminal-name", false, cx);
         input.load(current.to_owned(), cx);
         input.select_all_text(cx);
         input
@@ -135,7 +135,7 @@ impl Navigator {
         // joins a subject wrapped over several lines.
         let current = split(store.message_of(&project, commit).1).0.to_owned();
         let input = cx.new(|cx| {
-            let mut input = TextInput::new("Commit title", false, cx);
+            let mut input = TextInput::localized("navigator-rename-commit-title", false, cx);
             input.load(current, cx);
             input.select_all_text(cx);
             input

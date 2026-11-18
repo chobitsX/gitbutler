@@ -5,6 +5,7 @@
 	import FileIndent from "$components/file/FileIndent.svelte";
 	import { type FocusableOptions } from "$lib/focus/focusTypes";
 	import { focusable } from "$lib/focus/focusable";
+	import { t } from "$lib/utils/i18n";
 
 	interface Props {
 		name: string;
@@ -89,7 +90,7 @@
 
 		<button
 			type="button"
-			aria-label="Toggle folder"
+			aria-label={$t("Toggle folder")}
 			class="folder-list-item__arrow"
 			class:expanded={isExpanded}
 			onclick={(e) => {

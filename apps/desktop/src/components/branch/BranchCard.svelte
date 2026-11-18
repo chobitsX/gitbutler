@@ -18,6 +18,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { ReviewBadge, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import type { BranchIconName } from "$lib/branches/branchIcon";
 	import type { DropzoneHandler } from "$lib/dragging/handler";
@@ -168,9 +169,9 @@
 	}
 
 	function getDropzoneOverlayLabel(handler: DropzoneHandler | undefined): string {
-		if (handler instanceof MoveCommitDzHandler) return "Move here";
-		if (handler instanceof ReorderCommitDzHandler) return "Reorder here";
-		if (handler instanceof StartCommitDzHandler) return "Start commit";
+		if (handler instanceof MoveCommitDzHandler) return $t("Move here");
+		if (handler instanceof ReorderCommitDzHandler) return $t("Reorder here");
+		if (handler instanceof StartCommitDzHandler) return $t("Start commit");
 		return "Drop here";
 	}
 </script>
@@ -246,10 +247,10 @@
 				}}
 			>
 				{#snippet emptyState()}
-					<span class="branch-header__empty-state-span">This is an empty branch.</span>
-					<span class="branch-header__empty-state-span">Click for details.</span>
+					<span class="branch-header__empty-state-span">{$t("This is an empty branch.")}</span>
+					<span class="branch-header__empty-state-span">{$t("Click for details.")}</span>
 					<br />
-					Create or drag & drop commits here.
+					{$t("Create or drag & drop commits here.")}
 				{/snippet}
 
 				{#snippet content()}
@@ -340,7 +341,8 @@
 			roundedBottom={args.roundedBottom}
 		>
 			{#snippet emptyState()}
-				<span class="branch-header__empty-state-span">There are no commits yet on this branch.</span
+				<span class="branch-header__empty-state-span"
+					>{$t("There are no commits yet on this branch.")}</span
 				>
 			{/snippet}
 		</BranchHeader>

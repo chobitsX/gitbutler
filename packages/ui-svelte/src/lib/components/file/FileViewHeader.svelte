@@ -6,6 +6,7 @@
 	import ExecutableLabel from "$components/file/ExecutableLabel.svelte";
 	import FileName from "$components/file/FileName.svelte";
 	import FileStatusBadge from "$components/file/FileStatusBadge.svelte";
+	import { t } from "$lib/utils/i18n";
 	import type { FileStatus } from "$components/file/types";
 
 	interface Props {
@@ -81,7 +82,7 @@
 		{/if}
 
 		{#if conflicted}
-			<Badge size="icon" style="danger">Has conflicts</Badge>
+			<Badge size="icon" style="danger">{$t("Has conflicts")}</Badge>
 		{/if}
 	</div>
 

@@ -14,6 +14,7 @@
 	import { USER_SERVICE } from "$lib/user/userService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Icon } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { GeneralSettingsModalState, GeneralSettingsPageId } from "$lib/state/uiState.svelte";
 
 	type Props = {
@@ -33,7 +34,7 @@
 </script>
 
 <SettingsModalLayout
-	title="Global settings"
+	title={$t("Global settings")}
 	pages={generalSettingsPages}
 	selectedId={currentSelectedId}
 	isAdmin={userService.user?.role === "admin"}
@@ -60,10 +61,10 @@
 			{:else if currentPage.id === "organizations"}
 				<OrganisationSettings />
 			{:else}
-				Settings page {currentPage.id} not Found.
+				{$t("Settings page {id} not Found.", { id: currentPage.id })}
 			{/if}
 		{:else}
-			Settings page {currentSelectedId} not Found.
+			{$t("Settings page {currentSelectedId} not Found.", { currentSelectedId: currentSelectedId })}
 		{/if}
 	{/snippet}
 
@@ -75,7 +76,7 @@
 				onclick={async () => await urlService.openExternalUrl("https://docs.gitbutler.com/")}
 			>
 				<Icon name="docs" />
-				<span class="text-13 text-bold">Docs</span>
+				<span class="text-13 text-bold">{$t("Docs")}</span>
 				<div class="text-13 open-link-icon">↗</div>
 			</button>
 			<button
@@ -84,7 +85,7 @@
 				onclick={async () => await urlService.openExternalUrl("https://discord.gg/MmFkmaJ42D")}
 			>
 				<Icon name="discord" />
-				<span class="text-13 text-bold">Our Discord</span>
+				<span class="text-13 text-bold">{$t("Our Discord")}</span>
 				<div class="text-13 open-link-icon">↗</div>
 			</button>
 		</div>

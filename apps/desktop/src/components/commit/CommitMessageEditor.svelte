@@ -17,6 +17,7 @@
 	import { WORKTREE_SERVICE } from "$lib/worktree/worktreeService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { IME_COMPOSITION_HANDLER } from "@gitbutler/ui-svelte/utils/imeHandling";
 
 	import { tick, untrack } from "svelte";
@@ -170,7 +171,7 @@
 		testId={TestId.CommitDrawerTitleInput}
 		bind:ref={titleInput}
 		bind:value={title}
-		placeholder="Commit title (required)"
+		placeholder={$t("Commit title (required)")}
 		onchange={(value) => {
 			onChange?.({ title: value });
 		}}
@@ -196,7 +197,7 @@
 		testId={TestId.CommitDrawerDescriptionInput}
 		bind:this={composer}
 		initialValue={description}
-		placeholder="Commit message"
+		placeholder={$t("Commit message")}
 		messageType="commit"
 		enableRuler
 		{projectId}
@@ -239,7 +240,7 @@
 			style="pop"
 			onclick={emitAction}
 			disabled={disabledAction || !title.trim()}
-			tooltip={!title.trim() ? "Commit title is required" : undefined}
+			tooltip={!title.trim() ? $t("Commit title is required") : undefined}
 			hotkey="⌘↵"
 			{loading}
 			wide>{actionLabel}</Button

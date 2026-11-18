@@ -2,6 +2,7 @@
 	import "@gitbutler/design-core/utility";
 	import "@gitbutler/design-core/core";
 	import "../styles/styles.css";
+	import "$lib/i18n";
 	import { browser, dev } from "$app/environment";
 	import { afterNavigate, beforeNavigate } from "$app/navigation";
 	import { page } from "$app/state";
@@ -20,6 +21,8 @@
 	import { initDependencies } from "$lib/bootstrap/deps";
 	import { GIT_CONFIG_SERVICE } from "$lib/config/gitConfigService";
 	import { fModeEnabled } from "$lib/config/uiFeatureFlags";
+	import { syncLanguage } from "$lib/i18n/language.svelte";
+	import { localizeNativeMenu } from "$lib/i18n/nativeMenu";
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { TERMINAL_SERVICE } from "$lib/settings/terminalService";
 	import { createKeybind } from "$lib/shortcuts/hotkeys";
@@ -31,6 +34,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { ChipToastContainer } from "@gitbutler/ui-svelte";
 	import { FOCUS_MANAGER } from "@gitbutler/ui-svelte/focus/focusManager";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack, type Snippet } from "svelte";
 	import type { LayoutData } from "./$types";
 
@@ -48,6 +52,18 @@
 	const posthog = inject(POSTHOG_WRAPPER);
 	const uiState = inject(UI_STATE);
 	const terminalService = inject(TERMINAL_SERVICE);
+
+	syncLanguage(uiState.global.language);
+
+	// Serialize native updates so a slow previous request cannot undo a later switch.
+	let menuUpdate = Promise.resolve();
+	$effect(() => {
+		const translate = $t;
+		if (import.meta.env.VITE_BUILD_TARGET === "web") return;
+		menuUpdate = menuUpdate
+			.then(() => localizeNativeMenu(backend, translate))
+			.catch((error) => console.error("Failed to update menu language", error));
+	});
 
 	clientState.initPersist().then(async () => {
 		await initUserSettings(uiState, backend.platformName, terminalService);

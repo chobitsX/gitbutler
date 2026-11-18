@@ -30,6 +30,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 	import { Button, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { QueryStatus } from "@reduxjs/toolkit/query";
 	import { tick } from "svelte";
 	import type { Segment } from "@gitbutler/but-sdk";
@@ -120,7 +121,7 @@
 			: undefined}
 		<!-- A detached worktree's top segment has no branch, so it goes by the worktree's name. -->
 		{@const branchLabel =
-			branchName ?? ((i === 0 && controller.worktree?.name) || "Unnamed segment")}
+			branchName ?? ((i === 0 && controller.worktree?.name) || $t("Unnamed segment"))}
 		{@const remoteTrackingBranch = segment.remoteTrackingRefName
 			? new TextDecoder().decode(new Uint8Array(segment.remoteTrackingRefName.fullNameBytes))
 			: undefined}
@@ -180,7 +181,7 @@
 				<ReduxResult {projectId} {stackId} result={changesQuery.result}>
 					{#snippet children(result, { projectId, stackId })}
 						<ChangedFilesPanel
-							title="All Changes"
+							title={$t("All Changes")}
 							{projectId}
 							{stackId}
 							draggableFiles={!inWorktree}
@@ -216,7 +217,7 @@
 					testId={TestId.BranchHeaderAddDependentBranchButton}
 					size="tag"
 					kind="outline"
-					tooltip={controller.stackId ? "Create new branch" : "Read-only mode"}
+					tooltip={controller.stackId ? $t("Create new branch") : $t("Read-only mode")}
 					onclick={async () => {
 						addDependentBranchModalContext = {
 							projectId,
@@ -253,15 +254,15 @@
 						}}
 						disabled={!!controller.exclusiveAction || blockedByConflicts || inWorktree}
 						tooltip={inWorktree
-							? "Worktree branches can't be landed yet"
+							? $t("Worktree branches can't be landed yet")
 							: blockedByConflicts
-								? "Resolve conflicts before landing"
+								? $t("Resolve conflicts before landing")
 								: wholeStack
-									? "Land the whole stack directly into the target branch"
-									: "Land directly into the target branch"}
+									? $t("Land the whole stack directly into the target branch")
+									: $t("Land directly into the target branch")}
 						icon="branch-merge"
 					>
-						{wholeStack ? "Land stack" : "Land"}
+						{wholeStack ? $t("Land stack") : $t("Land")}
 					</Button>
 				{/if}
 			{:else if canPublishPR && !isNewBranch && branchName}
@@ -283,7 +284,7 @@
 						tooltip={controller.readOnlyTooltip}
 						icon="pr-plus"
 					>
-						{`Create ${forgeInfo?.unit.abbr ?? "PR"}`}
+						{$t("Create {value0}", { value0: forgeInfo?.unit.abbr ?? "PR" })}
 					</Button>
 				{:else}
 					{@const externalPrUrl = forgeInfo ? prUrl(forgeInfo, prNumber) : undefined}
@@ -299,7 +300,7 @@
 						}}
 						icon="arrow-up-righ"
 					>
-						{`View ${forgeInfo?.unit.abbr ?? "PR"}`}
+						{$t("View {value0}", { value0: forgeInfo?.unit.abbr ?? "PR" })}
 					</Button>
 				{/if}
 			{/if}

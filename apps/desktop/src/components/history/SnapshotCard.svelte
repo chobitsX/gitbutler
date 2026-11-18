@@ -9,6 +9,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Icon, ScrollableContainer, type IconName } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t, language } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { Snapshot, SnapshotDetails } from "$lib/history/types";
 
@@ -39,7 +40,7 @@
 	}
 
 	function createdOnDayAndTime(epochMs: number) {
-		return `${createdOnDay(epochMs)}, ${toHumanReadableTime(new Date(epochMs))}`;
+		return `${createdOnDay(epochMs, $language)}, ${toHumanReadableTime(new Date(epochMs), $language)}`;
 	}
 
 	function camelToTitleCase(str: string | undefined) {
@@ -83,7 +84,7 @@
 					text:
 						snapshotDetails.operation === "CreateCommit"
 							? `Create commit ${getShortSha(entryTrailer("sha"))}`
-							: "Insert blank commit",
+							: $t("Insert blank commit"),
 					icon: "plus",
 					commitMessage: entryTrailer("message"),
 				};
@@ -100,11 +101,11 @@
 					icon: "edit",
 				};
 			case "AmendCommit":
-				return { text: "Amend commit", icon: "edit" };
+				return { text: $t("Amend commit"), icon: "edit" };
 			case "UpdateCommitMessage":
-				return { text: "Update commit message", icon: "edit" };
+				return { text: $t("Update commit message"), icon: "edit" };
 			case "EnterEditMode":
-				return { text: "Enter Edit Mode", icon: "edit" };
+				return { text: $t("Enter Edit Mode"), icon: "edit" };
 
 			// BRANCH
 			case "ApplyBranch":
@@ -123,13 +124,13 @@
 			case "SelectDefaultVirtualBranch":
 				return { text: `Select default virtual branch "${trailer("after")}"`, icon: "branch" };
 			case "SetBaseBranch":
-				return { text: "Set base branch", icon: "branch" };
+				return { text: $t("Set base branch"), icon: "branch" };
 			case "GenericBranchUpdate":
-				return { text: "Generic branch update", icon: "branch" };
+				return { text: $t("Generic branch update"), icon: "branch" };
 			case "SplitBranch":
-				return { text: "Split branch", icon: "branch" };
+				return { text: $t("Split branch"), icon: "branch" };
 			case "MergeBranch":
-				return { text: "Merge branch", icon: "branch-merge" };
+				return { text: $t("Merge branch"), icon: "branch-merge" };
 			case "MoveBranch":
 			case "TearOffBranch":
 				return { text: camelToTitleCase(snapshotDetails.operation), icon: "branch" };
@@ -148,14 +149,14 @@
 					commitMessage: entryTrailer("message"),
 				};
 			case "SquashCommit":
-				return { text: "Squash commit", icon: "commit-arrow-down" };
+				return { text: $t("Squash commit"), icon: "commit-arrow-down" };
 			case "MoveCommit":
 			case "ReorderCommit":
 				return { text: camelToTitleCase(snapshotDetails.operation), icon: "commit" };
 			case "MoveCommitFile":
-				return { text: "Move commit file", icon: "commit" };
+				return { text: $t("Move commit file"), icon: "commit" };
 			case "Absorb":
-				return { text: "Absorb changes into commit", icon: "commit-absorb" };
+				return { text: $t("Absorb changes into commit"), icon: "commit-absorb" };
 			case "AutoCommit":
 				return { text: "Auto commit changes", icon: "commit-ai" };
 
@@ -163,22 +164,22 @@
 			case "MoveHunk":
 				return { text: `Move hunk to "${entryTrailer("name")}"`, icon: "file" };
 			case "FileChanges":
-				return { text: "File changes", icon: "file" };
+				return { text: $t("File changes"), icon: "file" };
 
 			// OTHER
 			case "MergeUpstream":
-				return { text: "Merge upstream", icon: "pr-tick" };
+				return { text: $t("Merge upstream"), icon: "pr-tick" };
 			case "UpdateWorkspaceBase":
-				return { text: "Update workspace base", icon: "refresh" };
+				return { text: $t("Update workspace base"), icon: "refresh" };
 			case "RestoreFromSnapshot":
 			case "RestoreFromSnapshotViaUndo":
 			case "RestoreFromSnapshotViaRedo":
-				return { text: "Revert snapshot" };
+				return { text: $t("Revert snapshot") };
 			case "OnDemandSnapshot":
 				return {
 					text: snapshotDetails.body
 						? `Manual snapshot: ${snapshotDetails.body}`
-						: "Manual snapshot",
+						: $t("Manual snapshot"),
 					icon: "camera",
 				};
 			default:
@@ -215,12 +216,14 @@
 			<Button
 				size="tag"
 				kind="outline"
-				tooltip="Restores GitButler and your files to the state before this operation. Revert actions can also be undone."
+				tooltip={$t(
+					"Restores GitButler and your files to the state before this operation. Revert actions can also be undone.",
+				)}
 				onclick={() => {
 					onRestoreClick();
 				}}
 				disabled={restoring || mode.response?.type !== "OpenWorkspace"}
-				loading={restoring}>Revert</Button
+				loading={restoring}>{$t("Revert")}</Button
 			>
 		</div>
 		<span class="snapshot-time text-11">
@@ -245,7 +248,7 @@
 
 			{#if operation.commitMessage}
 				<p class="text-12 text-body snapshot-commit-message">
-					<span>Message:</span>
+					<span>{$t("Message:")}</span>
 					{operation.commitMessage}
 				</p>
 			{/if}

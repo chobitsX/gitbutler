@@ -63,7 +63,9 @@ impl Store {
             this.update(cx, |store, cx| {
                 match signed_out {
                     Ok(()) => store.snack("Signed out of GitButler", cx),
-                    Err(err) => store.failed("Couldn't sign out", &err, cx),
+                    Err(err) => {
+                        store.failed(crate::i18n::t("state-account-sign-out-error"), &err, cx)
+                    }
                 }
                 store.load_account(cx);
             })

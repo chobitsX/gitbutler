@@ -113,9 +113,9 @@ impl Filter {
 
     pub fn label(self) -> &'static str {
         match self {
-            Filter::All => "All",
-            Filter::NoKeys => "No keys",
-            Filter::Conflicts => "Conflicts",
+            Filter::All => crate::i18n::t("command-editor-rows-all"),
+            Filter::NoKeys => crate::i18n::t("command-editor-rows-no-keys"),
+            Filter::Conflicts => crate::i18n::t("command-editor-rows-conflicts"),
         }
     }
 
@@ -154,9 +154,9 @@ impl AuditFilter {
 
     pub fn label(self) -> &'static str {
         match self {
-            AuditFilter::Any => "Any",
-            AuditFilter::Audited => "Audited",
-            AuditFilter::NotAudited => "Not audited",
+            AuditFilter::Any => crate::i18n::t("command-editor-rows-any"),
+            AuditFilter::Audited => crate::i18n::t("command-editor-rows-audited"),
+            AuditFilter::NotAudited => crate::i18n::t("command-editor-rows-not-audited"),
         }
     }
 
@@ -330,7 +330,11 @@ fn words<'a>(command: &Command, place: &Place, keys: impl Iterator<Item = &'a Ke
     let mut words = Vec::from([command.title.clone(), command.name.clone()]);
     words.extend(command.aliases.iter().cloned());
     if let Place::In(context) = place {
-        words.push(context.clone().unwrap_or_else(|| "Anywhere".to_owned()));
+        words.push(
+            context
+                .clone()
+                .unwrap_or_else(|| crate::i18n::t("editor-anywhere").to_owned()),
+        );
     }
     for key in keys {
         words.push(key.label.to_string());

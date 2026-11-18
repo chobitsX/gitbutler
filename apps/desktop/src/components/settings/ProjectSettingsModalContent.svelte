@@ -6,6 +6,7 @@
 	import WorktreesForm from "$components/projectSettings/WorktreesForm.svelte";
 	import SettingsModalLayout from "$components/settings/SettingsModalLayout.svelte";
 	import { projectSettingsPages } from "$lib/settings/projectSettingsPages";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { ProjectSettingsModalState, ProjectSettingsPageId } from "$lib/state/uiState.svelte";
 
 	type Props = {
@@ -24,7 +25,7 @@
 </script>
 
 <SettingsModalLayout
-	title="Project settings"
+	title={$t("Project settings")}
 	{pages}
 	selectedId={currentSelectedId}
 	onSelectPage={selectPage}
@@ -42,10 +43,10 @@
 			{:else if currentPage.id === "experimental"}
 				<PreferencesForm projectId={data.projectId} />
 			{:else}
-				Settings page {currentPage.id} not Found.
+				{$t("Settings page {id} not Found.", { id: currentPage.id })}
 			{/if}
 		{:else}
-			Settings page {currentSelectedId} not Found.
+			{$t("Settings page {currentSelectedId} not Found.", { currentSelectedId: currentSelectedId })}
 		{/if}
 	{/snippet}
 </SettingsModalLayout>

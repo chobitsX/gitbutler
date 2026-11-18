@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { splitMessage } from "$lib/commits/commitMessage";
 	import { TestId, Tooltip } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		truncate?: boolean;
@@ -17,7 +18,7 @@
 		if (title) {
 			return title;
 		}
-		return editable ? "Empty commit. Drag changes here" : "Empty commit";
+		return editable ? $t("Empty commit. Drag changes here") : $t("Empty commit");
 	}
 </script>
 

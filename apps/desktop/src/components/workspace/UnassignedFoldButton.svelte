@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	interface Props {
 		active: boolean;
 		onclick: () => void;
@@ -7,7 +8,7 @@
 	const { active, onclick }: Props = $props();
 </script>
 
-<button type="button" class="fold-btn" class:active {onclick} aria-label="Toggle fold">
+<button type="button" class="fold-btn" class:active {onclick} aria-label={$t("Toggle fold")}>
 	<div class="fold-icon__frame"></div>
 </button>
 

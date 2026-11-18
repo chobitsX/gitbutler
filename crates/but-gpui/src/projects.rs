@@ -46,7 +46,11 @@ pub fn pick_folder(
         }
         Err(err) => {
             store.update(cx, |store, cx| {
-                store.failed("Couldn't open the folder picker", &err, cx)
+                store.failed(
+                    crate::i18n::t("projects-open-folder-picker-error"),
+                    &err,
+                    cx,
+                )
             });
             None
         }
@@ -98,7 +102,14 @@ impl AppView {
                     let cloned = backend::run(move || backend::clone(url.trim(), &target)).await;
                     store.update(cx, |store, cx| match cloned {
                         Ok(()) => store.add_project(into, cx),
-                        Err(err) => store.failed(format!("Couldn't clone {name}"), &err, cx),
+                        Err(err) => store.failed(
+                            crate::i18n::tf(
+                                "projects-clone-error",
+                                &[("name", (name.to_string()).into())],
+                            ),
+                            &err,
+                            cx,
+                        ),
                     });
                 })
                 .detach();
@@ -127,7 +138,7 @@ impl AppView {
                     store.reload_or_open(&project, cx);
                     store.snack(format!("The target is now {short}"), cx)
                 }
-                Err(err) => store.failed("Couldn't change the target", &err, cx),
+                Err(err) => store.failed(crate::i18n::t("projects-change-target-error"), &err, cx),
             });
         })
         .detach();
@@ -184,7 +195,7 @@ impl AppView {
                 Ok(_) => {
                     store.update(cx, |store, cx| {
                         store.error(
-                            "No branches to pick from",
+                            crate::i18n::t("projects-no-branches-pick"),
                             "The target is a local branch, like main, tracking the remote's. \
                              Create one, then choose again.",
                             cx,
@@ -212,7 +223,7 @@ impl AppView {
                 }
                 Err(err) => {
                     store.update(cx, |store, cx| {
-                        store.failed("Couldn't list the branches", &err, cx)
+                        store.failed(crate::i18n::t("projects-list-branches-error"), &err, cx)
                     });
                     return;
                 }
@@ -273,7 +284,7 @@ impl AppView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let input = cx.new(|cx| TextInput::new("Your full name", false, cx));
+        let input = cx.new(|cx| TextInput::localized("projects-full-name", false, cx));
         let check = |_: &AppView, name: &str, _: &App| {
             name.trim().is_empty().then(|| "Enter your name".into())
         };
@@ -319,7 +330,7 @@ impl AppView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let input = cx.new(|cx| TextInput::new("your.email@example.com", false, cx));
+        let input = cx.new(|cx| TextInput::localized("projects-email-example-com", false, cx));
         let check = |_: &AppView, email: &str, _: &App| {
             let email = email.trim();
             let looks_right = email.split_once('@').is_some_and(|(user, host)| {
@@ -369,7 +380,9 @@ impl AppView {
                     .await;
             store.update(cx, |store, cx| match set {
                 Ok(()) => store.snack("Git has your name and email now", cx),
-                Err(err) => store.failed("Couldn't save your name and email", &err, cx),
+                Err(err) => {
+                    store.failed(crate::i18n::t("projects-save-name-email-error"), &err, cx)
+                }
             });
         })
         .detach();
@@ -405,7 +418,7 @@ impl AppView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let search = cx.new(|cx| TextInput::new("Search emoji…", false, cx));
+        let search = cx.new(|cx| TextInput::localized("projects-search-emoji", false, cx));
         let subscription =
             cx.subscribe_in(
                 &search,

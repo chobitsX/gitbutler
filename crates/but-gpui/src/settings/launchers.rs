@@ -74,7 +74,7 @@ impl SettingsView {
 
     fn launcher(command: String, window: &mut Window, cx: &mut Context<Self>) -> Launcher {
         let input = cx.new(|cx| {
-            let mut input = TextInput::new("Command", false, cx);
+            let mut input = TextInput::localized("settings-launchers-command", false, cx);
             input.load(command, cx);
             input
         });
@@ -225,14 +225,17 @@ impl SettingsView {
                 rows.push(el.relative().top(dp(slid)).into_any_element());
             }
         }
-        let add = button("launcher-add", "Add command")
-            .icon(Icon::Plus)
-            .style(ButtonStyle::Ghost)
-            .small()
-            .on_click(cx.listener(|this, _, window, cx| this.add_launcher(window, cx)));
+        let add = button(
+            "launcher-add",
+            crate::i18n::t("settings-launchers-add-command"),
+        )
+        .icon(Icon::Plus)
+        .style(ButtonStyle::Ghost)
+        .small()
+        .on_click(cx.listener(|this, _, window, cx| this.add_launcher(window, cx)));
         Row::new(
-            "New terminal with command",
-            "The commands it offers. Each runs through your shell.",
+            crate::i18n::t("settings-launchers-new-terminal-command-label"),
+            crate::i18n::t("settings-launchers-new-terminal-command-description"),
             div(),
         )
         .with_keywords("claude codex agent command launcher")
@@ -311,7 +314,7 @@ impl SettingsView {
             .child(
                 icon_button("remove", Icon::Minus)
                     .small()
-                    .tooltip("Remove")
+                    .tooltip(crate::i18n::t("common-remove"))
                     .on_click(
                         cx.listener(move |this, _, window, cx| {
                             this.remove_launcher(id, window, cx)

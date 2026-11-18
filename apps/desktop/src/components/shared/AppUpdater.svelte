@@ -3,6 +3,7 @@
 	import { UPDATER_SERVICE, type InstallStatus } from "$lib/updater/updater";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal, Markdown } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { fade } from "svelte/transition";
 	import { env } from "$env/dynamic/public";
 
@@ -100,27 +101,27 @@
 
 		<h4 class="text-13 text-semibold update-banner__status">
 			{#if status === "Up-to-date"}
-				You are up-to-date!
+				{$t("You are up-to-date!")}
 			{:else if status === "Downloading"}
-				Downloading update…
+				{$t("Downloading update…")}
 			{:else if status === "Downloaded"}
-				Update downloaded
+				{$t("Update downloaded")}
 			{:else if status === "Installing"}
-				Installing update…
+				{$t("Installing update…")}
 			{:else if status === "Done"}
-				Install complete
+				{$t("Install complete")}
 			{:else if status === "Checking"}
-				Checking for update…
+				{$t("Checking for update…")}
 			{:else if status === "Error"}
-				Error occurred
+				{$t("Error occurred")}
 			{:else if version}
-				New version available
+				{$t("New version available")}
 			{/if}
 		</h4>
 
 		<div class="buttons">
 			{#if releaseNotes}
-				<Button kind="outline" onclick={handleOpenModal}>Release notes</Button>
+				<Button kind="outline" onclick={handleOpenModal}>{$t("Release notes")}</Button>
 			{/if}
 			{#if !inFlatpak}
 				<div class="status-section">
@@ -136,7 +137,7 @@
 								testId="download-package"
 								onclick={async () => await updaterService.openDownloads()}
 							>
-								Downloads page
+								{$t("Downloads page")}
 							</Button>
 						{:else if !status}
 							<Button
@@ -147,7 +148,7 @@
 									await updaterService.downloadAndInstall();
 								}}
 							>
-								Update to {version}
+								{$t("Update to {version}", { version: version })}
 							</Button>
 						{:else if status === "Up-to-date"}
 							<Button
@@ -158,7 +159,7 @@
 									updaterService.dismiss();
 								}}
 							>
-								Got it!
+								{$t("Got it!")}
 							</Button>
 						{:else if status === "Done"}
 							<Button
@@ -167,7 +168,7 @@
 								testId="restart-app"
 								onclick={async () => await updaterService.relaunchApp()}
 							>
-								Restart
+								{$t("Restart")}
 							</Button>
 						{/if}
 					</div>
@@ -183,12 +184,13 @@
 			<div class="p-16">
 				{#if loadingReleases}
 					<div class="loading-state">
-						<p class="text-12">Loading releases...</p>
+						<p class="text-12">{$t("Loading releases...")}</p>
 					</div>
 				{:else}
 					<div class="release-notes-header">
 						<h3 class="text-15 text-bold">
-							<span class="text-12 m-r-4">📒</span> Release Notes - {displayVersion}
+							<span class="text-12 m-r-4">📒</span>
+							{$t("Release Notes - {displayVersion}", { displayVersion: displayVersion })}
 						</h3>
 
 						<div class="flex gap-2">

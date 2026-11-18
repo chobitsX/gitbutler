@@ -5,6 +5,7 @@
 	import { LISTING_SERVICE } from "$lib/forge/listingService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, TimeAgo, Icon, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		projectId: string;
@@ -41,7 +42,7 @@
 	testId={TestId.SyncButton}
 	kind="outline"
 	width="auto"
-	tooltip="Last fetch from upstream"
+	tooltip={$t("Last fetch from upstream")}
 	{loading}
 	{disabled}
 	icon="refresh"
@@ -65,11 +66,11 @@
 >
 	<span>
 		{#if loading}
-			Fetching...
+			{$t("Fetching...")}
 		{:else if lastFetched}
 			<TimeAgo date={lastFetched} addSuffix={true} capitalize={true} />
 		{:else}
-			Refetch
+			{$t("Refetch")}
 		{/if}
 	</span>
 

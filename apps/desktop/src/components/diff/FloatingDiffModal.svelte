@@ -27,6 +27,7 @@
 	import { FOCUS_MANAGER } from "@gitbutler/ui-svelte/focus/focusManager";
 	import { type FocusableOptions } from "@gitbutler/ui-svelte/focus/focusTypes";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { tick, untrack } from "svelte";
 	import type { TreeChange } from "@gitbutler/but-sdk";
 
@@ -153,7 +154,7 @@
 						<Icon name="drag-square" />
 					</div>
 					<ChangedFileStats
-						title="Files changed"
+						title={$t("Files changed")}
 						bind:mode={listMode}
 						persistId="floating-diff-modal"
 						fileCount={changes.length}

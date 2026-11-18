@@ -11,6 +11,7 @@
 
 <script lang="ts">
 	import { Tooltip } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		length: number;
@@ -32,11 +33,11 @@
 
 	function getPaginationTooltip(index: number) {
 		if (visibleIndexes.includes(index)) {
-			return "In view";
+			return $t("In view");
 		} else if (index === selectedBranchIndex) {
-			return "Selected";
+			return $t("Selected");
 		} else {
-			return "Scroll to lane";
+			return $t("Scroll to lane");
 		}
 	}
 </script>
@@ -60,7 +61,7 @@
 			></div>
 		</Tooltip>
 	{/each}
-	<Tooltip text="Create new branch">
+	<Tooltip text={$t("Create new branch")}>
 		<div
 			role="button"
 			tabindex="0"

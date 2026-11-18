@@ -6,6 +6,7 @@ import { getCookie } from "$lib/utils/cookies";
 import { InjectionToken } from "@gitbutler/core/context";
 import { persisted } from "@gitbutler/shared/persisted";
 import { chipToasts } from "@gitbutler/ui-svelte";
+import { translate } from "@gitbutler/ui-svelte/utils/i18n";
 import { get } from "svelte/store";
 import type { IBackend } from "$lib/backend";
 import type { ProjectInfo, ProjectUpdate } from "$lib/project/projectEndpoints";
@@ -116,7 +117,7 @@ export class ProjectsService {
 
 		const project = await this.fetchProject(projectId, true);
 		await this.updateProject({ id: project.id, path });
-		chipToasts.success(`Project ${project.title} relocated`);
+		chipToasts.success(translate("Project {value0} relocated", { value0: project.title }));
 		window.location.reload();
 	}
 

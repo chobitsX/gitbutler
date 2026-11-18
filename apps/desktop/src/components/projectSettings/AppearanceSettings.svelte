@@ -11,6 +11,7 @@
 		Textbox,
 		Toggle,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import {
 		LIGHT_THEMES,
 		DARK_THEMES,
@@ -77,25 +78,25 @@
 
 <CardGroup.Item standalone>
 	{#snippet title()}
-		Theme
+		{$t("Theme")}
 	{/snippet}
 	<ThemeSelector {uiState} />
 </CardGroup.Item>
 
 <CardGroup.Item alignment="center" standalone>
 	{#snippet title()}
-		Default file list mode
+		{$t("Default file list mode")}
 	{/snippet}
 	{#snippet caption()}
-		Set the default file list view (can be changed per location).
+		{$t("Set the default file list view (can be changed per location).")}
 	{/snippet}
 	{#snippet actions()}
 		<Select
 			maxWidth={120}
 			value={defaultFileListMode.current}
 			options={[
-				{ label: "List view", value: "list" },
-				{ label: "Tree view", value: "tree" },
+				{ label: $t("List view"), value: "list" },
+				{ label: $t("Tree view"), value: "tree" },
 			]}
 			onselect={(value) => {
 				defaultFileListMode.set(value as "tree" | "list");
@@ -112,10 +113,10 @@
 
 <CardGroup.Item labelFor="pathFirst" standalone>
 	{#snippet title()}
-		File path first
+		{$t("File path first")}
 	{/snippet}
 	{#snippet caption()}
-		Display the full file path before the file name in file lists.
+		{$t("Display the full file path before the file name in file lists.")}
 	{/snippet}
 	{#snippet actions()}
 		<Toggle
@@ -131,10 +132,10 @@
 <CardGroup>
 	<CardGroup.Item labelFor="allInOneDiff">
 		{#snippet title()}
-			All-in-one diff
+			{$t("All-in-one diff")}
 		{/snippet}
 		{#snippet caption()}
-			Show a scrollable list of all file diffs instead of only the selected file's diff.
+			{$t("Show a scrollable list of all file diffs instead of only the selected file's diff.")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -150,10 +151,10 @@
 	{#if allInOneDiff.current}
 		<CardGroup.Item labelFor="highlightDiffs">
 			{#snippet title()}
-				Highlight active diff
+				{$t("Highlight active diff")}
 			{/snippet}
 			{#snippet caption()}
-				Highlight the currently selected file's diff in the all-in-one diff view.
+				{$t("Highlight the currently selected file's diff in the all-in-one diff view.")}
 			{/snippet}
 			{#snippet actions()}
 				<Toggle
@@ -171,7 +172,7 @@
 <CardGroup>
 	<CardGroup.Item alignment="center">
 		{#snippet title()}
-			Diff preview
+			{$t("Diff preview")}
 		{/snippet}
 
 		<HunkDiff
@@ -192,10 +193,10 @@
 
 	<CardGroup.Item alignment="center">
 		{#snippet title()}
-			Syntax theme (light)
+			{$t("Syntax theme (light)")}
 		{/snippet}
 		{#snippet caption()}
-			Color scheme used for syntax highlighting when the app is in light mode.
+			{$t("Color scheme used for syntax highlighting when the app is in light mode.")}
 		{/snippet}
 		{#snippet actions()}
 			<Select
@@ -217,10 +218,10 @@
 
 	<CardGroup.Item alignment="center">
 		{#snippet title()}
-			Syntax theme (dark)
+			{$t("Syntax theme (dark)")}
 		{/snippet}
 		{#snippet caption()}
-			Color scheme used for syntax highlighting when the app is in dark mode.
+			{$t("Color scheme used for syntax highlighting when the app is in dark mode.")}
 		{/snippet}
 		{#snippet actions()}
 			<Select
@@ -242,10 +243,12 @@
 
 	<CardGroup.Item>
 		{#snippet title()}
-			Font family
+			{$t("Font family")}
 		{/snippet}
 		{#snippet caption()}
-			Sets the font for the diff view. The first font name is the default, others are fallbacks.
+			{$t(
+				"Sets the font for the diff view. The first font name is the default, others are fallbacks.",
+			)}
 		{/snippet}
 
 		<Textbox
@@ -260,10 +263,10 @@
 
 	<CardGroup.Item alignment="center">
 		{#snippet title()}
-			Font size
+			{$t("Font size")}
 		{/snippet}
 		{#snippet caption()}
-			Font size of the code in the diff view.
+			{$t("Font size of the code in the diff view.")}
 		{/snippet}
 
 		{#snippet actions()}
@@ -285,7 +288,7 @@
 
 	<CardGroup.Item labelFor="allowDiffLigatures">
 		{#snippet title()}
-			Allow font ligatures
+			{$t("Allow font ligatures")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -300,10 +303,10 @@
 
 	<CardGroup.Item alignment="center">
 		{#snippet title()}
-			Tab size
+			{$t("Tab size")}
 		{/snippet}
 		{#snippet caption()}
-			Number of spaces per tab in the diff view.
+			{$t("Number of spaces per tab in the diff view.")}
 		{/snippet}
 
 		{#snippet actions()}
@@ -325,10 +328,10 @@
 
 	<CardGroup.Item labelFor="wrapText">
 		{#snippet title()}
-			Soft wrap
+			{$t("Soft wrap")}
 		{/snippet}
 		{#snippet caption()}
-			Soft wrap long lines in the diff view to fit within the viewport.
+			{$t("Soft wrap long lines in the diff view to fit within the viewport.")}
 		{/snippet}
 
 		{#snippet actions()}
@@ -344,10 +347,10 @@
 
 	<CardGroup.Item labelFor="strongContrast">
 		{#snippet title()}
-			Strong contrast
+			{$t("Strong contrast")}
 		{/snippet}
 		{#snippet caption()}
-			Use stronger contrast for added, deleted, and context lines in diffs.
+			{$t("Use stronger contrast for added, deleted, and context lines in diffs.")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -362,12 +365,12 @@
 
 	<CardGroup.Item labelFor="colorBlindFriendly">
 		{#snippet title()}
-			Color blind-friendly colors
+			{$t("Color blind-friendly colors")}
 		{/snippet}
 		{#snippet caption()}
-			Use blue and orange colors instead of green and red for better
+			{$t("Use blue and orange colors instead of green and red for better")}
 			<br />
-			accessibility with color vision deficiency.
+			{$t("accessibility with color vision deficiency.")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -382,11 +385,12 @@
 
 	<CardGroup.Item labelFor="inlineUnifiedDiffs">
 		{#snippet title()}
-			Display word diffs inline
+			{$t("Display word diffs inline")}
 		{/snippet}
 		{#snippet caption()}
-			Instead of separate lines for removals and additions, this feature shows a single line with
-			both added and removed words highlighted.
+			{$t(
+				"Instead of separate lines for removals and additions, this feature shows a single line with both added and removed words highlighted.",
+			)}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -401,10 +405,10 @@
 
 	<CardGroup.Item labelFor="svgAsImage">
 		{#snippet title()}
-			Preview SVG files as images
+			{$t("Preview SVG files as images")}
 		{/snippet}
 		{#snippet caption()}
-			Show SVG file changes as an image diff instead of a code diff.
+			{$t("Show SVG file changes as an image diff instead of a code diff.")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -422,10 +426,10 @@
 	<form class="stack-v" onchange={(e) => onScrollbarFormChange(e.currentTarget)}>
 		<CardGroup.Item labelFor="scrollbar-on-scroll">
 			{#snippet title()}
-				Scrollbar-On-Scroll
+				{$t("Scrollbar-On-Scroll")}
 			{/snippet}
 			{#snippet caption()}
-				Only show the scrollbar when you are scrolling.
+				{$t("Only show the scrollbar when you are scrolling.")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton
@@ -439,10 +443,10 @@
 
 		<CardGroup.Item labelFor="scrollbar-on-hover">
 			{#snippet title()}
-				Scrollbar-On-Hover
+				{$t("Scrollbar-On-Hover")}
 			{/snippet}
 			{#snippet caption()}
-				Show the scrollbar only when you hover over the scrollable area.
+				{$t("Show the scrollbar only when you hover over the scrollable area.")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton
@@ -456,7 +460,7 @@
 
 		<CardGroup.Item labelFor="scrollbar-always">
 			{#snippet title()}
-				Always show scrollbar
+				{$t("Always show scrollbar")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton

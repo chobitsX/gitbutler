@@ -3,6 +3,7 @@
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import ContextMenuItem from "$components/ContextMenuItem.svelte";
 	import ContextMenuSection from "$components/ContextMenuSection.svelte";
+	import { t } from "$lib/utils/i18n";
 	import type { IconName } from "$lib/icons/names";
 
 	interface MenuItem {
@@ -23,7 +24,7 @@
 	let addProfileButtonRef = $state<HTMLElement>();
 	let menuOpen = $state(false);
 
-	const buttonText = $derived(noAccounts ? "Add account" : "Add another account");
+	const buttonText = $derived(noAccounts ? "Add account" : $t("Add another account"));
 </script>
 
 <Button

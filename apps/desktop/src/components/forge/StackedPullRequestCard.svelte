@@ -8,6 +8,7 @@
 	import { pullRequestTargetsBaseBranch } from "$lib/forge/shared/pullRequestTargets";
 	import { inject } from "@gitbutler/core/context";
 	import { AsyncButton, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import type { MergeMethod } from "$lib/forge/interface/types";
 	import type { Segment } from "@gitbutler/but-sdk";
@@ -105,7 +106,7 @@
 		{#if !pr.closedAt && !pr.mergedAt}
 			{#if pr.draft}
 				<AsyncButton wide kind="outline" action={() => setDraft(false)}
-					>Ready for review</AsyncButton
+					>{$t("Ready for review")}</AsyncButton
 				>
 			{:else}
 				<MergeButton
@@ -125,7 +126,7 @@
 				tooltip={reopenStatus.tooltip}
 				action={handleReopen}
 			>
-				{`Reopen ${prUnit}`}
+				{$t("Reopen {value0}", { value0: prUnit })}
 			</AsyncButton>
 		{/if}
 	{/snippet}

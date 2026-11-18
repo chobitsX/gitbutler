@@ -1,7 +1,8 @@
 import dayjs from "dayjs";
+import type { Language } from "@gitbutler/ui-svelte/utils/i18n";
 
-export function toHumanReadableTime(d: Date) {
-	return d.toLocaleTimeString("en-US", {
+export function toHumanReadableTime(d: Date, language: Language = "en") {
+	return d.toLocaleTimeString(language, {
 		hour: "numeric",
 		minute: "numeric",
 	});

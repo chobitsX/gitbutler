@@ -8,6 +8,7 @@
 	import { type IconName } from "$lib/icons/names";
 	import { copyToClipboard } from "$lib/utils/clipboard";
 	import { type ComponentColorType } from "$lib/utils/colorTypes";
+	import { t } from "$lib/utils/i18n";
 	import type { Snippet } from "svelte";
 
 	interface Props {
@@ -123,7 +124,7 @@
 			<div class="info-message__actions">
 				{#if error}
 					<Button kind="ghost" onclick={() => copyToClipboard(error)} icon="copy">
-						Copy error message
+						{$t("Copy error message")}
 					</Button>
 				{/if}
 				{#if tertiaryLabel}

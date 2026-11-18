@@ -8,6 +8,7 @@
 	import { projectTable } from "@gitbutler/shared/organizations/projectsSlice";
 	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
 	import { Button, CardGroup, Modal } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		organizationSlug: string;
@@ -55,7 +56,10 @@
 	const title = $derived.by(() => {
 		if (targetProject?.status !== "found" || chosenOrganization?.status !== "found") return;
 
-		return `Join ${targetProject.value.name} into ${chosenOrganization.value.name}`;
+		return $t("Join {value0} into {value1}", {
+			value0: targetProject.value.name,
+			value1: chosenOrganization.value.name,
+		});
 	});
 
 	let modal = $state<Modal>();
@@ -74,14 +78,16 @@
 					{#snippet children(organizationProject)}
 						<h5>{organizationProject.name}</h5>
 
-						<Button onclick={() => connectToOrganization(organizationProject.slug)}>Connect</Button>
+						<Button onclick={() => connectToOrganization(organizationProject.slug)}
+							>{$t("Connect")}</Button
+						>
 					{/snippet}
 				</Loading>
 			</CardGroup.Item>
 		{/each}
 	</CardGroup>
 
-	<Button onclick={() => connectToOrganization()}>Create organization project</Button>
+	<Button onclick={() => connectToOrganization()}>{$t("Create organization project")}</Button>
 </Modal>
 
-<Button onclick={() => modal?.show()}>Connect</Button>
+<Button onclick={() => modal?.show()}>{$t("Connect")}</Button>

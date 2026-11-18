@@ -67,7 +67,12 @@ impl Detail {
                 .when(status.is_none(), |el| el.pb(dp(10.)))
                 .border_t_1()
                 .border_color(theme.border_3)
-                .child(div().text_15().semibold().child("Activity"))
+                .child(
+                    div()
+                        .text_15()
+                        .semibold()
+                        .child(crate::i18n::t("detail-conversation-activity")),
+                )
                 .children(status),
         )
     }
@@ -183,8 +188,14 @@ impl Detail {
             .id(ElementId::Name(format!("thread-{}", thread.id).into()))
             .role(Role::Button)
             .aria_label(match open {
-                true => format!("Fold the thread on {}", thread.path),
-                false => format!("Open the thread on {}", thread.path),
+                true => crate::i18n::tf(
+                    "detail-conversation-fold-thread",
+                    &[("path", (thread.path.to_string()).into())],
+                ),
+                false => crate::i18n::tf(
+                    "detail-conversation-open-thread",
+                    &[("path", (thread.path.to_string()).into())],
+                ),
             })
             .px(dp(10.))
             .py(dp(7.))
@@ -218,7 +229,7 @@ impl Detail {
                     div()
                         .flex_none()
                         .text_color(theme.text_3)
-                        .child(plural(thread.comments.len(), "comment")),
+                        .child(plural(thread.comments.len(), crate::ui::Count::Comment)),
                 )
             })
             .on_click(cx.listener(move |this, _, _, cx| {
@@ -302,7 +313,7 @@ fn header(note: &Note, verdict: Option<Verdict>, compact: bool, theme: &Theme) -
         .gap(dp(6.))
         .children(author)
         .when(note.bot, |el| {
-            el.child(tag(Hue::Gray, theme).child("Agent"))
+            el.child(tag(Hue::Gray, theme).child(crate::i18n::t("detail-conversation-agent")))
         })
         .children(verdict.map(|(label, hue)| tag(hue, theme).child(label)))
         .child(div().flex_grow(1.))
@@ -321,7 +332,7 @@ fn opens(note: &Note, at: i64, compact: bool, theme: &Theme) -> AnyElement {
         .id(ElementId::Name(format!("open-{}", note.url).into()))
         .group(group.clone())
         .role(Role::Link)
-        .aria_label("Open on GitHub")
+        .aria_label(crate::i18n::t("detail-conversation-open-github"))
         .relative()
         .flex_none()
         .gap(dp(6.))
@@ -330,7 +341,11 @@ fn opens(note: &Note, at: i64, compact: bool, theme: &Theme) -> AnyElement {
         .hover(|el| el.text_color(theme.text_1))
         .child(ago(at))
         .when(note.edited, |el| {
-            el.child(div().text_color(theme.text_3).child("edited"))
+            el.child(
+                div()
+                    .text_color(theme.text_3)
+                    .child(crate::i18n::t("detail-conversation-edited")),
+            )
         })
         .child(
             h_flex()

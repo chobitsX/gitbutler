@@ -10,6 +10,7 @@
 		DropdownButton,
 		TestId,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { ButtonProps } from "@gitbutler/ui-svelte";
 
@@ -68,8 +69,8 @@
 
 	const labels = $derived({
 		[MergeMethod.Merge]: "Merge",
-		[MergeMethod.Rebase]: "Rebase and merge",
-		[MergeMethod.Squash]: "Squash and merge",
+		[MergeMethod.Rebase]: $t("Rebase and merge"),
+		[MergeMethod.Squash]: $t("Squash and merge"),
 	});
 </script>
 
@@ -107,7 +108,7 @@
 		{#if onSetDraft}
 			<ContextMenuSection>
 				<ContextMenuItem
-					label={isDraft ? "Ready for review" : "Convert to draft"}
+					label={isDraft ? $t("Ready for review") : $t("Convert to draft")}
 					onclick={async () => {
 						dropDown?.close();
 						loading = true;

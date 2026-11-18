@@ -185,7 +185,9 @@ impl Store {
             this.update(cx, |store, cx| match projects {
                 Ok(_) if store.project_edits != edits => {}
                 Ok(projects) => store.set_projects(projects, cx),
-                Err(err) => store.failed("Couldn't list projects", &err, cx),
+                Err(err) => {
+                    store.failed(crate::i18n::t("state-load-list-projects-error"), &err, cx)
+                }
             })
             .ok();
         })
@@ -380,7 +382,9 @@ impl Store {
                     Ok(backend::NotARepository(inside)) => {
                         cx.emit(StoreEvent::RepositoriesInside(folder, inside))
                     }
-                    Err(err) => store.failed("Couldn't add the project", &err, cx),
+                    Err(err) => {
+                        store.failed(crate::i18n::t("state-load-add-project-error"), &err, cx)
+                    }
                 },
             })
             .ok();
@@ -467,7 +471,11 @@ impl Store {
                     let made = backend::run(move || backend::init_repository(&path)).await;
                     this.update(cx, |store, cx| match made {
                         Ok(()) => store.add_project(folder, cx),
-                        Err(err) => store.failed("Couldn't initialize Git", &err, cx),
+                        Err(err) => store.failed(
+                            crate::i18n::t("state-load-initialize-git-error"),
+                            &err,
+                            cx,
+                        ),
                     })
                     .ok();
                 })
@@ -498,7 +506,9 @@ impl Store {
                     store.set_projects(projects, cx);
                     store.snack("Project removed", cx);
                 }
-                Err(err) => store.failed("Couldn't remove the project", &err, cx),
+                Err(err) => {
+                    store.failed(crate::i18n::t("state-load-remove-project-error"), &err, cx)
+                }
             })
             .ok();
         })
@@ -1208,7 +1218,7 @@ pub(super) fn load_error(failure: &backend::LoadFailure, err: &anyhow::Error) ->
         format!(
             "{} on top of gitbutler/workspace came from outside GitButler, as from \
              `git commit`. Uncommitting keeps the changes, to commit to a branch.",
-            crate::ui::plural(above.count, "commit")
+            crate::ui::plural(above.count, crate::ui::Count::Commit)
         )
         .into()
     } else {

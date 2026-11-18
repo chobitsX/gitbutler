@@ -272,6 +272,7 @@ fn main() -> anyhow::Result<()> {
             .plugin(tauri_plugin_store::Builder::default().build())
             .plugin(log.build())
             .invoke_handler(tauri::generate_handler![
+                menu::set_menu_labels,
                 github::tauri_init_github_device_oauth::init_github_device_oauth,
                 github::tauri_check_github_auth_status::check_github_auth_status,
                 github::tauri_store_github_pat::store_github_pat,

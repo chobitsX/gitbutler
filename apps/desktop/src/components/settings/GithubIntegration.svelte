@@ -18,6 +18,7 @@
 		Spacer,
 		chipToasts as toasts,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { fade } from "svelte/transition";
 
 	const githubUserService = inject(GITHUB_USER_SERVICE);
@@ -160,12 +161,12 @@
 			{#snippet error()}
 				<CardGroup.Item>
 					{#snippet title()}
-						Failed to load GitHub accounts
+						{$t("Failed to load GitHub accounts")}
 					{/snippet}
 					<Button
 						style="pop"
 						onclick={deleteAllGitHubAccounts}
-						loading={clearingAllResult.current.isLoading}>Try again</Button
+						loading={clearingAllResult.current.isLoading}>{$t("Try again")}</Button
 					>
 				</CardGroup.Item>
 			{/snippet}
@@ -189,7 +190,7 @@
 					{/snippet}
 
 					{#snippet caption()}
-						Allows you to create Pull Requests
+						{$t("Allows you to create Pull Requests")}
 					{/snippet}
 
 					{#snippet actions()}
@@ -212,7 +213,7 @@
 					<div class="step-section">
 						<div class="step-line"></div>
 						<div class="step-section__content">
-							<p class="text-13 text-body">Copy the following verification code:</p>
+							<p class="text-13 text-body">{$t("Copy the following verification code:")}</p>
 
 							<div class="code-wrapper">
 								<span class="text-head-20">
@@ -228,7 +229,7 @@
 										codeCopied = true;
 									}}
 								>
-									Copy to Clipboard
+									{$t("Copy to Clipboard")}
 								</Button>
 							</div>
 						</div>
@@ -239,7 +240,7 @@
 							<div class="step-line step-line-default"></div>
 							<div class="step-section__content">
 								<p class="text-13 text-body">
-									Navigate to the GitHub activation page and paste the code you copied.
+									{$t("Navigate to the GitHub activation page and paste the code you copied.")}
 								</p>
 								<Button
 									style="pop"
@@ -255,7 +256,7 @@
 										}, 500);
 									}}
 								>
-									Open GitHub activation page
+									{$t("Open GitHub activation page")}
 								</Button>
 							</div>
 						</div>
@@ -273,7 +274,7 @@
 										await gitHubOauthCheckStatus(deviceCode);
 									}}
 								>
-									Check the status
+									{$t("Check the status")}
 								</Button>
 							</div>
 						</div>
@@ -287,28 +288,28 @@
 		<CardGroup>
 			<CardGroup.Item>
 				{#snippet title()}
-					Add Personal Access Token
+					{$t("Add Personal Access Token")}
 				{/snippet}
 
 				<Textbox
 					size="large"
 					type="password"
 					value={patInput}
-					placeholder="ghp_************************"
+					placeholder={$t("ghp_************************")}
 					oninput={(value) => (patInput = value)}
 					error={patError}
 				/>
 			</CardGroup.Item>
 			<CardGroup.Item>
 				<div class="flex justify-end gap-6">
-					<Button style="gray" kind="outline" onclick={cleanupPatFlow}>Cancel</Button>
+					<Button style="gray" kind="outline" onclick={cleanupPatFlow}>{$t("Cancel")}</Button>
 					<Button
 						style="pop"
 						disabled={!patInput}
 						loading={storePatResult.current.isLoading}
 						onclick={storePersonalAccessToken}
 					>
-						Add account
+						{$t("Add account")}
 					</Button>
 				</div>
 			</CardGroup.Item>
@@ -317,19 +318,20 @@
 		<CardGroup>
 			<CardGroup.Item>
 				{#snippet title()}
-					Add GitHub Enterprise Account
+					{$t("Add GitHub Enterprise Account")}
 				{/snippet}
 
 				{#snippet caption()}
-					To connect to your GitHub Enterprise API, allow-list it in the app’s CSP settings.
+					{$t("To connect to your GitHub Enterprise API, allow-list it in the app’s CSP settings.")}
 					<br />
-					See <Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
-						>docs for details</Link
+					{$t("See")}
+					<Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
+						>{$t("docs for details")}</Link
 					>
 				{/snippet}
 
 				<Textbox
-					label="API Base URL"
+					label={$t("API Base URL")}
 					size="large"
 					value={gheHostInput}
 					oninput={(value) => (gheHostInput = value)}
@@ -337,8 +339,8 @@
 					error={gheHostError}
 				/>
 				<Textbox
-					label="Personal Access Token"
-					placeholder="ghp_************************"
+					label={$t("Personal Access Token")}
+					placeholder={$t("ghp_************************")}
 					size="large"
 					type="password"
 					value={ghePatInput}
@@ -348,14 +350,14 @@
 			</CardGroup.Item>
 			<CardGroup.Item>
 				<div class="flex justify-end gap-6">
-					<Button style="gray" kind="outline" onclick={cleanupGheFlow}>Cancel</Button>
+					<Button style="gray" kind="outline" onclick={cleanupGheFlow}>{$t("Cancel")}</Button>
 					<Button
 						style="pop"
 						disabled={!gheHostInput || !ghePatInput}
 						loading={storeGhePatResult.current.isLoading}
 						onclick={storeGitHubEnterpriseToken}
 					>
-						Add account
+						{$t("Add account")}
 					</Button>
 				</div>
 			</CardGroup.Item>
@@ -373,10 +375,10 @@
 		disabled={showingFlow !== undefined}
 		loading={storePatResult.current.isLoading || storeGhePatResult.current.isLoading}
 		menuItems={[
-			{ label: "Authorize GitHub Account", icon: "link", onclick: gitHubStartOauth },
-			{ label: "Add Personal Access Token", icon: "lock-auth", onclick: startPatFlow },
+			{ label: $t("Authorize GitHub Account"), icon: "link", onclick: gitHubStartOauth },
+			{ label: $t("Add Personal Access Token"), icon: "lock-auth", onclick: startPatFlow },
 			{
-				label: "Add GitHub Enterprise Account",
+				label: $t("Add GitHub Enterprise Account"),
 				icon: "factory",
 				onclick: startGitHubEnterpriseFlow,
 			},

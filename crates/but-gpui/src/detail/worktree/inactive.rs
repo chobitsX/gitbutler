@@ -75,7 +75,7 @@ impl Detail {
                 "Linked worktrees with nothing going on lately",
             ),
             (
-                "Commits",
+                crate::i18n::t("overview-commits"),
                 grouped(commits),
                 "Commits made in them that the target doesn't have",
             ),

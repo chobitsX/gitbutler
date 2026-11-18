@@ -94,7 +94,7 @@ impl Render for Preview {
         );
         let (count, at) = (self.images.len(), self.at);
         let title = match image.alt.trim() {
-            "" => "Image".to_owned(),
+            "" => crate::i18n::t("ui-markdown-preview-image").to_owned(),
             alt => alt.to_owned(),
         };
         let paging = (count > 1).then(|| {
@@ -102,14 +102,14 @@ impl Render for Preview {
                 .gap(dp(4.))
                 .child(
                     icon_button("preview-previous", Icon::ChevronLeft)
-                        .tooltip("Previous image")
+                        .tooltip(crate::i18n::t("ui-markdown-preview-previous-image"))
                         .dispatch(&PreviousImage)
                         .disabled_because((at == 0).then_some("It's the first")),
                 )
                 .child(muted(format!("{} of {count}", at + 1), theme))
                 .child(
                     icon_button("preview-next", Icon::ChevronRight)
-                        .tooltip("Next image")
+                        .tooltip(crate::i18n::t("ui-markdown-preview-next-image"))
                         .dispatch(&NextImage)
                         .disabled_because((at + 1 == count).then_some("It's the last")),
                 )
@@ -135,12 +135,12 @@ impl Render for Preview {
             .children(paging)
             .child(
                 icon_button("preview-open", Icon::ArrowUpRight)
-                    .tooltip("Open in browser")
+                    .tooltip(crate::i18n::t("ui-markdown-preview-open-browser"))
                     .on_click(move |_, _, cx| cx.open_url(&opens)),
             )
             .child(
                 icon_button("preview-close", Icon::Cross)
-                    .tooltip("Close")
+                    .tooltip(crate::i18n::t("common-close"))
                     .dispatch(&Cancel),
             );
         // As big as it is, or as fits, the whole of it in sight.

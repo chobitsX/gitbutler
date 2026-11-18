@@ -7,6 +7,7 @@
 	import { inject } from "@gitbutler/core/context";
 
 	import { CardGroup, chipToasts } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Project } from "$lib/project/project";
 
 	const { projectId }: { projectId: string } = $props();
@@ -44,7 +45,7 @@
 				await goto("/");
 			}
 
-			chipToasts.success("Project deleted");
+			chipToasts.success($t("Project deleted"));
 		} finally {
 			isDeleting = false;
 		}
@@ -55,10 +56,10 @@
 	{#snippet children(project)}
 		<CardGroup.Item standalone>
 			{#snippet title()}
-				Remove project
+				{$t("Remove project")}
 			{/snippet}
 			{#snippet caption()}
-				Removing projects only clears configuration — your code stays safe.
+				{$t("Removing projects only clears configuration — your code stays safe.")}
 			{/snippet}
 
 			<div>

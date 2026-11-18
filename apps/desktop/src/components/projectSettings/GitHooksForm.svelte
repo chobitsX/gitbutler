@@ -5,6 +5,7 @@
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Toggle } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Project } from "$lib/project/project";
 
 	const { projectId }: { projectId: string } = $props();
@@ -21,10 +22,12 @@
 	<CardGroup>
 		<CardGroup.Item labelFor="runHooks">
 			{#snippet title()}
-				Run Git hooks
+				{$t("Run Git hooks")}
 			{/snippet}
 			{#snippet caption()}
-				Enable running git hooks (pre-push, pre/post-commit, commit-msg) during GitButler actions.
+				{$t(
+					"Enable running git hooks (pre-push, pre/post-commit, commit-msg) during GitButler actions.",
+				)}
 			{/snippet}
 			{#snippet actions()}
 				<Toggle id="runHooks" bind:checked={$runCommitHooks} />
@@ -37,13 +40,14 @@
 			<CardGroup>
 				<CardGroup.Item labelFor="huskyHooks">
 					{#snippet title()}
-						Enable Husky hooks
+						{$t("Enable Husky hooks")}
 					{/snippet}
 					{#snippet caption()}
-						⚠️ Only enable this for repositories you trust.
+						{$t("⚠️ Only enable this for repositories you trust.")}
 						<br />
-						Allow GitButler to execute scripts from `.husky` (which can come from the repository). Hooks
-						in `.git/hooks` are unaffected.
+						{$t(
+							"Allow GitButler to execute scripts from `.husky` (which can come from the repository). Hooks in `.git/hooks` are unaffected.",
+						)}
 					{/snippet}
 					{#snippet actions()}
 						<Toggle

@@ -20,6 +20,7 @@
 		Spacer,
 		Textbox,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import { onMount, tick } from "svelte";
 	import { run } from "svelte/legacy";
@@ -85,18 +86,18 @@
 		initialized = true;
 	});
 
-	const keyOptions = [
+	const keyOptions = $derived([
 		{
-			label: "Use GitButler API",
+			label: $t("Use GitButler API"),
 			value: KeyOption.ButlerAPI,
 		},
 		{
-			label: "Your own key",
+			label: $t("Your own key"),
 			value: KeyOption.BringYourOwn,
 		},
-	];
+	]);
 
-	const openAIModelOptions = [
+	const openAIModelOptions = $derived([
 		{
 			label: "GPT 5.4",
 			value: OpenAIModelName.GPT54,
@@ -106,14 +107,14 @@
 			value: OpenAIModelName.GPT54Mini,
 		},
 		{
-			label: "GPT 5.4 Nano (recommended)",
+			label: $t("GPT 5.4 Nano (recommended)"),
 			value: OpenAIModelName.GPT54Nano,
 		},
-	];
+	]);
 
-	const anthropicModelOptions = [
+	const anthropicModelOptions = $derived([
 		{
-			label: "Haiku (recommended)",
+			label: $t("Haiku (recommended)"),
 			value: AnthropicModelName.Haiku,
 		},
 		{
@@ -124,7 +125,7 @@
 			label: "Opus",
 			value: AnthropicModelName.Opus,
 		},
-	];
+	]);
 
 	let form = $state<HTMLFormElement>();
 
@@ -190,15 +191,16 @@
 {/snippet}
 
 <p class="text-13 text-body ai-settings__about-text">
-	GitButler supports multiple AI providers: OpenAI and Anthropic (via API or your own key),
-	OpenRouter for access to hundreds of models, plus local models through Ollama and LM Studio.
+	{$t(
+		"GitButler supports multiple AI providers: OpenAI and Anthropic (via API or your own key), OpenRouter for access to hundreds of models, plus local models through Ollama and LM Studio.",
+	)}
 </p>
 
 <CardGroup>
 	<form class="git-radio" bind:this={form} onchange={(e) => onFormChange(e.currentTarget)}>
 		<CardGroup.Item labelFor="open-ai">
 			{#snippet title()}
-				Open AI
+				{$t("Open AI")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton name="modelKind" id="open-ai" value={ModelKind.OpenAI} />
@@ -210,7 +212,7 @@
 					value={openAIKeyOption}
 					options={keyOptions}
 					wide
-					label="Do you want to provide your own key?"
+					label={$t("Do you want to provide your own key?")}
 					onselect={(value) => {
 						openAIKeyOption = value as KeyOption;
 					}}
@@ -224,7 +226,7 @@
 
 				{#if openAIKeyOption === KeyOption.ButlerAPI}
 					{#if !userService.user}
-						<AuthorizationBanner message="Please sign in to use the GitButler API." />
+						<AuthorizationBanner message={$t("Please sign in to use the GitButler API.")} />
 					{:else}
 						{@render shortNote("GitButler uses OpenAI API for commit messages and branch names.")}
 					{/if}
@@ -232,17 +234,17 @@
 
 				{#if openAIKeyOption === KeyOption.BringYourOwn}
 					<Textbox
-						label="API key"
+						label={$t("API key")}
 						type="password"
 						bind:value={openAIKey}
 						required
-						placeholder="sk-..."
+						placeholder={$t("sk-...")}
 					/>
 
 					<Select
 						value={openAIModelName}
 						options={openAIModelOptions}
-						label="Model version"
+						label={$t("Model version")}
 						wide
 						onselect={(value) => {
 							openAIModelName = value as OpenAIModelName;
@@ -256,7 +258,7 @@
 					</Select>
 
 					<Textbox
-						label="Custom endpoint"
+						label={$t("Custom endpoint")}
 						bind:value={openAICustomEndpoint}
 						placeholder="https://api.openai.com/v1"
 					/>
@@ -278,7 +280,7 @@
 					value={anthropicKeyOption}
 					options={keyOptions}
 					wide
-					label="Do you want to provide your own key?"
+					label={$t("Do you want to provide your own key?")}
 					onselect={(value) => {
 						anthropicKeyOption = value as KeyOption;
 					}}
@@ -292,7 +294,7 @@
 
 				{#if anthropicKeyOption === KeyOption.ButlerAPI}
 					{#if !userService.user}
-						<AuthorizationBanner message="Please sign in to use the GitButler API." />
+						<AuthorizationBanner message={$t("Please sign in to use the GitButler API.")} />
 					{:else}
 						{@render shortNote(
 							"GitButler uses Anthropic API for commit messages and branch names.",
@@ -302,17 +304,17 @@
 
 				{#if anthropicKeyOption === KeyOption.BringYourOwn}
 					<Textbox
-						label="API key"
+						label={$t("API key")}
 						type="password"
 						bind:value={anthropicKey}
 						required
-						placeholder="sk-ant-api03-..."
+						placeholder={$t("sk-ant-api03-...")}
 					/>
 
 					<Select
 						value={anthropicModelName}
 						options={anthropicModelOptions}
-						label="Model version"
+						label={$t("Model version")}
 						onselect={(value) => {
 							anthropicModelName = value as AnthropicModelName;
 						}}
@@ -329,7 +331,7 @@
 
 		<CardGroup.Item labelFor="ollama">
 			{#snippet title()}
-				Ollama 🦙
+				{$t("Ollama 🦙")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton name="modelKind" id="ollama" value={ModelKind.Ollama} />
@@ -338,20 +340,22 @@
 		{#if modelKind === ModelKind.Ollama}
 			<CardGroup.Item>
 				<Textbox
-					label="Endpoint"
+					label={$t("Endpoint")}
 					bind:value={ollamaEndpoint}
 					placeholder="http://127.0.0.1:11434"
 				/>
-				<Textbox label="Model" bind:value={ollamaModel} placeholder="llama3" />
+				<Textbox label={$t("Model")} bind:value={ollamaModel} placeholder={$t("llama3")} />
 				<InfoMessage filled outlined={false}>
 					{#snippet title()}
-						Configuring Ollama
+						{$t("Configuring Ollama")}
 					{/snippet}
 					{#snippet content()}
-						To connect to your Ollama endpoint, <b>allow-list it in the app’s CSP settings</b>.
+						{$t("To connect to your Ollama endpoint,")}
+						<b>{$t("allow-list it in the app’s CSP settings")}</b>.
 						<br />
-						See the <Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
-							>docs for details</Link
+						{$t("See the")}
+						<Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
+							>{$t("docs for details")}</Link
 						>
 					{/snippet}
 				</InfoMessage>
@@ -360,7 +364,7 @@
 
 		<CardGroup.Item labelFor="lmstudio">
 			{#snippet title()}
-				LM Studio
+				{$t("LM Studio")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton name="modelKind" id="lmstudio" value={ModelKind.LMStudio} />
@@ -369,32 +373,34 @@
 		{#if modelKind === ModelKind.LMStudio}
 			<CardGroup.Item>
 				<Textbox
-					label="Endpoint"
+					label={$t("Endpoint")}
 					bind:value={lmStudioEndpoint}
 					placeholder="http://127.0.0.1:1234"
 				/>
-				<Textbox label="Model" bind:value={lmStudioModel} placeholder="default" />
+				<Textbox label={$t("Model")} bind:value={lmStudioModel} placeholder={$t("default")} />
 				<InfoMessage filled outlined={false}>
 					{#snippet title()}
-						Configuring LM Studio
+						{$t("Configuring LM Studio")}
 					{/snippet}
 					{#snippet content()}
 						<div class="ai-settings__section-text-block">
-							<p>Connecting to your LM Studio endpoint requires that you do two things:</p>
+							<p>{$t("Connecting to your LM Studio endpoint requires that you do two things:")}</p>
 
 							<p>
 								1. <span class="text-bold"
-									>Allow-list it in the CSP settings for the application</span
-								>. You can find more details on how to do that in the <Link
-									href="https://docs.gitbutler.com/troubleshooting/custom-csp">GitButler docs</Link
+									>{$t("Allow-list it in the CSP settings for the application")}</span
+								>{$t(". You can find more details on how to do that in the")}
+								<Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
+									>{$t("GitButler docs")}</Link
 								>.
 							</p>
 
 							<p>
-								2. <span class="text-bold">Enable CORS support in LM Studio</span>. You can find
-								more details on how to do that in the <Link
-									href="https://lmstudio.ai/docs/cli/server-start#enable-cors-support"
-									>LM Studio docs</Link
+								2. <span class="text-bold">{$t("Enable CORS support in LM Studio")}</span>{$t(
+									". You can find more details on how to do that in the",
+								)}
+								<Link href="https://lmstudio.ai/docs/cli/server-start#enable-cors-support"
+									>{$t("LM Studio docs")}</Link
 								>.
 							</p>
 						</div>
@@ -405,7 +411,7 @@
 
 		<CardGroup.Item labelFor="openrouter">
 			{#snippet title()}
-				OpenRouter
+				{$t("OpenRouter")}
 			{/snippet}
 			{#snippet actions()}
 				<RadioButton name="modelKind" id="openrouter" value={ModelKind.OpenRouter} />
@@ -414,14 +420,18 @@
 		{#if modelKind === ModelKind.OpenRouter}
 			<CardGroup.Item>
 				<Textbox
-					label="API key"
+					label={$t("API key")}
 					type="password"
 					bind:value={openRouterKey}
 					required
-					placeholder="sk-or-..."
+					placeholder={$t("sk-or-...")}
 				/>
 
-				<Textbox label="Model" bind:value={openRouterModel} placeholder="openai/gpt-4.1-mini" />
+				<Textbox
+					label={$t("Model")}
+					bind:value={openRouterModel}
+					placeholder={$t("openai/gpt-4.1-mini")}
+				/>
 			</CardGroup.Item>
 		{/if}
 
@@ -435,10 +445,10 @@
 
 <CardGroup.Item standalone>
 	{#snippet title()}
-		Amount of provided context
+		{$t("Amount of provided context")}
 	{/snippet}
 	{#snippet caption()}
-		How many characters of your git diff should be provided to AI
+		{$t("How many characters of your git diff should be provided to AI")}
 	{/snippet}
 	{#snippet actions()}
 		<Textbox
@@ -459,11 +469,12 @@
 
 <SettingsSection>
 	{#snippet title()}
-		Custom AI prompts
+		{$t("Custom AI prompts")}
 	{/snippet}
 	{#snippet description()}
-		GitButler's AI assistant generates commit messages and branch names. Use default prompts or
-		create your own. Assign prompts in the project settings.
+		{$t(
+			"GitButler's AI assistant generates commit messages and branch names. Use default prompts or create your own. Assign prompts in the project settings.",
+		)}
 	{/snippet}
 
 	<div class="prompt-groups">

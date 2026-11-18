@@ -125,7 +125,7 @@ impl Navigator {
     pub(super) fn view_button(&self, cx: &Context<Self>) -> AnyElement {
         icon_button("watched-view-options", Icon::Mixer)
             .small()
-            .tooltip("Organize repositories")
+            .tooltip(crate::i18n::t("navigator-order-organize-repositories"))
             .on_click(cx.listener(|this, event: &ClickEvent, _, cx| {
                 this.open_menu(event.position(), |this, cx| this.view_menu(cx), cx)
             }))
@@ -153,36 +153,43 @@ impl Navigator {
             })
         };
         vec![
-            MenuItem::new("New repository group…", |app, window, cx| {
-                app.edit_project_group(None, None, window, cx)
-            })
+            MenuItem::new(
+                crate::i18n::t("navigator-order-new-repository-group"),
+                |app, window, cx| app.edit_project_group(None, None, window, cx),
+            )
             .under("Groups"),
-            MenuItem::new("Collapse all groups", |app, _, cx| {
-                app.store.update(cx, |store, cx| {
-                    store.set_prefs(
-                        |prefs| {
-                            for group in &mut prefs.project_groups {
-                                group.folded = true;
-                            }
-                            prefs.ungrouped_folded = true;
-                        },
-                        cx,
-                    )
-                });
-            }),
-            MenuItem::new("Expand all groups", |app, _, cx| {
-                app.store.update(cx, |store, cx| {
-                    store.set_prefs(
-                        |prefs| {
-                            for group in &mut prefs.project_groups {
-                                group.folded = false;
-                            }
-                            prefs.ungrouped_folded = false;
-                        },
-                        cx,
-                    )
-                });
-            }),
+            MenuItem::new(
+                crate::i18n::t("navigator-order-collapse-all-groups"),
+                |app, _, cx| {
+                    app.store.update(cx, |store, cx| {
+                        store.set_prefs(
+                            |prefs| {
+                                for group in &mut prefs.project_groups {
+                                    group.folded = true;
+                                }
+                                prefs.ungrouped_folded = true;
+                            },
+                            cx,
+                        )
+                    });
+                },
+            ),
+            MenuItem::new(
+                crate::i18n::t("navigator-order-expand-all-groups"),
+                |app, _, cx| {
+                    app.store.update(cx, |store, cx| {
+                        store.set_prefs(
+                            |prefs| {
+                                for group in &mut prefs.project_groups {
+                                    group.folded = false;
+                                }
+                                prefs.ungrouped_folded = false;
+                            },
+                            cx,
+                        )
+                    });
+                },
+            ),
             set("Manual, by dragging", WatchedOrder::Manual).under("Order watched projects"),
             set("Name", WatchedOrder::Name),
             set("Last activity", WatchedOrder::Activity),

@@ -61,7 +61,13 @@ fn show_about(cx: &mut App) {
                 settings::channel()
             );
             // Nothing to wait for: OK only closes it.
-            drop(window.prompt(PromptLevel::Info, "GitButler", Some(&detail), &["OK"], cx));
+            drop(window.prompt(
+                PromptLevel::Info,
+                "GitButler",
+                Some(&detail),
+                &[crate::i18n::t("common-ok")],
+                cx,
+            ));
         })
         .ok();
 }

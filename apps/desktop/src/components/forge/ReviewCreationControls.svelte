@@ -8,6 +8,7 @@
 		DropdownButton,
 		TestId,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		isCreatingPR: boolean;
@@ -41,7 +42,7 @@
 		kind="outline"
 		disabled={isFormBusy || isCreatingPR}
 		width={120}
-		onclick={onCancel}>Cancel</Button
+		onclick={onCancel}>{$t("Cancel")}</Button
 	>
 
 	<DropdownButton
@@ -57,12 +58,14 @@
 		disabled={submitDisabled || isFormBusy}
 		hotkey="⌘↵"
 	>
-		{$createDraft ? `Create ${unit} draft` : `Create ${unit}`}
+		{$createDraft
+			? $t("Create {value0} draft", { value0: unit })
+			: $t("Create {value0}", { value0: unit })}
 
 		{#snippet contextMenuSlot()}
 			<ContextMenuSection>
 				<ContextMenuItem
-					label="Create {unit} draft"
+					label={$t("Create {unit} draft", { unit: unit })}
 					onclick={() => {
 						$createDraft = true;
 						commitButton?.close();
@@ -71,7 +74,7 @@
 				/>
 
 				<ContextMenuItem
-					label="Create {unit}"
+					label={$t("Create {unit}", { unit: unit })}
 					onclick={() => {
 						$createDraft = false;
 						commitButton?.close();

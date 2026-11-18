@@ -592,8 +592,13 @@ impl Detail {
             Row::Unchanged(count) => {
                 let row = fold_row(("brief-unchanged", ix), Icon::ChevronRight, 0., 18., theme)
                     .role(gpui::Role::Button)
-                    .aria_label(SharedString::from("Show what hasn't changed"))
-                    .child(format!("{} unchanged", plural(count, "part")))
+                    .aria_label(SharedString::from(crate::i18n::t(
+                        "detail-brief-show-hasn-t-changed",
+                    )))
+                    .child(crate::i18n::tf(
+                        "detail-brief-unchanged",
+                        &[("parts", (plural(count, crate::ui::Count::Part)).into())],
+                    ))
                     .on_click(cx.listener(|this, _, _, cx| {
                         this.toggle_brief_fold(BriefFold::Unchanged, cx)
                     }));
@@ -615,7 +620,10 @@ impl Detail {
                             div()
                                 .ml(dp(6.))
                                 .text_color(theme.text_3)
-                                .child(format!("{count} parts")),
+                                .child(crate::i18n::tf(
+                                    "detail-brief-parts",
+                                    &[("count", (format!("{count}")).into())],
+                                )),
                         )
                     })
                     .on_click(
@@ -649,7 +657,9 @@ impl Detail {
                         .mt(dp(4.))
                         .text_12()
                         .text_color(theme.warn)
-                        .child("The code under this changed after it was written")
+                        .child(crate::i18n::t(
+                            "detail-brief-code-under-changed-after-was-written",
+                        ))
                 }));
                 (if after_code { 22. } else { 12. }, words.into_any_element())
             }
@@ -670,7 +680,10 @@ impl Detail {
                     BriefBody::OnTheWeb(what) => div()
                         .text_12()
                         .text_color(theme.text_3)
-                        .child(format!("{what}, which shows on the web"))
+                        .child(crate::i18n::tf(
+                            "detail-brief-which-shows-web",
+                            &[("what", (what.to_string()).into())],
+                        ))
                         .into_any_element(),
                 };
                 (

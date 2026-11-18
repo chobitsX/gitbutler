@@ -12,6 +12,7 @@
 
 	import VirtualList from "@gitbutler/ui-svelte/components/VirtualList.svelte";
 	import { getColorFromBranchType } from "@gitbutler/ui-svelte/utils/getColorFromBranchType";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { onMount } from "svelte";
 	import type { UpstreamCommit } from "@gitbutler/but-sdk";
 
@@ -112,7 +113,7 @@
 									<ReduxResult {projectId} result={changesQuery.result}>
 										{#snippet children(changesResult)}
 											<ChangedFilesPanel
-												title="Changed files"
+												title={$t("Changed files")}
 												{projectId}
 												draggableFiles
 												selectionId={createCommitSelection({ commitId: commit.id })}

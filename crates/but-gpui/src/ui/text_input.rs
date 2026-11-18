@@ -91,16 +91,16 @@ const CONTEXT: &str = "TextInput";
 impl Target {
     fn words(self) -> &'static str {
         match self {
-            Target::Left => "left",
-            Target::Right => "right",
-            Target::Up => "up",
-            Target::Down => "down",
-            Target::WordLeft => "word left",
-            Target::WordRight => "word right",
-            Target::LineStart => "line start",
-            Target::LineEnd => "line end",
-            Target::Start => "start",
-            Target::End => "end",
+            Target::Left => crate::i18n::t("ui-text-input-left"),
+            Target::Right => crate::i18n::t("ui-text-input-right"),
+            Target::Up => crate::i18n::t("ui-text-input-up"),
+            Target::Down => crate::i18n::t("ui-text-input-down"),
+            Target::WordLeft => crate::i18n::t("ui-text-input-word-left"),
+            Target::WordRight => crate::i18n::t("ui-text-input-word-right"),
+            Target::LineStart => crate::i18n::t("ui-text-input-line-start"),
+            Target::LineEnd => crate::i18n::t("ui-text-input-line-end"),
+            Target::Start => crate::i18n::t("ui-text-input-start"),
+            Target::End => crate::i18n::t("ui-text-input-end"),
         }
     }
 }
@@ -133,11 +133,18 @@ pub fn bound_keys(cx: &App) -> Vec<BoundKey> {
 
 fn title_of(action: &dyn gpui::Action) -> String {
     if let Some(Move { to, select }) = action.as_any().downcast_ref::<Move>() {
-        let verb = if *select { "Select to" } else { "Move to" };
+        let verb = if *select {
+            crate::i18n::t("ui-text-input-select")
+        } else {
+            crate::i18n::t("ui-text-input-move")
+        };
         return format!("{verb} {}", to.words());
     }
     if let Some(Delete { to }) = action.as_any().downcast_ref::<Delete>() {
-        return format!("Delete to {}", to.words());
+        return crate::i18n::tf(
+            "ui-text-input-delete",
+            &[("words", (to.words().to_string()).into())],
+        );
     }
     crate::commands::title_of(action.name())
 }
@@ -279,6 +286,7 @@ pub struct TextInput {
     focus_handle: FocusHandle,
     content: String,
     placeholder: SharedString,
+    placeholder_id: Option<&'static str>,
     multiline: bool,
     /// Enter submits though the text wraps, for what's short but may not fit on a line.
     enter_submits: bool,
@@ -330,6 +338,7 @@ impl TextInput {
             focus_handle: cx.focus_handle().tab_stop(true),
             content: String::new(),
             placeholder: placeholder.into(),
+            placeholder_id: None,
             multiline,
             enter_submits: false,
             masked: false,
@@ -353,6 +362,21 @@ impl TextInput {
             cursor_visible: true,
             blink: Task::ready(()),
             blinking: false,
+        }
+    }
+
+    /// A UI-owned placeholder that follows language changes even while this field is open.
+    /// `new` remains for literal data, such as a path or a program's example command.
+    pub fn localized(id: &'static str, multiline: bool, cx: &mut Context<Self>) -> Self {
+        let mut input = Self::new("", multiline, cx);
+        input.placeholder_id = Some(id);
+        input
+    }
+
+    fn placeholder_text(&self) -> SharedString {
+        match self.placeholder_id {
+            Some(id) => crate::i18n::t(id).into(),
+            None => self.placeholder.clone(),
         }
     }
 
@@ -1173,7 +1197,7 @@ impl Render for TextInput {
             } else {
                 Role::TextInput
             })
-            .aria_label(self.placeholder.clone())
+            .aria_label(self.placeholder_text())
             // A line editor's own keys, as Tab indenting, bind to it alone.
             .key_context(match self.line_editor {
                 true => "TextInput LineEditor",
@@ -1295,7 +1319,7 @@ impl Element for TextElement {
         let wrap_width = input.multiline.then_some(bounds.size.width);
         let is_empty = input.content.is_empty();
         let text: SharedString = if is_empty {
-            input.placeholder.clone()
+            input.placeholder_text()
         } else if input.masked {
             // One `*` per byte keeps every offset into the text valid for the layout.
             "*".repeat(input.content.len()).into()

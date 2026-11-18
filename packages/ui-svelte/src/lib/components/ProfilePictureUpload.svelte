@@ -12,6 +12,7 @@
 
 <script lang="ts">
 	import SkeletonBone from "$components/SkeletonBone.svelte";
+	import { t } from "$lib/utils/i18n";
 	import { useImageLoading } from "$lib/utils/imageLoading.svelte";
 
 	let {
@@ -73,7 +74,7 @@
 		/>
 	{/if}
 
-	<span class="profile-pic__edit-label text-11 text-semibold">Edit</span>
+	<span class="profile-pic__edit-label text-11 text-semibold">{$t("Edit")}</span>
 </label>
 
 <style lang="postcss">

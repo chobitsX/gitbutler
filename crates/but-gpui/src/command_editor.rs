@@ -82,7 +82,7 @@ pub fn open(store: Entity<Store>, cx: &mut App) {
         WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(bounds)),
             titlebar: Some(TitlebarOptions {
-                title: Some("Commands".into()),
+                title: Some(crate::i18n::t("command-editor-commands").into()),
                 ..Default::default()
             }),
             window_min_size: Some(size(fixed(1100.), fixed(500.))),
@@ -162,8 +162,8 @@ impl Tab {
 
     fn label(self) -> &'static str {
         match self {
-            Tab::Keys => "Keys",
-            Tab::MenuBar => "Menu bar",
+            Tab::Keys => crate::i18n::t("command-editor-keys"),
+            Tab::MenuBar => crate::i18n::t("command-editor-menu-bar"),
         }
     }
 }
@@ -212,7 +212,10 @@ impl CommandEditor {
         window: &mut Window,
         cx: &mut Context<CommandEditor>,
     ) -> CommandEditor {
-        let search = cx.new(|cx| TextInput::new("Find by title, action, place or keys", false, cx));
+        let search = cx.new(|cx| {
+            TextInput::localized("command-editor-find-title-action-place-or-keys", false, cx)
+        });
+        let mut language = store.read(cx).prefs.language;
         let subscriptions = Vec::from([
             cx.subscribe_in(&search, window, |this, search, event, _, cx| match event {
                 InputEvent::Changed => this.show_rows(false, cx),
@@ -225,6 +228,16 @@ impl CommandEditor {
             }),
             cx.observe_global::<Theme>(|_, cx| cx.notify()),
             cx.observe_global::<Loaded>(|this, cx| this.load_rows(cx)),
+            cx.observe(&store, move |this, store, cx| {
+                let current = store.read(cx).prefs.language;
+                if current != language {
+                    language = current;
+                    this.load_rows(cx);
+                    let commands = commands(&keymap::bindings(cx), cx);
+                    this.menu_bar
+                        .update(cx, |editor, cx| editor.set_commands(commands, cx));
+                }
+            }),
             // A key pressed in another app isn't a key for this.
             cx.observe_window_activation(window, |this, window, cx| {
                 match window.is_window_active() {
@@ -615,7 +628,9 @@ impl CommandEditor {
                         .gap(dp(5.))
                         .text_13()
                         .child(ui::dot(theme.pop))
-                        .child("Shown in tooltips and right-click menus"),
+                        .child(crate::i18n::t(
+                            "command-editor-shown-tooltips-right-click-menus",
+                        )),
                 ),
         }
     }
@@ -630,7 +645,7 @@ impl CommandEditor {
         let found = self.found_keys.as_ref().filter(|_| !finding);
         let press = ui::tab_stop(div().id("find-keys"), theme)
             .role(Role::Button)
-            .aria_label("Find by pressing a key")
+            .aria_label(crate::i18n::t("command-editor-find-pressing-key"))
             .flex_1()
             .min_w_0()
             .h_full()
@@ -639,11 +654,11 @@ impl CommandEditor {
             .px(dp(8.))
             .on_click(cx.listener(|this, _, window, cx| this.start_finding(window, cx)));
         let press = match (finding, found) {
-            (true, _) => press.child("Press a key…"),
+            (true, _) => press.child(crate::i18n::t("command-editor-press-key")),
             (false, Some(keys)) => press.child(ui::keycap_large(keys, theme)),
             (false, None) => press
                 .text_color(theme.text_3)
-                .child("Find by pressing a key"),
+                .child(crate::i18n::t("command-editor-find-pressing-key")),
         };
         h_flex()
             .flex_none()
@@ -660,7 +675,7 @@ impl CommandEditor {
                 icon_button("clear-found-keys", Icon::Cross)
                     .small()
                     .style(ButtonStyle::Ghost)
-                    .tooltip("Show every key")
+                    .tooltip(crate::i18n::t("command-editor-show-every-key"))
                     .on_click(cx.listener(|this, _, _, cx| this.clear_found_keys(cx)))
             }))
     }
@@ -673,10 +688,19 @@ impl CommandEditor {
             .border_b_1()
             .border_color(theme.border_2)
             .child(div().flex_none().w(dp(AUDIT_WIDTH)))
-            .child(text_column(COMMAND_WIDTH).child(table_heading("Command")))
-            .child(text_column(ACTION_WIDTH).child(table_heading("Action")))
-            .child(text_column(PLACE_WIDTH).child(table_heading("Where")))
-            .child(keys_column().child(table_heading("Keys")))
+            .child(
+                text_column(COMMAND_WIDTH)
+                    .child(table_heading(crate::i18n::t("editor-command-column"))),
+            )
+            .child(
+                text_column(ACTION_WIDTH)
+                    .child(table_heading(crate::i18n::t("editor-action-column"))),
+            )
+            .child(
+                text_column(PLACE_WIDTH)
+                    .child(table_heading(crate::i18n::t("editor-context-column"))),
+            )
+            .child(keys_column().child(table_heading(crate::i18n::t("editor-keys-column"))))
     }
 
     fn render_line(&self, ix: usize, cx: &mut Context<CommandEditor>) -> AnyElement {
@@ -815,7 +839,9 @@ impl CommandEditor {
     ) -> AnyElement {
         let place = match &row.place {
             Place::In(context) => {
-                let text = context.clone().unwrap_or_else(|| "Anywhere".to_owned());
+                let text = context
+                    .clone()
+                    .unwrap_or_else(|| crate::i18n::t("editor-anywhere").to_owned());
                 text_column(PLACE_WIDTH)
                     .flex()
                     .items_center()
@@ -831,7 +857,9 @@ impl CommandEditor {
                     })
                     .child(div().min_w_0().truncate().child(text))
             }
-            Place::Unbound => text_column(PLACE_WIDTH).text_13().child("Nowhere"),
+            Place::Unbound => text_column(PLACE_WIDTH)
+                .text_13()
+                .child(crate::i18n::t("command-editor-nowhere")),
         };
         let add_place = (!repeats && !row.locked() && row.place != Place::Unbound).then(|| {
             let (action, title) = (row.action.clone(), row.title.clone());
@@ -843,7 +871,7 @@ impl CommandEditor {
                     icon_button("add-place", Icon::Plus)
                         .small()
                         .style(ButtonStyle::Ghost)
-                        .tooltip("Bind it in another place")
+                        .tooltip(crate::i18n::t("command-editor-bind-another-place"))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             this.picking = Some(Picking {
                                 action: action.clone(),
@@ -866,8 +894,11 @@ impl CommandEditor {
             .when(!repeats, |el| {
                 el.child(
                     ui::checkbox("audited", check, theme)
-                        .aria_label(format!("{} audited", row.title))
-                        .tooltip(Tooltip::text("Audited"))
+                        .aria_label(crate::i18n::tf(
+                            "command-editor-audited",
+                            &[("title", (row.title.to_string()).into())],
+                        ))
+                        .tooltip(Tooltip::text(crate::i18n::t("command-editor-audited-2")))
                         .on_click(
                             cx.listener(move |this, _, _, cx| this.toggle_audited(&audit_key, cx)),
                         ),
@@ -936,7 +967,7 @@ impl CommandEditor {
                     icon_button("add-key", Icon::Plus)
                         .small()
                         .style(ButtonStyle::Ghost)
-                        .tooltip("Add a key")
+                        .tooltip(crate::i18n::t("command-editor-add-key"))
                         .on_click(cx.listener(move |this, _, window, cx| match &place {
                             Place::In(context) => this.start_recording(
                                 Target::Add {
@@ -987,7 +1018,9 @@ impl CommandEditor {
                 .flex_none()
                 .id(("locked-key", ix))
                 .mr(dp(8.))
-                .tooltip(Tooltip::text("Bound in ui::text_input"))
+                .tooltip(Tooltip::text(crate::i18n::t(
+                    "command-editor-bound-ui-text-input",
+                )))
                 .child(ui::keycap_large(&key.label, theme))
                 .into_any_element();
         };
@@ -999,13 +1032,19 @@ impl CommandEditor {
         }
         let conflicted = !key.conflicts.is_empty();
         let tooltip = match conflicted {
-            true => format!("Also runs {}", key.conflicts.join(", ")),
-            false => "Change these keys".to_owned(),
+            true => crate::i18n::tf(
+                "command-editor-also-runs",
+                &[("join", (key.conflicts.join(", ")).into())],
+            ),
+            false => crate::i18n::t("command-editor-change-these-keys").to_owned(),
         };
         let cap = h_flex()
             .id(("key", ix))
             .role(Role::Button)
-            .aria_label(format!("Change {}", key.label))
+            .aria_label(crate::i18n::tf(
+                "command-editor-change",
+                &[("label", (format!("{}", key.label)).into())],
+            ))
             .h(dp(28.))
             .px(dp(3.))
             .gap(dp(4.))
@@ -1023,16 +1062,23 @@ impl CommandEditor {
             }))
             .child(ui::keycap_large(&key.label, theme))
             .when(key.shown, |el| el.child(ui::dot(theme.pop)))
-            .when(key.shared(), |el| el.child("shared"))
+            .when(key.shared(), |el| {
+                el.child(crate::i18n::t("command-editor-shared"))
+            })
             .when_some(key.platforms.clone(), |el, platforms| el.child(platforms));
         let remove = div()
             .id(("remove", ix))
             .role(Role::Button)
-            .aria_label(format!("Remove {}", key.label))
+            .aria_label(crate::i18n::tf(
+                "command-editor-remove",
+                &[("label", (format!("{}", key.label)).into())],
+            ))
             .flex_none()
             .invisible()
             .group_hover("key", |el| el.visible())
-            .tooltip(Tooltip::text("Remove these keys"))
+            .tooltip(Tooltip::text(crate::i18n::t(
+                "command-editor-remove-these-keys",
+            )))
             .on_click(cx.listener(move |this, _, _, cx| this.remove(binding.clone(), cx)))
             .child(icon_at(Icon::Cross, 12.).text_color(theme.text_1));
         h_flex()
@@ -1068,7 +1114,10 @@ impl CommandEditor {
             h_flex()
                 .id(("platform", ix))
                 .role(Role::CheckBox)
-                .aria_label(format!("Bind on {name}"))
+                .aria_label(crate::i18n::tf(
+                    "command-editor-bind",
+                    &[("name", (name.to_string()).into())],
+                ))
                 .gap(dp(5.))
                 .child(ui::checkbox(("platform-box", ix), check, theme))
                 .child(name.to_owned())
@@ -1100,11 +1149,11 @@ impl CommandEditor {
             .flatten();
         let (text, color) = match (&self.recording, errors.first(), notice) {
             _ if self.finding.is_some() => (
-                "Press a key to find what's bound to it. Click elsewhere to cancel.".to_owned(),
+                crate::i18n::t("editor-press-key-help").to_owned(),
                 theme.text_1,
             ),
             (Some(_), _, _) => (
-                "Press the keys, two for a chord. Click elsewhere to cancel.".to_owned(),
+                crate::i18n::t("editor-record-keys-help").to_owned(),
                 theme.text_1,
             ),
             (None, Some(error), _) => (error.clone(), theme.danger),
@@ -1112,15 +1161,10 @@ impl CommandEditor {
             (None, None, Some(Notice::Done(text))) => (text.clone(), theme.text_1),
             (None, None, None) => match (self.tab, menu_warning) {
                 (Tab::MenuBar, Some(warning)) => (warning, theme.warn),
-                (Tab::MenuBar, None) => (
-                    "Drag commands into menus and around them. Changes are saved as you make them."
-                        .to_owned(),
-                    theme.text_1,
-                ),
-                (Tab::Keys, _) => (
-                    "Click keys to change them. Changes are saved as you make them.".to_owned(),
-                    theme.text_1,
-                ),
+                (Tab::MenuBar, None) => {
+                    (crate::i18n::t("editor-menu-help").to_owned(), theme.text_1)
+                }
+                (Tab::Keys, _) => (crate::i18n::t("editor-keys-help").to_owned(), theme.text_1),
             },
         };
         let platforms = self.render_platforms(theme, cx);
@@ -1161,7 +1205,9 @@ impl CommandEditor {
             .collect();
         contexts.sort();
         let rows = contexts.into_iter().enumerate().map(|(ix, context)| {
-            let label = context.clone().unwrap_or_else(|| "Anywhere".to_owned());
+            let label = context
+                .clone()
+                .unwrap_or_else(|| crate::i18n::t("editor-anywhere").to_owned());
             list_row(("place", ix), false, theme)
                 .h(dp(26.))
                 .px(dp(12.))
@@ -1179,7 +1225,10 @@ impl CommandEditor {
                     .flex_none()
                     .p(dp(14.))
                     .semibold()
-                    .child(format!("Where should {} work?", picking.title)),
+                    .child(crate::i18n::tf(
+                        "command-editor-where-should-work",
+                        &[("title", (picking.title.to_string()).into())],
+                    )),
             )
             .child(
                 v_flex()
@@ -1236,7 +1285,7 @@ fn recording_cap(recording: &Recording, theme: &Theme) -> impl IntoElement + use
         .map(|stroke| edit::written(stroke, None, std::env::consts::OS))
         .collect();
     let label = match keys.is_empty() {
-        true => "Press keys…".to_owned(),
+        true => crate::i18n::t("command-editor-press-keys").to_owned(),
         false => format!("{}…", ui::keys_written(&keys.join(" "))),
     };
     h_flex()
@@ -1364,6 +1413,7 @@ impl Render for CommandEditor {
             .relative()
             .size_full()
             .font_family(theme.ui_font.clone())
+            .map(crate::ui::with_cjk_fallback)
             .text_14()
             .text_color(theme.text_1)
             .bg(theme.bg_1)

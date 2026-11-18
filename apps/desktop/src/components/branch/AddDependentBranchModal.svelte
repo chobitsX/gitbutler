@@ -11,6 +11,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const { projectId, branchReference }: AddDependentBranchModalProps = $props();
 
@@ -50,12 +51,12 @@
 	testId={TestId.BranchHeaderAddDependanttBranchModal}
 	bind:this={modal}
 	width="small"
-	title="Add dependent branch"
+	title={$t("Add dependent branch")}
 	onSubmit={handleAddDependentBranch}
 >
 	<div class="content-wrap">
 		<BranchNameTextbox
-			placeholder="Branch name"
+			placeholder={$t("Branch name")}
 			bind:value={branchName}
 			autofocus
 			onnormalizedvalue={(value) => (normalizedRefName = value)}
@@ -63,13 +64,13 @@
 		/>
 	</div>
 	{#snippet controls(close)}
-		<Button kind="outline" type="reset" onclick={close}>Cancel</Button>
+		<Button kind="outline" type="reset" onclick={close}>{$t("Cancel")}</Button>
 		<Button
 			testId={TestId.BranchHeaderAddDependanttBranchModal_ActionButton}
 			style="pop"
 			type="submit"
 			disabled={!isBranchNameValid}
-			loading={branchCreation.current.isLoading}>Add branch</Button
+			loading={branchCreation.current.isLoading}>{$t("Add branch")}</Button
 		>
 	{/snippet}
 </Modal>

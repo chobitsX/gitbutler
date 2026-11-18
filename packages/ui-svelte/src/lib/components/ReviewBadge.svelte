@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
 	import { getForgeLogo } from "$lib/utils/getForgeLogo";
+	import { t } from "$lib/utils/i18n";
 
 	interface Props {
 		type: string | undefined;
@@ -43,13 +44,13 @@
 
 		switch (status) {
 			case "open":
-				return `${reviewUnit} ${id} is open`;
+				return $t("{value0} {value1} is open", { value0: reviewUnit, value1: id });
 			case "closed":
-				return `${reviewUnit} ${id} is closed`;
+				return $t("{value0} {value1} is closed", { value0: reviewUnit, value1: id });
 			case "draft":
-				return `${reviewUnit} ${id} is a draft`;
+				return $t("{value0} {value1} is a draft", { value0: reviewUnit, value1: id });
 			case "merged":
-				return `${reviewUnit} ${id} is merged`;
+				return $t("{value0} {value1} is merged", { value0: reviewUnit, value1: id });
 			default:
 				return `${reviewUnit} ${id}`;
 		}
@@ -65,7 +66,7 @@
 	reversedDirection
 >
 	{#if status === "draft"}
-		Draft {reviewUnit}
+		{$t("Draft {reviewUnit}", { reviewUnit: reviewUnit })}
 	{:else}
 		{reviewUnit} {id}
 	{/if}

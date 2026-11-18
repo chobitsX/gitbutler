@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Icon } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { pxToRem } from "@gitbutler/ui-svelte/utils/pxToRem";
 	import type { Snippet } from "svelte";
 
@@ -44,7 +45,9 @@
 				isOpen = !isOpen;
 			}}
 		>
-			<span class="text-11">{isOpen ? "Fold files" : `Show ${foldedAmount} files`}</span>
+			<span class="text-11"
+				>{isOpen ? $t("Fold files") : $t("Show {value0} files", { value0: foldedAmount })}</span
+			>
 			<div class="toggle-btn__icon" style="transform: rotate({isOpen ? '180deg' : '0'})">
 				<Icon name="chevron-down" size={14} />
 			</div>

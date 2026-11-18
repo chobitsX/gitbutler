@@ -26,6 +26,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, ContextMenuItem, ContextMenuSection, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Segment } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -49,8 +50,8 @@
 	const worktree = $derived(controller.worktree);
 	const topBranchNote = $derived.by(() => {
 		if (!worktree) return undefined;
-		if (!baseBranchName) return "worktree";
-		return `worktree on ${baseBranchName}`;
+		if (!baseBranchName) return $t("worktree");
+		return $t("worktree on {value0}", { value0: baseBranchName });
 	});
 	const uncommittedService = $derived(controller.uncommitted);
 	const changes = $derived(uncommittedService.changesByStackId(controller.stackId || null));
@@ -176,7 +177,7 @@
 					}}
 				/>
 				<ContextMenuItem
-					label="Copy path"
+					label={$t("Copy path")}
 					icon="copy"
 					onclick={async () => {
 						close();
@@ -187,7 +188,7 @@
 			</ContextMenuSection>
 			<ContextMenuSection>
 				<ContextMenuItem
-					label="Archive worktree"
+					label={$t("Archive worktree")}
 					icon="eject"
 					onclick={async () => {
 						close();
@@ -199,7 +200,7 @@
 					}}
 				/>
 				<ContextMenuItem
-					label="Remove worktree…"
+					label={$t("Remove worktree…")}
 					icon="bin"
 					onclick={() => {
 						close();
@@ -231,7 +232,7 @@
 				class:dropzone-hovered={dropzoneHovered && changes.current.length === 0}
 			>
 				<WorktreeChanges
-					title={worktree ? "Uncommitted" : "Staged"}
+					title={worktree ? $t("Uncommitted") : $t("Staged")}
 					projectId={controller.projectId}
 					stackId={controller.stackId}
 					worktree={worktree?.name}
@@ -254,7 +255,9 @@
 						{#if !controller.isCommitting}
 							<div class="assigned-changes-empty">
 								<p class="text-12 text-body assigned-changes-empty__text">
-									{worktree ? "No uncommitted changes" : "Drop files to stage or commit directly"}
+									{worktree
+										? $t("No uncommitted changes")
+										: $t("Drop files to stage or commit directly")}
 								</p>
 							</div>
 						{/if}
@@ -289,7 +292,7 @@
 						tooltip={controller.readOnlyTooltip}
 						onclick={startCommit}
 					>
-						Start a commit…
+						{$t("Start a commit…")}
 					</Button>
 				</div>
 			{:else if controller.isCommitting}

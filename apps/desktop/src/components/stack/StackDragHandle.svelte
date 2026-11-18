@@ -4,6 +4,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { ContextMenuItem, ContextMenuSection, Icon, KebabButton } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Stack } from "$lib/stacks/stack";
 	import type { Snippet } from "svelte";
 
@@ -117,7 +118,7 @@
 				{#if isOpenWorkspace}
 					<ContextMenuSection>
 						<ContextMenuItem
-							label="Move to leftmost"
+							label={$t("Move to leftmost")}
 							icon="leftmost-lane"
 							disabled={!canMoveLeft}
 							onclick={() => {
@@ -126,7 +127,7 @@
 							}}
 						/>
 						<ContextMenuItem
-							label="Move to rightmost"
+							label={$t("Move to rightmost")}
 							icon="rightmost-lane"
 							disabled={!canMoveRight}
 							onclick={() => {
@@ -138,10 +139,10 @@
 				{/if}
 				<ContextMenuSection>
 					<ContextMenuItem
-						label="Unapply stack"
+						label={$t("Unapply stack")}
 						icon="eject"
 						disabled={!isOpenWorkspace}
-						caption={!isOpenWorkspace ? "Only available in workspace mode" : undefined}
+						caption={!isOpenWorkspace ? $t("Only available in workspace mode") : undefined}
 						onclick={() => {
 							unapplyStack();
 							close();

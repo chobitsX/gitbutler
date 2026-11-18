@@ -94,10 +94,12 @@ impl Detail {
                             .text_color(theme.text_2)
                             .child(found.author.name.clone()),
                     )
-                    .children(
-                        (page.and_then(|page| page.agent.as_deref()))
-                            .map(|agent| div().child(format!("with {agent}"))),
-                    )
+                    .children((page.and_then(|page| page.agent.as_deref())).map(|agent| {
+                        div().child(crate::i18n::tf(
+                            "detail-brief-head-with",
+                            &[("agent", (agent.to_string()).into())],
+                        ))
+                    }))
                     .children(page.and_then(|page| page.published).map(ago))
                     .child(self.brief_versions(version, latest, cx))
                     .child(
@@ -105,18 +107,21 @@ impl Detail {
                         h_flex()
                             .ml_auto()
                             .children(self.can_show_changes_beside(cx).then(|| {
-                                button("brief-beside", "Changes beside")
-                                    .icon(Icon::SplitRight)
-                                    .style(ButtonStyle::Ghost)
-                                    .small()
-                                    .on_click(cx.listener(|this, _, window, cx| {
-                                        this.show_changes_beside(window, cx)
-                                    }))
+                                button(
+                                    "brief-beside",
+                                    crate::i18n::t("detail-brief-head-changes-beside"),
+                                )
+                                .icon(Icon::SplitRight)
+                                .style(ButtonStyle::Ghost)
+                                .small()
+                                .on_click(cx.listener(
+                                    |this, _, window, cx| this.show_changes_beside(window, cx),
+                                ))
                             }))
                             .child(
                                 icon_button("brief-web", Icon::Globe)
                                     .small()
-                                    .tooltip("Open on the web")
+                                    .tooltip(crate::i18n::t("detail-brief-head-open-web"))
                                     .on_click(move |_, _, cx| cx.open_url(&url)),
                             ),
                     ),
@@ -133,7 +138,7 @@ impl Detail {
                 .tooltip(if to.is_some() {
                     tip
                 } else {
-                    "There's no other that way"
+                    crate::i18n::t("detail-brief-head-there-s-no-other-way")
                 })
                 .disabled_because(to.is_none().then_some("There's no other that way"))
                 .on_click(cx.listener(move |this, _, _, cx| {
@@ -204,12 +209,9 @@ impl Detail {
             _ => None,
         };
         let current = match (at_tip, others.is_empty()) {
-            (true, true) => Some(fact(
-                div()
-                    .semibold()
-                    .text_color(theme.text_1)
-                    .child("Matches the branch's latest commit"),
-            )),
+            (true, true) => Some(fact(div().semibold().text_color(theme.text_1).child(
+                crate::i18n::t("detail-brief-head-matches-branch-s-latest-commit"),
+            ))),
             (true, false) => None,
             (false, _) => current,
         };
@@ -300,7 +302,7 @@ impl Detail {
         let sized = |files: usize, added: u32, removed: u32| {
             h_flex()
                 .gap(dp(5.))
-                .child(plural(files, "file"))
+                .child(plural(files, crate::ui::Count::File))
                 .child(diff::stats(added, removed, false, theme))
         };
         let written = sized(changed.files as usize, changed.additions, changed.deletions);
@@ -338,13 +340,25 @@ impl Detail {
                 .gap(dp(2.))
                 .hover(|el| el.bg(theme.surface(Hue::Warn)))
                 .role(gpui::Role::Button)
-                .aria_label(SharedString::from(format!("Show the line in {name}")))
+                .aria_label(SharedString::from(crate::i18n::tf(
+                    "detail-brief-head-show-line",
+                    &[("name", (name.to_string()).into())],
+                )))
                 .on_click(cx.listener(move |this, _, window, cx| {
                     this.brief_go_to_line(&path, hunk, line, window, cx)
                 }))
                 .child(div().text_color(theme.warn).child(match more {
-                    0 => format!("Turns off a test in {name}"),
-                    more => format!("Turns off a test in {name}, and {more} more"),
+                    0 => crate::i18n::tf(
+                        "detail-brief-head-turns-off-test",
+                        &[("name", (name).into())],
+                    ),
+                    more => crate::i18n::tf(
+                        "detail-brief-head-turns-off-test-more",
+                        &[
+                            ("name", (name).into()),
+                            ("more", (format!("{more}")).into()),
+                        ],
+                    ),
                 }))
                 .child(
                     div()
@@ -364,11 +378,10 @@ impl Detail {
         let theme = Theme::get(cx);
         let tests = state.tests.as_ref()?;
         if !tests.deleted.is_empty() {
-            return Some(fact(
-                div()
-                    .text_color(theme.warn)
-                    .child(format!("Deletes tests: {}", tests.deleted.join(", "))),
-            ));
+            return Some(fact(div().text_color(theme.warn).child(crate::i18n::tf(
+                "detail-brief-head-deletes-tests",
+                &[("join", (tests.deleted.join(", ")).into())],
+            ))));
         }
         match tests.files.len() {
             0 if tests.changes_code => Some(measure("Tests", "none changed", theme)),
@@ -376,7 +389,7 @@ impl Detail {
             files => {
                 let row = h_flex()
                     .gap_x(dp(5.))
-                    .child(plural(files, "file"))
+                    .child(plural(files, crate::ui::Count::File))
                     .child(diff::stats(tests.added, tests.removed, false, theme));
                 Some(measure("Tests", row, theme))
             }
@@ -458,8 +471,14 @@ impl Detail {
         let checks = review.checks?;
         let number = review.number;
         let words = match (checks.failed, checks.running) {
-            (0, 0) => format!("{} passed on PR #{number}", plural(checks.passed, "check")),
-            (0, running) => format!("{} running on PR #{number}", plural(running, "check")),
+            (0, 0) => format!(
+                "{} passed on PR #{number}",
+                plural(checks.passed, crate::ui::Count::Check)
+            ),
+            (0, running) => format!(
+                "{} running on PR #{number}",
+                plural(running, crate::ui::Count::Check)
+            ),
             (_, _) => return None,
         };
         Some(measure("Checks", words, theme))
@@ -476,7 +495,7 @@ impl Detail {
             .map(|run| run.name.as_str())
             .collect();
         let names = match failed.is_empty() {
-            true => plural(checks.failed, "check"),
+            true => plural(checks.failed, crate::ui::Count::Check),
             false => failed.join(", "),
         };
         Some(
@@ -486,11 +505,19 @@ impl Detail {
                     .text_color(theme.warn)
                     .hover(|el| el.underline())
                     .role(gpui::Role::Button)
-                    .aria_label(SharedString::from("Show the pull request's checks"))
+                    .aria_label(SharedString::from(crate::i18n::t(
+                        "detail-brief-head-show-pull-request-s-checks",
+                    )))
                     .on_click(cx.listener(|this, _, window, cx| {
                         this.set_page_tab(PageTab::Review, window, cx)
                     }))
-                    .child(format!("{names} failed on PR #{}", review.number)),
+                    .child(crate::i18n::tf(
+                        "detail-brief-head-failed-pr",
+                        &[
+                            ("names", (names).into()),
+                            ("number", (format!("{}", review.number)).into()),
+                        ],
+                    )),
             ),
         )
     }
@@ -518,8 +545,8 @@ impl Detail {
             .collect();
         let total = loaded.files.len();
         let words = match unshown.len() {
-            0 => format!("None, of {}", plural(total, "changed file")),
-            n => format!("{n} of {}", plural(total, "changed file")),
+            0 => format!("None, of {}", plural(total, crate::ui::Count::ChangedFile)),
+            n => format!("{n} of {}", plural(total, crate::ui::Count::ChangedFile)),
         };
         let open = state.is_open(BriefFold::Unshown);
         let toggle = h_flex()
@@ -582,7 +609,10 @@ impl Detail {
                             .border_t_1()
                             .border_color(theme.border_3)
                             .text_color(theme.text_3)
-                            .child(format!("and {more} more in Changes")),
+                            .child(crate::i18n::tf(
+                                "detail-brief-head-more-changes",
+                                &[("more", (format!("{more}")).into())],
+                            )),
                     )
                 })
         });
@@ -611,8 +641,10 @@ impl Detail {
                         div()
                             .text_color(theme.warn)
                             .child(match changes_data(path) {
-                                true => "Database change the brief doesn't mention:",
-                                false => "Not mentioned in the brief:",
+                                true => crate::i18n::t(
+                                    "detail-brief-head-database-change-brief-doesn-t-mention",
+                                ),
+                                false => crate::i18n::t("detail-brief-head-not-mentioned-brief"),
                             }),
                     )
                     .child(
@@ -624,7 +656,10 @@ impl Detail {
                             .text_decoration_color(theme.text_3)
                             .hover(|el| el.text_decoration_color(theme.text_1))
                             .role(gpui::Role::Button)
-                            .aria_label(SharedString::from(format!("Show {path} in Changes")))
+                            .aria_label(SharedString::from(crate::i18n::tf(
+                                "detail-brief-head-show-changes",
+                                &[("path", (path.to_string()).into())],
+                            )))
                             .on_click(cx.listener(move |this, _, window, cx| {
                                 this.brief_open_file(&clicked, None, window, cx)
                             }))
@@ -646,7 +681,7 @@ impl Detail {
         let theme = Theme::get(cx);
         let since = page.since_read.as_ref()?;
         let open = state.is_open(BriefFold::Removed);
-        let mut parts = vec![plural(since.changed, "part") + " new or changed"];
+        let mut parts = vec![plural(since.changed, crate::ui::Count::Part) + " new or changed"];
         if !since.removed.is_empty() {
             parts.push(format!("{} removed", since.removed.len()));
         }
@@ -696,14 +731,14 @@ impl Detail {
                             button(
                                 ("brief-bring-back", ix),
                                 if asked {
-                                    "Asked for it"
+                                    crate::i18n::t("detail-brief-head-asked")
                                 } else {
-                                    "Bring it back"
+                                    crate::i18n::t("detail-brief-head-bring-back")
                                 },
                             )
                             .small()
                             .style(ButtonStyle::Ghost)
-                            .tooltip("Keep a comment asking for this back")
+                            .tooltip(crate::i18n::t("detail-brief-head-keep-comment-asking-back"))
                             .disabled_because(asked.then_some("There's a comment asking for it"))
                             .on_click(cx.listener(
                                 move |this, _, _, cx| this.keep_note_on_brief(body.clone(), cx),
@@ -712,12 +747,15 @@ impl Detail {
                 }))
         });
         let only_changed = state.is_open(BriefFold::Unchanged).then(|| {
-            button("brief-only-changed", "Show only what changed")
-                .small()
-                .style(ButtonStyle::Ghost)
-                .on_click(
-                    cx.listener(|this, _, _, cx| this.toggle_brief_fold(BriefFold::Unchanged, cx)),
-                )
+            button(
+                "brief-only-changed",
+                crate::i18n::t("detail-brief-head-show-only-changed"),
+            )
+            .small()
+            .style(ButtonStyle::Ghost)
+            .on_click(
+                cx.listener(|this, _, _, cx| this.toggle_brief_fold(BriefFold::Unchanged, cx)),
+            )
         });
         Some(
             v_flex()
@@ -815,11 +853,14 @@ fn standing_fact(page: &BriefPage, theme: &Theme, cx: &Context<Detail>) -> (bool
         ),
         Standing::Since { commits, files } => {
             let words = match files.len() {
-                0 => format!("{} newer than this brief", plural(commits.len(), "commit")),
+                0 => format!(
+                    "{} newer than this brief",
+                    plural(commits.len(), crate::ui::Count::Commit)
+                ),
                 n => format!(
                     "{} newer than this brief, changing {}",
-                    plural(commits.len(), "commit"),
-                    plural(n, "file")
+                    plural(commits.len(), crate::ui::Count::Commit),
+                    plural(n, crate::ui::Count::File)
                 ),
             };
             let row = v_flex()
@@ -832,7 +873,10 @@ fn standing_fact(page: &BriefPage, theme: &Theme, cx: &Context<Detail>) -> (bool
                         .text_color(theme.text_1)
                         .hover(|el| el.underline())
                         .role(gpui::Role::Button)
-                        .aria_label(SharedString::from(format!("Show commit {}", commit.title)))
+                        .aria_label(SharedString::from(crate::i18n::tf(
+                            "detail-brief-head-show-commit",
+                            &[("title", (commit.title.to_string()).into())],
+                        )))
                         .on_click(cx.listener(move |this, _, _, cx| {
                             let Some(project) = this.selected_project() else {
                                 return;

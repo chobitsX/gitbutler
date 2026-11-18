@@ -68,6 +68,8 @@ pub struct Choice {
     label: SharedString,
     /// Other names typing finds it by, as a command's: see [`Command::aliases`].
     aliases: &'static [&'static str],
+    /// The original command title remains searchable in a translated interface.
+    source_title: Option<&'static str>,
     /// What it shows instead while nothing is typed, as the selection's menu words it.
     phrase: Option<SharedString>,
     key: Option<SharedString>,
@@ -119,6 +121,7 @@ impl Choice {
             in_use: false,
             file: false,
             aliases: &[],
+            source_title: None,
             phrase: None,
             key: None,
             detail: None,
@@ -240,11 +243,11 @@ impl StatusGroup {
 
     pub(crate) fn label(self) -> &'static str {
         match self {
-            StatusGroup::Blocked => "Blocked",
-            StatusGroup::Failed => "Failed",
-            StatusGroup::Done => "Done",
-            StatusGroup::Working => "Cooking",
-            StatusGroup::Idle => "Idle",
+            StatusGroup::Blocked => crate::i18n::t("palette-blocked"),
+            StatusGroup::Failed => crate::i18n::t("palette-failed"),
+            StatusGroup::Done => crate::i18n::t("palette-done"),
+            StatusGroup::Working => crate::i18n::t("palette-cooking"),
+            StatusGroup::Idle => crate::i18n::t("palette-idle"),
         }
     }
 }
@@ -394,6 +397,13 @@ fn find_in(choices: &[Choice], query: &str, files_only: bool) -> Vec<Found> {
             let label = score(&choice.label, query);
             // Under the label on a tie, and with nothing underlined: what matched isn't shown.
             let alias = alias_score(choice.aliases, query)
+                .into_iter()
+                .chain(
+                    choice
+                        .source_title
+                        .and_then(|title| alias_score(&[title], query)),
+                )
+                .max()
                 .map(|score| (score - 1, Vec::new()))
                 .filter(|(score, _)| label.as_ref().is_none_or(|(label, _)| score > label));
             let label = alias.or(label);
@@ -813,8 +823,8 @@ fn remote_choice(
         return None;
     }
     let label = match &branch.remote {
-        Some(remote) => format!("On {remote}"),
-        None => "On the remote".to_owned(),
+        Some(remote) => crate::i18n::tf("palette-on", &[("remote", (remote.to_string()).into())]),
+        None => crate::i18n::t("palette-remote").to_owned(),
     };
     let gone = format!("Nothing new on {}'s remote anymore", branch.name);
     let id = entry.id.clone();
@@ -936,12 +946,12 @@ fn uncommitted_choice(
     let worktree = (checkout.linked()).map_or("Main worktree".to_owned(), |name| name.to_string());
     let (label, icon, gone) = match editing {
         true => (
-            "Editing a commit",
+            crate::i18n::t("palette-editing-commit"),
             Icon::Diff,
             "The edit ended meanwhile".to_owned(),
         ),
         false => (
-            "Uncommitted changes",
+            crate::i18n::t("palette-uncommitted-changes"),
             Icon::FileDiff,
             format!("No uncommitted changes in {worktree} anymore"),
         ),
@@ -1163,7 +1173,7 @@ fn terminal_place_choice(
 ) -> Choice {
     let id = entry.id.clone();
     let label = match &checkout {
-        Checkout::Main => "Main worktree".to_owned(),
+        Checkout::Main => crate::i18n::t("palette-main-worktree").to_owned(),
         Checkout::Linked(name) => name.to_string(),
     };
     let icon = match checkout {
@@ -1311,22 +1321,25 @@ impl AppView {
         commands.sort_by_key(|command| {
             self.recent_commands
                 .iter()
-                .position(|recent| *recent == command.title())
+                .position(|recent| *recent == command.source_title())
                 .unwrap_or(usize::MAX)
         });
         let command_choice = |command: &'static dyn Command, key: Option<SharedString>| {
             let (label, risky) = (command.title(), command.risky());
+            let source_title = command.source_title();
             let action = command.boxed_clone();
             Choice {
                 key,
                 risky,
                 aliases: command.aliases(),
+                source_title: Some(source_title),
                 ..Choice::new(label, move |this, window, cx| {
                     // The last one run comes first, so ⌘K then Return runs it again; never one
                     // that throws work away.
                     if !risky {
-                        this.recent_commands.retain(|recent| *recent != label);
-                        this.recent_commands.insert(0, label);
+                        this.recent_commands
+                            .retain(|recent| *recent != source_title);
+                        this.recent_commands.insert(0, source_title);
                     }
                     window.dispatch_action(action, cx);
                 })
@@ -1433,7 +1446,14 @@ impl AppView {
                 choice
             })
             .collect();
-        self.open_picker(place, "Search commands", "Run", choices, window, cx);
+        self.open_picker(
+            place,
+            crate::i18n::t("palette-search-commands"),
+            crate::i18n::t("palette-run-hint"),
+            choices,
+            window,
+            cx,
+        );
         if let Some(palette) = &mut self.palette {
             palette.holds_ids = holds_ids;
         }
@@ -1446,8 +1466,8 @@ impl AppView {
         let choices = go_to_choices(self.store.read(cx));
         let target = self.files_target(window, cx);
         let placeholder = match target {
-            Some(_) => "Go to anything in the navigator, or a file",
-            None => "Go to anything in the navigator",
+            Some(_) => crate::i18n::t("palette-go-anything-navigator-or-file"),
+            None => crate::i18n::t("palette-go-anything-navigator"),
         };
         self.open_picker(None, placeholder, "Go", choices, window, cx);
         if let Some(palette) = &mut self.palette {
@@ -1611,8 +1631,8 @@ impl AppView {
         });
         let choices = std::iter::once(new_terminal).chain(rest).collect();
         let placeholder = match axis {
-            Axis::Across => "Show to the right",
-            Axis::Down => "Show below",
+            Axis::Across => crate::i18n::t("palette-show-right"),
+            Axis::Down => crate::i18n::t("palette-show-below"),
         };
         self.open_picker(None, placeholder, "Show", choices, window, cx);
         if let Some(palette) = &mut self.palette {
@@ -2088,7 +2108,7 @@ impl AppView {
             h_flex()
                 .id("status-tabs")
                 .role(Role::TabList)
-                .aria_label("Status")
+                .aria_label(crate::i18n::t("palette-status"))
                 .flex_none()
                 .h(dp(theme.sizes.control))
                 .px(dp(12.))
@@ -2145,8 +2165,8 @@ impl AppView {
                                 el.child(
                                     div().px(dp(12.)).py(dp(6.)).text_color(theme.text_2).child(
                                         match palette.reading_files {
-                                            true => "Reading files…",
-                                            false => "Nothing matches",
+                                            true => crate::i18n::t("palette-reading-files"),
+                                            false => crate::i18n::t("palette-nothing-matches"),
                                         },
                                     ),
                                 )
@@ -2174,10 +2194,10 @@ impl AppView {
                     .text_color(theme.text_2)
                     .children(
                         [
-                            Some(("↑ ↓", "Move")),
+                            Some(("↑ ↓", crate::i18n::t("palette-move-hint"))),
                             tab_hint,
                             Some(("↩", palette.verb)),
-                            Some(("esc", "Close")),
+                            Some(("esc", crate::i18n::t("palette-close-hint"))),
                         ]
                         .into_iter()
                         .flatten()

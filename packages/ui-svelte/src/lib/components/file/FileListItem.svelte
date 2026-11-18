@@ -9,6 +9,7 @@
 	import FileName from "$components/file/FileName.svelte";
 	import FileStatusBadge from "$components/file/FileStatusBadge.svelte";
 	import { focusable } from "$lib/focus/focusable";
+	import { t } from "$lib/utils/i18n";
 	import type { FileStatus } from "$components/file/types";
 	import type { FocusableOptions } from "$lib/focus/focusTypes";
 
@@ -167,7 +168,7 @@
 				<div
 					class="locked"
 					role="img"
-					aria-label="File is locked due to dependencies"
+					aria-label={$t("File is locked due to dependencies")}
 					onmouseenter={() => onlockhover?.()}
 					onmouseleave={() => onlockunhover?.()}
 				>
@@ -178,8 +179,8 @@
 
 		{#if onresolveclick}
 			{#if !conflicted}
-				<Tooltip text="Conflict resolved">
-					<Badge style="safe">Resolved</Badge>
+				<Tooltip text={$t("Conflict resolved")}>
+					<Badge style="safe">{$t("Resolved")}</Badge>
 				</Tooltip>
 			{:else}
 				<Button
@@ -192,7 +193,7 @@
 					}}
 					icon="tick"
 				>
-					Mark resolved
+					{$t("Mark resolved")}
 				</Button>
 			{/if}
 		{/if}

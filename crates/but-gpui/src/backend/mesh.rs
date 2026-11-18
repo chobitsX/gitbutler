@@ -107,6 +107,18 @@ pub struct File {
     pub deletions: usize,
 }
 
+/// A missing optional CLI, distinguished from failures reported by an installed one.
+#[derive(Debug)]
+pub struct NotInstalled;
+
+impl std::fmt::Display for NotInstalled {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("GitButler's mesh isn't installed on this machine.")
+    }
+}
+
+impl std::error::Error for NotInstalled {}
+
 /// The `but-mesh` program: on the `PATH`, or where its installer puts it, as an app started
 /// from the Dock gets a `PATH` without it.
 fn program() -> Result<PathBuf> {
@@ -118,7 +130,7 @@ fn program() -> Result<PathBuf> {
         .chain(installed)
         .map(|dir| dir.join(format!("but-mesh{}", std::env::consts::EXE_SUFFIX)))
         .find(|program| program.is_file())
-        .context("GitButler's mesh isn't installed on this machine.")
+        .ok_or_else(|| NotInstalled.into())
 }
 
 /// Run `but-mesh` with `args` in `dir`, waiting at most `timeout`, and return what it

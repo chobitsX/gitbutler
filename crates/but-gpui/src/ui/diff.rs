@@ -800,7 +800,7 @@ pub fn hunk_header(
                 .child(
                     div()
                         .flex_none()
-                        .child(plural(n as usize, "unmodified line")),
+                        .child(plural(n as usize, crate::ui::Count::UnmodifiedLine)),
                 )
                 .when_some(scopes, |el, scopes| {
                     el.child(div().flex_none().text_color(soft(theme.text_3)).child("·"))
@@ -853,7 +853,7 @@ pub fn hunk_header(
                         div()
                             .flex_none()
                             .text_color(soft(theme.text_3))
-                            .child("not included"),
+                            .child(crate::i18n::t("ui-diff-not-included")),
                     )
                 })
                 .children(decor.trailing),
@@ -871,7 +871,7 @@ fn conflicted_badge(theme: &Theme) -> gpui::Div {
         .bg(theme.warn_soft)
         .text_color(theme.warn)
         .text_11()
-        .child("Conflicted")
+        .child(crate::i18n::t("ui-diff-conflicted"))
 }
 
 /// An image's two sides, or an SVG's drawn, in the file's card.

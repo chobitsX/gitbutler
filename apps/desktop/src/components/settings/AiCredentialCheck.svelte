@@ -4,6 +4,7 @@
 	import { USER_SERVICE } from "$lib/user/userService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, InfoMessage, Link } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { slide } from "svelte/transition";
 
 	const aiService = inject(AI_SERVICE);
@@ -155,7 +156,7 @@
 			if (e instanceof Error && e.name === "AbortError") {
 				error = "AI request was cancelled";
 			} else {
-				error = e instanceof Error ? e.message : "Unknown error occurred";
+				error = e instanceof Error ? e.message : $t("Unknown error occurred");
 			}
 
 			debugInfo += `, Error: ${error}`;
@@ -196,11 +197,11 @@
 			>
 				{#snippet title()}
 					{#if error}
-						AI credential check failed
+						{$t("AI credential check failed")}
 					{:else if result}
-						AI credential check passed
+						{$t("AI credential check passed")}
 					{:else if isStreaming}
-						AI is responding...
+						{$t("AI is responding...")}
 					{/if}
 				{/snippet}
 
@@ -208,24 +209,24 @@
 					<div class="result-content" transition:slide={{ duration: 250 }}>
 						{#if error}
 							{#if (modelKind === ModelKind.OpenAI || modelKind === ModelKind.Anthropic) && isUsingButlerAPI && !userService.user}
-								<span> Please sign in to use GitButler's AI API. </span>
+								<span> {$t("Please sign in to use GitButler's AI API.")} </span>
 							{:else if modelKind === ModelKind.OpenAI || modelKind === ModelKind.Anthropic}
-								<span> Please check your API key or try GitButler's API. </span>
+								<span> {$t("Please check your API key or try GitButler's API.")} </span>
 							{:else if modelKind === ModelKind.Ollama}
 								<span>
-									Please check your Ollama endpoint and model configuration.
+									{$t("Please check your Ollama endpoint and model configuration.")}
 									<br />
-									Make sure Ollama is running locally and accessible.
+									{$t("Make sure Ollama is running locally and accessible.")}
 
-									<Link href="https://ollama.ai">Learn more</Link>
+									<Link href="https://ollama.ai">{$t("Learn more")}</Link>
 								</span>
 							{:else if modelKind === ModelKind.LMStudio}
 								<span>
-									Please check your LM Studio configuration.
+									{$t("Please check your LM Studio configuration.")}
 									<br />
-									Make sure LM Studio is running locally and accessible.
+									{$t("Make sure LM Studio is running locally and accessible.")}
 
-									<Link href="https://lmstudio.ai">Learn more</Link>
+									<Link href="https://lmstudio.ai">{$t("Learn more")}</Link>
 								</span>
 							{/if}
 						{:else}
@@ -233,7 +234,7 @@
 								<pre class:streaming={isStreaming}>{isStreaming
 										? streamingResult
 											? streamingResult.trim()
-											: "Loading..."
+											: $t("Loading...")
 										: `Response:\n\n${result?.trim()}`}
 								</pre>
 							</div>
@@ -245,33 +246,33 @@
 	{/if}
 	<Button style="pop" wide icon="ai" disabled={testing || isStreaming} onclick={testAiCredentials}>
 		{#if testing || isStreaming}
-			{isStreaming ? "AI is responding..." : "Testing AI connection..."}
+			{isStreaming ? $t("AI is responding...") : $t("Testing AI connection...")}
 		{:else if error}
-			Try again
+			{$t("Try again")}
 		{:else if result}
-			Test again
+			{$t("Test again")}
 		{:else}
-			Test AI connection
+			{$t("Test AI connection")}
 		{/if}
 	</Button>
 
 	{#if showDebug && debugInfo}
 		<div class="debug-info text-12 text-body">
-			<p><span class="text-bold">Debug info</span>:</p>
+			<p><span class="text-bold">{$t("Debug info")}</span>:</p>
 			<p>{debugInfo}</p>
 		</div>
 	{/if}
 
 	{#if showSampleDiff}
 		<div class="debug-info text-12 text-body">
-			<p class="text-bold">Sample diff:</p>
+			<p class="text-bold">{$t("Sample diff:")}</p>
 			<pre class="debug-info__code">{testDiff[0]?.diff}</pre>
 		</div>
 	{/if}
 
 	<div class="debug-info-buttons">
 		<button type="button" class="text-12 debug-button" onclick={toggleSampleMessage}>
-			{showSampleDiff ? "Hide" : "Show"} diff sample
+			{$t("{value} diff sample", { value: showSampleDiff ? $t("Hide") : $t("Show") })}
 		</button>
 		<button
 			type="button"
@@ -279,7 +280,7 @@
 			class:debug-button_disabled={!debugInfo}
 			onclick={toggleDebug}
 		>
-			{showDebug ? "Hide" : "Show"} debug info
+			{$t("{value} debug info", { value: showDebug ? $t("Hide") : $t("Show") })}
 		</button>
 	</div>
 </div>

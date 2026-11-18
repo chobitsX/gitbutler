@@ -3,6 +3,7 @@
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Spacer, Textarea, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const { projectId }: { projectId: string } = $props();
 
@@ -14,12 +15,12 @@
 	<ReduxResult {projectId} result={projectQuery.result}>
 		{#snippet children(project)}
 			<div class="fields-wrapper">
-				<Textbox label="Project path" readonly id="path" value={project?.path} />
+				<Textbox label={$t("Project path")} readonly id="path" value={project?.path} />
 				<div class="description-wrapper">
 					<Textbox
-						label="Project name"
+						label={$t("Project name")}
 						id="name"
-						placeholder="Project name can't be empty"
+						placeholder={$t("Project name can't be empty")}
 						value={project.title}
 						required
 						onchange={(value: string) => {
@@ -30,7 +31,7 @@
 						id="description"
 						minRows={3}
 						maxRows={6}
-						placeholder="Project description"
+						placeholder={$t("Project description")}
 						value={project.description}
 						oninput={(e: Event) => {
 							const target = e.currentTarget as HTMLTextAreaElement;

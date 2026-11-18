@@ -92,48 +92,57 @@ impl Detail {
         let notes: Vec<i64> = state.notes.iter().map(|note| note.id).collect();
         let busy = self.brief_notes_busy();
         match self.brief_terminal(cx) {
-            Some((id, terminal, title, tiled)) => button("brief-tell", format!("Tell {title}"))
-                .small()
-                .style(ButtonStyle::Ghost)
-                .tooltip("Types it in that terminal")
-                .disabled_because(busy)
-                .on_click(cx.listener(move |this, _, window, cx| {
-                    let Some(project) = this.selected_project() else {
-                        return;
-                    };
-                    // In a tile, it stays in view: beside this, if it's another branch's so far.
-                    (this.store).update(cx, |store, cx| {
-                        let selection = Selection::Terminal(project, id);
-                        match tiled {
-                            true => store.pin(Tile::Home, Axis::Across, RowKey::Row(selection), cx),
-                            false => store.select(Some(selection), cx),
-                        }
-                    });
-                    let (terminal, words) = (terminal.clone(), words.clone());
-                    // Once it's drawn, as the keys go with it.
-                    window.on_next_frame(move |window, cx| {
-                        terminal.update(cx, |terminal, cx| terminal.paste(&words, window, cx));
-                    });
-                    if let Some(brief) = this.page.brief_mut() {
-                        brief.unheard = false;
+            Some((id, terminal, title, tiled)) => button(
+                "brief-tell",
+                crate::i18n::tf(
+                    "detail-brief-actions-tell",
+                    &[("title", (format!("{title}")).into())],
+                ),
+            )
+            .small()
+            .style(ButtonStyle::Ghost)
+            .tooltip(crate::i18n::t("detail-brief-actions-types-terminal"))
+            .disabled_because(busy)
+            .on_click(cx.listener(move |this, _, window, cx| {
+                let Some(project) = this.selected_project() else {
+                    return;
+                };
+                // In a tile, it stays in view: beside this, if it's another branch's so far.
+                (this.store).update(cx, |store, cx| {
+                    let selection = Selection::Terminal(project, id);
+                    match tiled {
+                        true => store.pin(Tile::Home, Axis::Across, RowKey::Row(selection), cx),
+                        false => store.select(Some(selection), cx),
                     }
-                    for note in &notes {
-                        this.remove_brief_note(*note, cx);
-                    }
-                }))
-                .into_any_element(),
-            None => button("brief-tell", "Copy what to tell it")
-                .small()
-                .style(ButtonStyle::Ghost)
-                .disabled_because(busy)
-                .on_click(cx.listener(move |this, _, _, cx| {
-                    if let Some(brief) = this.page.brief_mut() {
-                        brief.unheard = false;
-                    }
-                    let words = words.clone();
-                    clipboard::copy_saying(&this.store, words, "Copied what to tell it", cx);
-                }))
-                .into_any_element(),
+                });
+                let (terminal, words) = (terminal.clone(), words.clone());
+                // Once it's drawn, as the keys go with it.
+                window.on_next_frame(move |window, cx| {
+                    terminal.update(cx, |terminal, cx| terminal.paste(&words, window, cx));
+                });
+                if let Some(brief) = this.page.brief_mut() {
+                    brief.unheard = false;
+                }
+                for note in &notes {
+                    this.remove_brief_note(*note, cx);
+                }
+            }))
+            .into_any_element(),
+            None => button(
+                "brief-tell",
+                crate::i18n::t("detail-brief-actions-copy-tell"),
+            )
+            .small()
+            .style(ButtonStyle::Ghost)
+            .disabled_because(busy)
+            .on_click(cx.listener(move |this, _, _, cx| {
+                if let Some(brief) = this.page.brief_mut() {
+                    brief.unheard = false;
+                }
+                let words = words.clone();
+                clipboard::copy_saying(&this.store, words, "Copied what to tell it", cx);
+            }))
+            .into_any_element(),
         }
     }
 
@@ -176,26 +185,32 @@ impl Detail {
         let short = self.brief.room.get() < STATUS_NEEDS;
         let and_send = notes > 0;
         let read_newer = newer.map(|latest| {
-            button("brief-read-newer", "Read it")
-                .small()
-                .style(ButtonStyle::Gray)
-                .on_click(cx.listener(move |this, _, _, cx| {
-                    if let Some(brief) = this.page.brief_mut() {
-                        brief.version = Some(latest);
-                    }
-                    this.ask_briefs(cx);
-                    cx.notify();
-                }))
-                .into_any_element()
+            button(
+                "brief-read-newer",
+                crate::i18n::t("detail-brief-actions-read"),
+            )
+            .small()
+            .style(ButtonStyle::Gray)
+            .on_click(cx.listener(move |this, _, _, cx| {
+                if let Some(brief) = this.page.brief_mut() {
+                    brief.version = Some(latest);
+                }
+                this.ask_briefs(cx);
+                cx.notify();
+            }))
+            .into_any_element()
         });
         let back = state.back.is_some().then(|| {
-            button("brief-back", "Back to where you were")
-                .small()
-                .icon(Icon::ArrowUp)
-                .style(ButtonStyle::Ghost)
-                .tooltip_for("Go back", &GoBack)
-                .on_click(cx.listener(|this, _, window, cx| this.go_back_in_brief(window, cx)))
-                .into_any_element()
+            button(
+                "brief-back",
+                crate::i18n::t("detail-brief-actions-back-where-were"),
+            )
+            .small()
+            .icon(Icon::ArrowUp)
+            .style(ButtonStyle::Ghost)
+            .tooltip_for("Go back", &GoBack)
+            .on_click(cx.listener(|this, _, window, cx| this.go_back_in_brief(window, cx)))
+            .into_any_element()
         });
         let mut buttons: Vec<AnyElement> = Vec::new();
         if state.unheard && !and_send {
@@ -215,14 +230,23 @@ impl Detail {
                 button(
                     "brief-unsent",
                     match short {
-                        true => format!("{notes} not sent"),
-                        false => format!("{} not sent", plural(notes, "comment")),
+                        true => crate::i18n::tf(
+                            "detail-brief-actions-not-sent",
+                            &[("notes", (format!("{notes}")).into())],
+                        ),
+                        false => crate::i18n::tf(
+                            "detail-brief-actions-not-sent-2",
+                            &[(
+                                "comments",
+                                (plural(notes, crate::ui::Count::Comment)).into(),
+                            )],
+                        ),
                     },
                 )
                 .small()
                 .style(ButtonStyle::Ghost)
                 .tint(Hue::Blue)
-                .tooltip("Go to the next comment")
+                .tooltip(crate::i18n::t("detail-brief-actions-go-next-comment"))
                 .on_click(cx.listener(move |this, _, _, cx| {
                     // From where the reading is, and round to the first after the last.
                     let list = &this.brief.list;
@@ -239,25 +263,38 @@ impl Detail {
                 .into_any_element(),
             );
             buttons.push(
-                button("brief-send", if notes == 1 { "Send" } else { "Send all" })
-                    .small()
-                    .style(ButtonStyle::Outline)
-                    .tooltip(format!("Send to {}", self.brief_reaches(state)))
-                    .disabled_because(self.brief_notes_busy())
-                    .on_click(cx.listener(|this, _, _, cx| this.send_brief_talk(cx)))
-                    .into_any_element(),
+                button(
+                    "brief-send",
+                    if notes == 1 {
+                        crate::i18n::t("detail-brief-actions-send")
+                    } else {
+                        crate::i18n::t("detail-brief-actions-send-all")
+                    },
+                )
+                .small()
+                .style(ButtonStyle::Outline)
+                .tooltip(crate::i18n::tf(
+                    "detail-brief-actions-send-2",
+                    &[("state", (self.brief_reaches(state)).into())],
+                ))
+                .disabled_because(self.brief_notes_busy())
+                .on_click(cx.listener(|this, _, _, cx| this.send_brief_talk(cx)))
+                .into_any_element(),
             );
         }
         if answering {
             match mine {
                 // That's this one seen to, so what's next is what's likely.
                 Some(_) => buttons.extend(self.next_brief(true, cx).map(|next| {
-                    button("brief-next-answered", "Next brief")
-                        .small()
-                        .style(ButtonStyle::Gray)
-                        .tooltip_for(format!("Go on to {}", next.title), &NextBrief)
-                        .on_click(cx.listener(|this, _, _, cx| this.hop_to_brief(true, cx)))
-                        .into_any_element()
+                    button(
+                        "brief-next-answered",
+                        crate::i18n::t("detail-brief-actions-next-brief"),
+                    )
+                    .small()
+                    .style(ButtonStyle::Gray)
+                    .tooltip_for(format!("Go on to {}", next.title), &NextBrief)
+                    .on_click(cx.listener(|this, _, _, cx| this.hop_to_brief(true, cx)))
+                    .into_any_element()
                 })),
                 // Briefs takes an answer only from a person in a browser, not from a token, which
                 // an agent could hold as well.
@@ -266,7 +303,11 @@ impl Detail {
                     buttons.push(
                         button(
                             "brief-answer",
-                            if short { "Answer" } else { "Answer on the web" },
+                            if short {
+                                crate::i18n::t("detail-brief-actions-answer")
+                            } else {
+                                crate::i18n::t("detail-brief-actions-answer-web")
+                            },
                         )
                         .small()
                         .icon(Icon::ArrowUpRight)

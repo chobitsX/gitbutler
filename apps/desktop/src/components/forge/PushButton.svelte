@@ -22,6 +22,7 @@
 		ScrollableContainer,
 		chipToasts,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { GerritPushFlag } from "$lib/stacks/stack";
 	import type { Segment } from "@gitbutler/but-sdk";
 
@@ -123,7 +124,7 @@
 				multipleBranches && !isLastBranchInStack
 					? `${branchName} and all branches below it`
 					: branchName;
-			chipToasts.success(`Pushed ${branchText} successfully`);
+			chipToasts.success($t("Pushed {value0} successfully", { value0: branchText }));
 		} catch (error: any) {
 			if (error?.code === "GitForcePushProtection") {
 				forcePushProtectionModal?.show();
@@ -146,26 +147,26 @@
 		}
 
 		if (!hasThingsToPush) {
-			return "No commits to push";
+			return $t("No commits to push");
 		}
 
 		if (hasConflicts) {
-			return "In order to push, please resolve any conflicted commits.";
+			return $t("In order to push, please resolve any conflicted commits.");
 		}
 
 		if (multipleBranches && !isLastBranchInStack) {
-			return "Push this and all branches below";
+			return $t("Push this and all branches below");
 		}
 
 		if (withForce) {
 			return remoteTrackingBranch
-				? "Force push this branch"
+				? $t("Force push this branch")
 				: `Force push this branch to ${remoteTrackingBranch}`;
 		}
 
 		return remoteTrackingBranch
 			? `Push this branch to ${remoteTrackingBranch}`
-			: "Push this branch";
+			: $t("Push this branch");
 	}
 
 	const doNotShowPushBelowWarning = persisted<boolean>(false, "doNotShowPushBelowWarning");
@@ -186,11 +187,11 @@
 	onclick={() => handleClick({ withForce, skipForcePushProtection: false, gerritFlags: [] })}
 	icon={multipleBranches && !isLastBranchInStack ? "push-all" : "push"}
 >
-	{isGerritMode ? "Push" : withForce ? "Force push" : "Push"}
+	{isGerritMode ? $t("Push") : withForce ? $t("Force push") : $t("Push")}
 </Button>
 
 <Modal
-	title="Push with dependencies"
+	title={$t("Push with dependencies")}
 	width="small"
 	bind:this={confirmationModal}
 	onSubmit={async (close) => {
@@ -204,8 +205,9 @@
 	}}
 >
 	<p>
-		You're about to push <span class="text-bold">{branchName}</span>. To maintain the correct
-		history, GitButler will also push all branches below this branch in the stack.
+		{$t("You're about to push")} <span class="text-bold">{branchName}</span>{$t(
+			". To maintain the correct history, GitButler will also push all branches below this branch in the stack.",
+		)}
 	</p>
 
 	{#snippet controls(close)}
@@ -213,7 +215,7 @@
 			<div class="flex flex-1">
 				<label for="dont-show-again" class="modal-footer__checkbox">
 					<Checkbox name="dont-show-again" small bind:checked={$doNotShowPushBelowWarning} />
-					<span class="text-12"> Don’t show again</span>
+					<span class="text-12"> {$t("Don’t show again")}</span>
 				</label>
 			</div>
 			<Button
@@ -223,17 +225,17 @@
 					close();
 				}}
 			>
-				Cancel
+				{$t("Cancel")}
 			</Button>
 			<Button testId={TestId.StackConfirmPushModalButton} style="pop" type="submit" width={90}>
-				Push
+				{$t("Push")}
 			</Button>
 		</div>
 	{/snippet}
 </Modal>
 
 <Modal
-	title="Protected force push"
+	title={$t("Protected force push")}
 	width={480}
 	type="warning"
 	bind:this={forcePushProtectionModal}
@@ -248,12 +250,15 @@
 	}}
 >
 	<p class="description">
-		Your force push was blocked because the remote branch contains <span
-			class="text-bold text-nowrap"
-			>{upstreamCommits?.length === 1 ? "1 commit" : `${upstreamCommits?.length} commits`}</span
+		{$t("Your force push was blocked because the remote branch contains")}
+		<span class="text-bold text-nowrap"
+			>{upstreamCommits?.length === 1
+				? $t("1 commit")
+				: $t("{value0} commits", { value0: upstreamCommits?.length })}</span
 		>
-		your local branch doesn’t include. To prevent overwriting history,
-		<span class="text-bold">cancel and pull & integrate</span> the changes.
+		{$t("your local branch doesn’t include. To prevent overwriting history,")}
+		<span class="text-bold">{$t("cancel and pull & integrate")}</span>
+		{$t("the changes.")}
 	</p>
 	{#if upstreamCommits}
 		<div class="scroll-wrap">
@@ -276,8 +281,8 @@
 
 	{#snippet controls(close)}
 		<div class="controls">
-			<Button kind="outline" type="submit">Force push anyway</Button>
-			<Button wide style="pop" onclick={close}>Cancel</Button>
+			<Button kind="outline" type="submit">{$t("Force push anyway")}</Button>
+			<Button wide style="pop" onclick={close}>{$t("Cancel")}</Button>
 		</div>
 	{/snippet}
 </Modal>

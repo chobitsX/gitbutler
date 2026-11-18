@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { injectOptional } from "@gitbutler/core/context";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui-svelte/drag/dragStateService.svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { pxToRem } from "@gitbutler/ui-svelte/utils/pxToRem";
 	import { untrack } from "svelte";
 
@@ -17,7 +18,7 @@
 		};
 	}
 
-	const { visible, hovered, activated, label = "Drop here", extraPaddings }: Props = $props();
+	const { visible, hovered, activated, label = $t("Drop here"), extraPaddings }: Props = $props();
 	let defaultPadding = 4;
 	const dragStateService = injectOptional(DRAG_STATE_SERVICE, undefined);
 

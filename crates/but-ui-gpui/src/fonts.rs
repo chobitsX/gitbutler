@@ -1,6 +1,9 @@
 //! The fonts the components are set in, compiled in.
 
 use std::borrow::Cow;
+use std::sync::LazyLock;
+
+use gpui::{FontFallbacks, Styled};
 
 use crate::*;
 
@@ -14,9 +17,18 @@ pub fn fonts() -> Vec<Cow<'static, [u8]>> {
         "Inter-Regular.ttf",
         "Inter-Medium.ttf",
         "Inter-SemiBold.ttf",
+        "GitButlerCJK-Regular.otf",
         "GeistMonoNerdFontMono-Regular.otf",
         "GeistMonoNerdFontMono-SemiBold.otf",
     )
+}
+
+/// Keep Inter's Latin text and metrics, using the bundled static face for Chinese glyphs.
+pub fn with_cjk_fallback<E: Styled>(mut element: E) -> E {
+    static FALLBACK: LazyLock<FontFallbacks> =
+        LazyLock::new(|| FontFallbacks::from_fonts(vec!["GitButler CJK".to_owned()]));
+    element.text_style().font_fallbacks = Some(FALLBACK.clone());
+    element
 }
 
 /// How wide a digit of `family` is in ems, or `None` when it isn't installed and GPUI would
@@ -39,6 +51,7 @@ pub fn prewarm_fonts(cx: &gpui::App) {
         ("Inter", FontWeight::NORMAL),
         ("Inter", FontWeight::MEDIUM),
         ("Inter", FontWeight::SEMIBOLD),
+        ("GitButler CJK", FontWeight::NORMAL),
         ("GeistMono Nerd Font Mono", FontWeight::NORMAL),
         ("GeistMono Nerd Font Mono", FontWeight::SEMIBOLD),
     ]

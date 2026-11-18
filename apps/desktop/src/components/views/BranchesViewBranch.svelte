@@ -10,6 +10,7 @@
 	import { getColorFromPushStatus, pushStatusToIcon } from "$lib/stacks/stack";
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { BranchDetails, Commit, Segment } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -105,7 +106,7 @@
 			<ReduxResult {projectId} {stackId} result={changesQuery.result}>
 				{#snippet children(changesResult)}
 					<ChangedFilesPanel
-						title="Changed files"
+						title={$t("Changed files")}
 						{projectId}
 						{stackId}
 						draggableFiles
@@ -143,7 +144,7 @@
 		first={isTopBranch}
 		lineColor={commitColor}
 		projectId={env.projectId}
-		branchName={displayBranchName ?? "Unnamed segment"}
+		branchName={displayBranchName ?? $t("Unnamed segment")}
 		{isTopBranch}
 		isNewBranch={localCount === 0}
 		iconName={pushStatusToIcon(branch.pushStatus)}

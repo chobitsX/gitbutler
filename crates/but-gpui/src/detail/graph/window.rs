@@ -73,7 +73,11 @@ fn name_of(store: &Entity<Store>, project: &ProjectId, cx: &App) -> Option<Share
 }
 
 fn title(name: &str) -> SharedString {
-    format!("{name} – Graph").into()
+    crate::i18n::tf(
+        "detail-graph-window-graph",
+        &[("name", (name.to_string()).into())],
+    )
+    .into()
 }
 
 impl GraphWindow {
@@ -164,7 +168,11 @@ impl Render for GraphWindow {
                 .border_color(theme.border_2)
                 .text_13()
                 .child(self.name.clone())
-                .child(div().text_color(theme.text_3).child("Graph")),
+                .child(
+                    div()
+                        .text_color(theme.text_3)
+                        .child(crate::i18n::t("detail-graph-window-graph-2")),
+                ),
         );
         let root = v_flex()
             .id("graph-window")
@@ -178,6 +186,7 @@ impl Render for GraphWindow {
             .bg(theme.bg_2)
             .text_color(theme.text_1)
             .font_family(theme.ui_font.clone())
+            .map(crate::ui::with_cjk_fallback)
             .text_13()
             .child(header)
             .child(

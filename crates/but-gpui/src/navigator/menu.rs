@@ -121,7 +121,11 @@ impl AppView {
             {
                 Ok(url) => cx.update(|cx| cx.open_url(&url)),
                 Err(err) => store.update(cx, |store, cx| {
-                    store.failed("Couldn't open the repository", &err, cx)
+                    store.failed(
+                        crate::i18n::t("navigator-menu-open-repository-error"),
+                        &err,
+                        cx,
+                    )
                 }),
             }
         })
@@ -190,17 +194,20 @@ impl AppView {
             0 => format!("Its folder is removed from disk. {after}"),
             n => format!(
                 "Its folder is removed from disk, and {} with it. {after}",
-                plural(n, "uncommitted file")
+                plural(n, crate::ui::Count::UncommittedFile)
             ),
         };
-        let message = format!("Delete worktree {name}?");
+        let message = crate::i18n::tf(
+            "navigator-menu-delete-worktree",
+            &[("name", (format!("{name}")).into())],
+        );
         let (project, name) = (project.clone(), name.clone());
         let at = Some(Selection::Project(project.clone()));
         self.confirm_then(
             at,
             message,
             &detail,
-            "Delete",
+            crate::i18n::t("common-delete"),
             window,
             cx,
             move |this, cx| {
@@ -240,17 +247,28 @@ fn read_marks<'a, C: Seeable + 'a>(
         (commits.into_iter()).partition(|commit| store.is_unread(project, *commit));
     let mut items = Vec::new();
     if !unread.is_empty() {
-        items.push(MenuItem::action("Mark as read", &ToggleRead, cx));
+        items.push(MenuItem::action(
+            crate::i18n::t("navigator-menu-mark-read"),
+            &ToggleRead,
+            cx,
+        ));
     }
     if !read.is_empty() && unread.is_empty() {
-        items.push(MenuItem::action("Mark as unread", &ToggleRead, cx));
+        items.push(MenuItem::action(
+            crate::i18n::t("navigator-menu-mark-unread"),
+            &ToggleRead,
+            cx,
+        ));
     } else if !read.is_empty() {
         let ids: Vec<CommitId> = read.iter().map(|commit| commit.id()).collect();
         let project = project.clone();
-        items.push(MenuItem::new("Mark as unread", move |this, _, cx| {
-            let ids = ids.clone();
-            (this.store).update(cx, |store, cx| store.mark_read(&project, ids, false, cx))
-        }));
+        items.push(MenuItem::new(
+            crate::i18n::t("navigator-menu-mark-unread"),
+            move |this, _, cx| {
+                let ids = ids.clone();
+                (this.store).update(cx, |store, cx| store.mark_read(&project, ids, false, cx))
+            },
+        ));
     }
     if let Some(first) = items.first_mut() {
         first.separated = true;
@@ -294,8 +312,8 @@ impl Navigator {
                 let key = ClickOpened::Here((project.clone(), ref_name.clone()));
                 let open = self.is_open(&key);
                 let (label, keys): (_, &dyn Action) = match open {
-                    true => ("Hide commits", &Collapse),
-                    false => ("Show commits", &Expand),
+                    true => (crate::i18n::t("navigator-menu-hide-commits"), &Collapse),
+                    false => (crate::i18n::t("navigator-menu-show-commits"), &Expand),
                 };
                 view.push(MenuItem::keyed(label, keys, cx, move |this, _, cx| {
                     let key = key.clone();
@@ -303,7 +321,11 @@ impl Navigator {
                 }));
             }
             if store.read_marks_of(target).is_some() {
-                view.push(MenuItem::action("Mark all as read", &ToggleRead, cx));
+                view.push(MenuItem::action(
+                    crate::i18n::t("navigator-menu-mark-all-read"),
+                    &ToggleRead,
+                    cx,
+                ));
             }
             if let Some(first) = items.first_mut().filter(|_| !view.is_empty()) {
                 first.separated = true;
@@ -332,10 +354,13 @@ impl Navigator {
             );
             if in_graph && store.branch_for(target).is_some() {
                 let row = target.clone();
-                items.push(MenuItem::new("Show in graph", move |app, _, cx| {
-                    let row = row.clone();
-                    (app.detail).update(cx, |detail, cx| detail.show_in_graph(row, cx))
-                }));
+                items.push(MenuItem::new(
+                    crate::i18n::t("navigator-menu-show-graph"),
+                    move |app, _, cx| {
+                        let row = row.clone();
+                        (app.detail).update(cx, |detail, cx| detail.show_in_graph(row, cx))
+                    },
+                ));
             }
         }
         items
@@ -367,7 +392,11 @@ impl Navigator {
                 let expanded = store.project(project).is_some_and(|p| p.expanded);
                 let mut items = vec![command(&Watch).keys(&Expand, cx), command(&StopWatching)];
                 if store.read_marks_of(target).is_some() {
-                    items.push(MenuItem::action("Mark all as read", &MarkAllRead, cx));
+                    items.push(MenuItem::action(
+                        crate::i18n::t("navigator-menu-mark-all-read"),
+                        &MarkAllRead,
+                        cx,
+                    ));
                 }
                 if expanded {
                     items.push(command(&MoveSelection));
@@ -401,9 +430,12 @@ impl Navigator {
                 ]);
                 let project = project.clone();
                 items.push(
-                    MenuItem::new("Move to group…", move |app, window, cx| {
-                        app.choose_project_group(project.clone(), window, cx)
-                    })
+                    MenuItem::new(
+                        crate::i18n::t("navigator-menu-move-group"),
+                        move |app, window, cx| {
+                            app.choose_project_group(project.clone(), window, cx)
+                        },
+                    )
                     .separated(),
                 );
                 items
@@ -550,7 +582,7 @@ impl Navigator {
 fn open_file_item(project: &ProjectId, checkout: Checkout, cx: &App) -> MenuItem {
     let project = project.clone();
     MenuItem::keyed(
-        "Open a file…",
+        crate::i18n::t("navigator-menu-open-file"),
         &crate::palette::GoTo,
         cx,
         move |app, window, cx| {

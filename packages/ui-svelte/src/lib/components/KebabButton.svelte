@@ -3,6 +3,7 @@
 	import ContextMenu from "$components/ContextMenu.svelte";
 	import Icon from "$components/Icon.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 	import type { Snippet } from "svelte";
 
 	interface Props {
@@ -111,7 +112,7 @@
 		onclick={onClick}
 		oncontextmenu={onContextMenu}
 		data-testid={testId}
-		aria-label="Open context menu"
+		aria-label={$t("Open context menu")}
 	>
 		<Icon name={icon} size={14} />
 	</button>

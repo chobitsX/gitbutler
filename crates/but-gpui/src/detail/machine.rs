@@ -194,11 +194,14 @@ impl Detail {
                 .gap(dp(12.))
                 .child(faint(line, theme).text_13())
                 .children(url.filter(|_| !checkout.uncommitted.is_empty()).map(|url| {
-                    button("checkout-on-but-dev", "Open on but.dev")
-                        .small()
-                        .icon(Icon::Link)
-                        .style(ButtonStyle::Ghost)
-                        .on_click(move |_, _, cx| cx.open_url(&url))
+                    button(
+                        "checkout-on-but-dev",
+                        crate::i18n::t("detail-machine-open-but-dev"),
+                    )
+                    .small()
+                    .icon(Icon::Link)
+                    .style(ButtonStyle::Ghost)
+                    .on_click(move |_, _, cx| cx.open_url(&url))
                 }))
                 .into_any_element();
         };
@@ -393,11 +396,21 @@ impl Detail {
         let checkouts = self.store.read(cx).mesh_checkouts(project);
         let branches = checkouts.iter().map(|c| c.branches.len()).sum();
         (!checkouts.is_empty()).then(|| {
-            meta_item(Icon::Globe, theme).flex_none().child(format!(
-                "{} on other machines, {}",
-                plural(checkouts.len(), "worktree"),
-                plural(branches, "branch"),
-            ))
+            meta_item(Icon::Globe, theme)
+                .flex_none()
+                .child(crate::i18n::tf(
+                    "detail-machine-other-machines",
+                    &[
+                        (
+                            "worktrees",
+                            (plural(checkouts.len(), crate::ui::Count::Worktree)).into(),
+                        ),
+                        (
+                            "branchs",
+                            (plural(branches, crate::ui::Count::Branch)).into(),
+                        ),
+                    ],
+                ))
         })
     }
 }
@@ -434,8 +447,8 @@ pub(super) fn mesh_crumbs(
 fn uncommitted_list(checkout: &Checkout, theme: &Theme, cx: &App) -> AnyElement {
     let files = &checkout.uncommitted;
     let title = match files.len() {
-        0 => "Nothing uncommitted".to_owned(),
-        n => plural(n, "uncommitted file"),
+        0 => crate::i18n::t("detail-machine-nothing-uncommitted").to_owned(),
+        n => plural(n, crate::ui::Count::UncommittedFile),
     };
     let more = files.len().saturating_sub(LISTED);
     let listed = files.iter().take(LISTED).map(|file| {

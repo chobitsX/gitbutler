@@ -31,6 +31,7 @@
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 	import { AsyncButton, Button, Modal, TestId } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t, language } from "@gitbutler/ui-svelte/utils/i18n";
 	import { getTimeAgo } from "@gitbutler/ui-svelte/utils/timeAgo";
 	import { tick, untrack } from "svelte";
 	import type { BranchFilterOption, SidebarEntrySubject } from "$lib/branches/branchListing";
@@ -188,7 +189,7 @@
 				});
 			}}
 		>
-			Apply to workspace
+			{$t("Apply to workspace")}
 		</AsyncButton>
 		<Button
 			testId={TestId.BranchesViewDeleteLocalBranchButton}
@@ -198,9 +199,9 @@
 				handleDeleteLocalBranch(branchName);
 			}}
 			disabled={!hasLocal}
-			tooltip={hasLocal ? undefined : "No local branch to delete"}
+			tooltip={hasLocal ? undefined : $t("No local branch to delete")}
 		>
-			Delete local
+			{$t("Delete local")}
 		</Button>
 	</div>
 {/snippet}
@@ -208,7 +209,7 @@
 <Modal
 	testId={TestId.DeleteLocalBranchConfirmationModal}
 	bind:this={deleteLocalBranchModal}
-	title="Delete local branch"
+	title={$t("Delete local branch")}
 	width="small"
 	defaultItem={selection.type === "branch" ? selection.branchName : undefined}
 	onSubmit={async (close, branchName: string | undefined) => {
@@ -219,7 +220,11 @@
 	}}
 >
 	{#snippet children(branchName)}
-		<p>Are you sure you want to delete the local changes inside the branch {branchName}?</p>
+		<p>
+			{$t("Are you sure you want to delete the local changes inside the branch {branchName}?", {
+				branchName: branchName,
+			})}
+		</p>
 	{/snippet}
 
 	{#snippet controls(close)}
@@ -227,13 +232,13 @@
 			testId={TestId.DeleteLocalBranchConfirmationModal_Cancel}
 			kind="outline"
 			type="reset"
-			onclick={close}>Cancel</Button
+			onclick={close}>{$t("Cancel")}</Button
 		>
 		<Button
 			testId={TestId.DeleteLocalBranchConfirmationModal_Delete}
 			style="danger"
 			type="submit"
-			icon="bin">Delete</Button
+			icon="bin">{$t("Delete")}</Button
 		>
 	{/snippet}
 </Modal>
@@ -249,14 +254,14 @@
 				<ReduxResult {projectId} result={baseBranchQuery.result}>
 					{#snippet children(baseBranch)}
 						{@const lastCommit = baseBranch.recentCommits.at(0)}
-						<BranchesListGroup title="Current workspace target">
+						<BranchesListGroup title={$t("Current workspace target")}>
 							<!-- TODO: We need an API for `commitsCount`! -->
 							<CurrentOriginCard
 								originName={baseBranch.branchName}
 								lastCommit={lastCommit
 									? {
 											author: lastCommit.author,
-											ago: getTimeAgo(new Date(lastCommit.committedAt), true),
+											ago: getTimeAgo(new Date(lastCommit.committedAt), true, $language),
 											branch: baseBranch.shortName,
 											sha: lastCommit.id.slice(0, 7),
 										}
@@ -458,7 +463,7 @@
 										icon="workbench"
 										action={applyFromFork}
 									>
-										Apply {reviewUnitAbbr} to workspace
+										{$t("Apply {reviewUnitAbbr} to workspace", { reviewUnitAbbr: reviewUnitAbbr })}
 									</AsyncButton>
 								</div>
 								<BranchesViewPr bind:this={prBranch} {projectId} {prNumber} {onerror} />

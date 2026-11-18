@@ -17,6 +17,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { EmptyStatePlaceholder, Icon, Button } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t, language } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Snapshot } from "$lib/history/types";
 
 	// TODO: Refactor so we don't need non-null assertion.
@@ -86,11 +87,12 @@
 	{#if $snapshots.length === 0 && !$loading}
 		<EmptyStatePlaceholder image={emptyFolderSvg} bottomMargin={48}>
 			{#snippet title()}
-				No snapshots yet
+				{$t("No snapshots yet")}
 			{/snippet}
 			{#snippet caption()}
-				Gitbutler saves your work, including file changes, so your progress is always secure. Adjust
-				snapshot settings in project settings.
+				{$t(
+					"Gitbutler saves your work, including file changes, so your progress is always secure. Adjust snapshot settings in project settings.",
+				)}
 			{/snippet}
 		</EmptyStatePlaceholder>
 	{/if}
@@ -112,10 +114,10 @@
 					}}
 				>
 					{#each $snapshots as entry, idx (entry.commitId)}
-						{#if idx === 0 || createdOnDay(entry.createdAt) !== createdOnDay($snapshots[idx - 1]?.createdAt ?? 0)}
+						{#if idx === 0 || createdOnDay(entry.createdAt, $language) !== createdOnDay($snapshots[idx - 1]?.createdAt ?? 0, $language)}
 							<div class="history-view__snapshots__date-header">
 								<h4 class="text-12 text-semibold">
-									{createdOnDay(entry.createdAt)}
+									{createdOnDay(entry.createdAt, $language)}
 								</h4>
 							</div>
 						{/if}
@@ -147,7 +149,7 @@
 				<!-- LOAD MORE -->
 				{#if $loading}
 					<div class="load-more">
-						<span class="text-13 text-body"> Loading more snapshots… </span>
+						<span class="text-13 text-body"> {$t("Loading more snapshots…")} </span>
 					</div>
 				{/if}
 
@@ -158,10 +160,11 @@
 							<Icon name="finish" />
 						</div>
 						<div class="welcome-point__content">
-							<p class="text-13 text-semibold">Welcome to history!</p>
+							<p class="text-13 text-semibold">{$t("Welcome to history!")}</p>
 							<p class="welcome-point__caption text-12 text-body">
-								Gitbutler saves your work, including file changes, so your progress is always
-								secure. Adjust snapshot settings in project settings.
+								{$t(
+									"Gitbutler saves your work, including file changes, so your progress is always secure. Adjust snapshot settings in project settings.",
+								)}
 							</p>
 						</div>
 					</div>
@@ -176,15 +179,17 @@
 		<div class="relative overflow-hidden radius-ml">
 			<div bind:this={sidebarEl} class="history-view__snapshots" use:focusable={{ vertical: true }}>
 				<div class="history-view__snapshots-header">
-					<h3 class="history-view__snapshots-header-title text-15 text-bold">Operations history</h3>
+					<h3 class="history-view__snapshots-header-title text-15 text-bold">
+						{$t("Operations history")}
+					</h3>
 					<Button
 						size="tag"
 						kind="outline"
 						icon="camera"
-						tooltip="Create a manual snapshot of your current state"
+						tooltip={$t("Create a manual snapshot of your current state")}
 						onclick={() => createSnapshotModal?.show()}
 					>
-						Create snapshot
+						{$t("Create snapshot")}
 					</Button>
 				</div>
 				{@render historyEntries()}

@@ -24,7 +24,10 @@ impl Navigator {
         let update = button("update-app", label)
             .small()
             .style(ButtonStyle::Gray)
-            .tooltip(format!("Update to {version}"))
+            .tooltip(crate::i18n::tf(
+                "navigator-account-update",
+                &[("version", (version).into())],
+            ))
             .on_click(cx.listener(|this, _, _, cx| {
                 this.store.update(cx, |store, cx| store.show_update(cx))
             }))
@@ -42,7 +45,7 @@ impl Navigator {
             .text_12()
             .semibold()
             .whitespace_nowrap()
-            .child("Downloading 100%");
+            .child(crate::i18n::t("navigator-account-downloading-100"));
         Some(
             div()
                 .relative()
@@ -65,7 +68,7 @@ impl Navigator {
         };
         button
             .small()
-            .tooltip("Settings")
+            .tooltip(crate::i18n::t("navigator-account-settings"))
             .on_click(cx.listener(|this, event: &ClickEvent, _, cx| {
                 this.open_menu(event.position(), |this, cx| this.settings_menu(cx), cx)
             }))
@@ -76,14 +79,25 @@ impl Navigator {
         let account = match &self.store.read(cx).account.user {
             Some(user) => {
                 let who = user.login.as_ref().unwrap_or(&user.name);
-                MenuItem::new(format!("Sign out {who}"), |app, _, cx| {
-                    app.store.update(cx, |store, cx| store.sign_out(cx))
-                })
+                MenuItem::new(
+                    crate::i18n::tf(
+                        "navigator-account-sign-out",
+                        &[("who", (who.to_string()).into())],
+                    ),
+                    |app, _, cx| app.store.update(cx, |store, cx| store.sign_out(cx)),
+                )
             }
-            None => MenuItem::new("Sign in…", |app, window, cx| app.sign_in(window, cx)),
+            None => MenuItem::new(
+                crate::i18n::t("navigator-account-sign"),
+                |app, window, cx| app.sign_in(window, cx),
+            ),
         };
         Vec::from([
-            MenuItem::action("Settings", &crate::settings::OpenSettings, cx),
+            MenuItem::action(
+                crate::i18n::t("navigator-account-settings"),
+                &crate::settings::OpenSettings,
+                cx,
+            ),
             account.separated(),
         ])
     }

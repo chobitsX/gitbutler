@@ -366,7 +366,7 @@ impl Detail {
             None => found.commit_text.to_str_lossy().into_owned(),
         };
         let input = cx.new(|cx| {
-            let mut input = TextInput::new("The lines to keep", true, cx);
+            let mut input = TextInput::localized("detail-resolve-lines-keep", true, cx);
             // Without the last line's ending, which keeping it puts back: blank lines stay.
             input.set_text(text.strip_suffix('\n').unwrap_or(&text), cx);
             input
@@ -594,13 +594,19 @@ impl Detail {
                             if finish {
                                 return store.finish_editing(&project_done, cx);
                             }
-                            let resolved = plural(decided, "conflict");
+                            let resolved = plural(decided, crate::ui::Count::Conflict);
                             // A commit being edited is finished, not committed.
                             let message = match files {
-                                n if n == 0 || editing => format!("Resolved {resolved}"),
-                                n => format!(
-                                    "Resolved {resolved}, {} ready to commit",
-                                    plural(n, "file")
+                                n if n == 0 || editing => crate::i18n::tf(
+                                    "detail-resolve-resolved",
+                                    &[("resolved", (resolved).into())],
+                                ),
+                                n => crate::i18n::tf(
+                                    "detail-resolve-resolved-ready-commit",
+                                    &[
+                                        ("resolved", (resolved).into()),
+                                        ("files", (plural(n, crate::ui::Count::File)).into()),
+                                    ],
                                 ),
                             };
                             // The oplog can't bring back a linked worktree, nor a commit
@@ -643,20 +649,36 @@ impl Detail {
                         // On to the stack's next conflicted commit.
                         (0, Some((next, title))) => {
                             store.select(Some(Selection::Commit(shown, next)), cx);
-                            format!("{resolved}, on to {title}")
+                            crate::i18n::tf(
+                                "detail-resolve-on-to",
+                                &[
+                                    ("resolved", (resolved.to_string()).into()),
+                                    ("title", (title).into()),
+                                ],
+                            )
                         }
                         (0, None) => {
                             store.follow(&rewritten, cx);
                             match outcome.emptied {
                                 true => resolved.into(),
-                                false => "Resolved, no conflicts left".into(),
+                                false => {
+                                    crate::i18n::t("detail-resolve-resolved-no-conflicts-left")
+                                        .into()
+                                }
                             }
                         }
                         (left, _) => {
                             store.follow(&rewritten, cx);
-                            format!(
-                                "Resolved {}, {left} left",
-                                plural(outcome.resolved, "conflict")
+                            crate::i18n::tf(
+                                "detail-resolve-resolved-left",
+                                &[
+                                    (
+                                        "conflicts",
+                                        (plural(outcome.resolved, crate::ui::Count::Conflict))
+                                            .into(),
+                                    ),
+                                    ("left", (format!("{left}")).into()),
+                                ],
                             )
                         }
                     };
@@ -811,7 +833,7 @@ impl Detail {
             Some(older) => {
                 let store_entity = self.store.clone();
                 (
-                    "An older commit conflicts too".into(),
+                    crate::i18n::t("detail-resolve-older-commit-conflicts-too").into(),
                     "Resolve it first: this one is rebuilt on top of it, which can settle some \
                      of these."
                         .into(),
@@ -828,7 +850,10 @@ impl Detail {
                 )
             }
             None if total == 0 => (
-                format!("{} left conflicted", plural(other, "file")),
+                crate::i18n::tf(
+                    "detail-resolve-left-conflicted",
+                    &[("files", (plural(other, crate::ui::Count::File)).into())],
+                ),
                 match conflicted {
                     // A commit's files have no Mark resolved in their menu.
                     Conflicted::Commit(_) => match other {
@@ -842,7 +867,13 @@ impl Detail {
                 None,
             ),
             None if decided == total => (
-                format!("{} ready to apply", plural(total, "conflict")),
+                crate::i18n::tf(
+                    "detail-resolve-ready-apply",
+                    &[(
+                        "conflicts",
+                        (plural(total, crate::ui::Count::Conflict)).into(),
+                    )],
+                ),
                 // The oplog only records the main checkout, and not while a commit's edited.
                 match (total, no_undo) {
                     (1, None) => "Apply resolves it in one step you can undo.".into(),
@@ -853,7 +884,13 @@ impl Detail {
                 apply,
             ),
             None => (
-                format!("{} to resolve", plural(total - decided, "conflict")),
+                crate::i18n::tf(
+                    "detail-resolve-resolve",
+                    &[(
+                        "conflicts",
+                        (plural(total - decided, crate::ui::Count::Conflict)).into(),
+                    )],
+                ),
                 format!(
                     "{} and {} both changed these lines. Pick what each keeps.",
                     own.0, base.1
@@ -866,7 +903,7 @@ impl Detail {
             (_, _) if total == 0 => detail,
             (n, Conflicted::Commit(_)) => format!(
                 "{detail} {} can only be resolved in a terminal, with `but resolve`.",
-                plural(n, "file")
+                plural(n, crate::ui::Count::File)
             ),
             (1, Conflicted::Files(_)) => format!(
                 "{detail} 1 file has no lines to pick: its menu marks it resolved as it is."
@@ -1088,7 +1125,8 @@ pub(super) fn apply_button(detail: &Detail, entity: WeakEntity<Detail>) -> Optio
     detail.conflicted_commit()?;
     let kept = detail.resolving.keeping.len();
     (kept > 0).then(|| {
-        let style = button("apply-resolutions", "Apply").style(ButtonStyle::Pop);
+        let style =
+            button("apply-resolutions", crate::i18n::t("common-apply")).style(ButtonStyle::Pop);
         apply_with(style, kept, entity)
     })
 }
@@ -1097,7 +1135,7 @@ pub(super) fn apply_button(detail: &Detail, entity: WeakEntity<Detail>) -> Optio
 fn apply_with(button: crate::ui::Button, kept: usize, entity: WeakEntity<Detail>) -> AnyElement {
     button
         .tooltip_for(
-            format!("Resolve {}", plural(kept, "conflict")),
+            format!("Resolve {}", plural(kept, crate::ui::Count::Conflict)),
             &ApplyResolutions,
         )
         .on_click(move |_, _, cx| {

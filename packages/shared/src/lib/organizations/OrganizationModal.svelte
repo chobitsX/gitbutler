@@ -9,6 +9,7 @@
 	import { getUserByLogin } from "$lib/users/usersPreview.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Avatar, Button, CardGroup, Modal, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		slug: string;
@@ -37,13 +38,13 @@
 		{#snippet children(organization)}
 			{#if organization.inviteCode}
 				<div class="header-with-action">
-					<p>Invite code:</p>
+					<p>{$t("Invite code:")}</p>
 					<Textbox value={organization.inviteCode} readonly></Textbox>
 				</div>
 			{/if}
 
 			{#if organization.memberLogins}
-				<h5 class="text-15 text-bold">Users:</h5>
+				<h5 class="text-15 text-bold">{$t("Users:")}</h5>
 
 				<CardGroup>
 					{#each organization.memberLogins as login}
@@ -66,7 +67,7 @@
 			{/if}
 
 			{#if organization.projectRepositoryIds}
-				<h5 class="text-15 text-bold">Projects:</h5>
+				<h5 class="text-15 text-bold">{$t("Projects:")}</h5>
 				<CardGroup>
 					{#each organization.projectRepositoryIds as repositoryId}
 						{@const project = getProjectByRepositoryId(repositoryId)}
@@ -85,7 +86,7 @@
 	</Loading>
 </Modal>
 
-<Button onclick={() => modal?.show()}>View</Button>
+<Button onclick={() => modal?.show()}>{$t("View")}</Button>
 
 <style lang="postcss">
 	.header-with-action {

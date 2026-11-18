@@ -732,7 +732,7 @@ impl Detail {
         if let Some(err) = &self.diff_error {
             let message = empty_state(
                 Some(Illustration::Papers),
-                "Couldn't load the diff",
+                crate::i18n::t("detail-diff-view-load-diff-error"),
                 err.clone(),
                 theme,
                 cx,
@@ -751,9 +751,13 @@ impl Detail {
             // doesn't flash it. Not with `loading_state`: its fade redraws this pane every
             // frame, which would draw the new diff in the same frame as the detail.
             let message = match (self.loading.is_some(), self.nothing_committed(cx)) {
-                (true, _) if self.slow_to_load() => {
-                    empty_state(None, "Loading diff…", "", theme, cx)
-                }
+                (true, _) if self.slow_to_load() => empty_state(
+                    None,
+                    crate::i18n::t("detail-diff-view-loading-diff"),
+                    "",
+                    theme,
+                    cx,
+                ),
                 (false, Some(line)) => empty_state(Some(Illustration::Cactus), "", line, theme, cx),
                 _ => empty_state(None, "", "", theme, cx),
             };
@@ -769,7 +773,7 @@ impl Detail {
             let (drawing, title, detail): (_, _, SharedString) = match diff.key.source {
                 DiffSource::Worktree | DiffSource::Linked(_) => (
                     Some(Illustration::Waving),
-                    "No uncommitted changes",
+                    crate::i18n::t("detail-diff-view-no-uncommitted-changes"),
                     "Edits show up here as soon as they're saved".into(),
                 ),
                 // The header above says what it did instead. History compares what's
@@ -784,7 +788,10 @@ impl Detail {
         let no_files = !diff.rows.iter().any(|row| matches!(row, DiffRow::File(_)));
         if no_files && !diff.files.is_empty() && self.filtering {
             let filter = self.file_filter.read(cx).text();
-            let title = format!("No files match \"{}\"", filter.trim());
+            let title = crate::i18n::tf(
+                "detail-diff-view-no-files-match",
+                &[("trim", (filter.trim().to_string()).into())],
+            );
             return ground()
                 .child(empty_state(
                     Some(Illustration::Papers),
@@ -1380,7 +1387,11 @@ impl Detail {
                     }),
                     several => {
                         let why = "Moved or taken out whole, from all of them";
-                        let label = format!("{} commits", several.len()).into();
+                        let label = crate::i18n::tf(
+                            "detail-diff-view-commits",
+                            &[("count", (format!("{}", several.len())).into())],
+                        )
+                        .into();
                         Some((label, Some(Tooltip::text(why))))
                     }
                 };
@@ -1517,15 +1528,14 @@ impl Detail {
                         }
                     })
                     .when(unmodified > 0, |el| {
-                        el.tooltip(Tooltip::text("Show the whole file")).on_click(
-                            move |_, _, cx| {
-                                whole
-                                    .update(cx, |detail, cx| {
-                                        detail.toggle_whole(file, Some(hunk), cx)
-                                    })
-                                    .ok();
-                            },
-                        )
+                        el.tooltip(Tooltip::text(crate::i18n::t(
+                            "detail-diff-view-show-whole-file",
+                        )))
+                        .on_click(move |_, _, cx| {
+                            whole
+                                .update(cx, |detail, cx| detail.toggle_whole(file, Some(hunk), cx))
+                                .ok();
+                        })
                     })
                     .on_mouse_down(MouseButton::Left, press_off(dragged.clone(), Some(at)))
                     .when_some(carried, |el, carried| {
@@ -1735,9 +1745,9 @@ impl Detail {
                 .inverted(on)
                 .selected(text)
                 .tooltip(if text {
-                    "Show the drawing"
+                    crate::i18n::t("detail-diff-view-show-drawing")
                 } else {
-                    "Show as text"
+                    crate::i18n::t("detail-diff-view-show-text")
                 })
                 .on_click(move |_, _, cx| {
                     (entity.update(cx, |detail, cx| detail.toggle_drawing(file, cx))).ok();
@@ -1835,7 +1845,11 @@ impl Detail {
                     Err(err) => {
                         this.whole.remove(&path);
                         this.store.update(cx, |store, cx| {
-                            store.failed("Couldn't read the file", &err, cx)
+                            store.failed(
+                                crate::i18n::t("detail-diff-view-read-file-error"),
+                                &err,
+                                cx,
+                            )
                         });
                     }
                 }
@@ -2176,9 +2190,16 @@ impl Detail {
         window.focus(&self.focus, cx);
         let query = text.trim().to_owned();
         let items = move |this: &mut Self, cx: &mut Context<Self>| {
-            let mut items = vec![MenuItem::action("Copy", &crate::app::CopySelection, cx)];
+            let mut items = vec![MenuItem::action(
+                crate::i18n::t("common-copy"),
+                &crate::app::CopySelection,
+                cx,
+            )];
             if !query.is_empty() && !query.contains('\n') {
-                let label = format!("Find {}", crate::ui::quoted(&query));
+                let label = crate::i18n::tf(
+                    "detail-diff-view-find",
+                    &[("query", (crate::ui::quoted(&query)).into())],
+                );
                 let entity = cx.entity().downgrade();
                 items.push(MenuItem::new(label, move |_, window, cx| {
                     (entity.update(cx, |detail, cx| detail.find_text(&query, window, cx))).ok();

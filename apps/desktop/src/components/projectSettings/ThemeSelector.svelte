@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Icon } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { AppTheme, UiState } from "$lib/state/uiState.svelte";
 
 	interface Props {
@@ -52,10 +53,10 @@
 					/></i
 				>
 
-				<img src={theme.preview} alt={theme.name} />
+				<img src={theme.preview} alt={$t(theme.name)} />
 			</div>
 
-			<span class="theme-card__label text-12 text-semibold">{theme.name}</span>
+			<span class="theme-card__label text-12 text-semibold">{$t(theme.name)}</span>
 		</label>
 	{/each}
 </fieldset>

@@ -24,9 +24,11 @@ fn install_button(
 ) -> Button {
     let store = store.clone();
     match store.read(cx).installing_cli {
-        true => button(id, "Installing…")
+        true => button(id, crate::i18n::t("settings-cli-installing"))
             .small()
-            .disabled_because(Some("Waiting for the administrator password")),
+            .disabled_because(Some(crate::i18n::t(
+                "settings-cli-waiting-administrator-password",
+            ))),
         false => button(id, label)
             .small()
             .on_click(move |_, _, cx| store.update(cx, |store, cx| store.install_cli(cx))),
@@ -50,7 +52,7 @@ fn agent_setup(id: &'static str, store: &Entity<Store>, theme: &Theme) -> Div {
         .child(
             icon_button(id, Icon::Copy)
                 .small()
-                .tooltip("Copy")
+                .tooltip(crate::i18n::t("common-copy"))
                 .on_click(move |_, _, cx| clipboard::copy(&store, AGENT_SETUP.to_owned(), cx)),
         )
 }
@@ -63,16 +65,21 @@ impl SettingsView {
         let row = match store.read(cx).cli.as_ref()? {
             Some(path) => Row::new(
                 TITLE,
-                format!("Installed at {}. {SETUP}", path.display()),
+                crate::i18n::tf(
+                    "settings-cli-installed",
+                    &[
+                        ("path", (format!("{}", path.display())).into()),
+                        ("SETUP", (crate::i18n::t(SETUP).to_owned()).into()),
+                    ],
+                ),
                 install_button("settings-reinstall-cli", "Reinstall", store, cx)
                     .style(ButtonStyle::Ghost)
-                    .tooltip("Link this app's copy"),
+                    .tooltip(crate::i18n::t("settings-cli-link-app-s-copy")),
             )
             .with_below(agent_setup("settings-copy-setup", store, Theme::get(cx))),
             None => Row::new(
                 TITLE,
-                "Lets you and your coding agents use GitButler from a terminal. macOS may ask \
-                 for your password to put it in /usr/local/bin.",
+                crate::i18n::t("settings-cli-cli-row-lets-coding-agents-use"),
                 install_button("settings-install-cli", "Install", store, cx),
             ),
         };
@@ -85,9 +92,12 @@ impl SettingsView {
 pub fn welcome_card(store: &Entity<Store>, theme: &Theme, cx: &App) -> Option<Div> {
     let installed = store.read(cx).cli.as_ref()?.is_some();
     let (title, body) = match installed {
-        true => ("Set up your agents", SETUP),
+        true => (
+            crate::i18n::t("settings-cli-set-up-agents"),
+            crate::i18n::t(SETUP),
+        ),
         false => (
-            "Let your agents use GitButler",
+            crate::i18n::t("settings-cli-let-agents-use-gitbutler"),
             "Install the command-line interface, and any coding agent can commit, branch and \
              push with GitButler.",
         ),

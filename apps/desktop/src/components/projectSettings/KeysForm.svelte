@@ -5,6 +5,7 @@
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		// Used by credential checker before target branch set
@@ -29,11 +30,12 @@
 		<CardGroup>
 			<CardGroup.Item>
 				{#snippet title()}
-					Git authentication
+					{$t("Git authentication")}
 				{/snippet}
 				{#snippet caption()}
-					GitButler authenticates with your Git remote provider through the Git executable available
-					on your PATH.
+					{$t(
+						"GitButler authenticates with your Git remote provider through the Git executable available on your PATH.",
+					)}
 				{/snippet}
 				<CredentialCheck
 					{disabled}

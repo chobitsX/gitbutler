@@ -9,6 +9,7 @@
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Spacer, Toggle } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Project } from "$lib/project/project";
 
 	const { projectId }: { projectId: string } = $props();
@@ -26,12 +27,12 @@
 	<CardGroup>
 		<CardGroup.Item labelFor="landDirectly">
 			{#snippet title()}
-				Land branches directly
+				{$t("Land branches directly")}
 			{/snippet}
 			{#snippet caption()}
-				Replace the "Create PR" button with a "Land" button that integrates the branch straight into
-				the target branch, without opening a pull request. Shown on the bottom branch of a stack;
-				works without a forge integration.
+				{$t(
+					'Replace the "Create PR" button with a "Land" button that integrates the branch straight into the target branch, without opening a pull request. Shown on the bottom branch of a stack; works without a forge integration.',
+				)}
 			{/snippet}
 			{#snippet actions()}
 				<Toggle id="landDirectly" bind:checked={$landDirectly} />
@@ -52,11 +53,12 @@
 			<CardGroup>
 				<CardGroup.Item labelFor="forcePushProtection">
 					{#snippet title()}
-						Force push protection
+						{$t("Force push protection")}
 					{/snippet}
 					{#snippet caption()}
-						Protect remote commits during force pushes. This will use Git's safer force push flags
-						to avoid overwriting remote commit history.
+						{$t(
+							"Protect remote commits during force pushes. This will use Git's safer force push flags to avoid overwriting remote commit history.",
+						)}
 					{/snippet}
 					{#snippet actions()}
 						<Toggle

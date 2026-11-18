@@ -3,6 +3,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Icon } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import { type Snippet } from "svelte";
 	import type { SnapPositionName } from "$lib/floating/types";
@@ -56,7 +57,7 @@
 </FloatingModal>
 
 <button class="exit-floating-mode" type="button" onclick={onExitFloatingModeClick}>
-	<span class="text-12 text-semibold underline-dotted">Exit floating mode</span>
+	<span class="text-12 text-semibold underline-dotted">{$t("Exit floating mode")}</span>
 </button>
 
 <style>

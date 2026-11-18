@@ -24,6 +24,8 @@ required-features = ["stories"]
 workspace = true
 
 [features]
+## Compile Metal shaders at runtime when the Xcode Metal toolchain is unavailable.
+runtime-shaders = ["gpui_platform/runtime_shaders"]
 ## Scripted input and frame screenshots for development, see `src/dev.rs`.
 dev-script = ["gpui/test-support", "gpui_platform/test-support"]
 ## A window of the shared controls in their states, as `gitbutler-gpui-pantry`, see
@@ -55,6 +57,9 @@ raw-window-handle = "0.6.2"
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSData", "NSProcessInfo", "NSString", "objc2-core-foundation"] }
 
 [dependencies]
+fluent-templates.workspace = true
+fluent-syntax.workspace = true
+unic-langid.workspace = true
 anyhow.workspace = true
 futures.workspace = true
 serde = { workspace = true, features = ["rc"] }

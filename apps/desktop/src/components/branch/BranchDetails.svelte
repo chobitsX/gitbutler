@@ -1,6 +1,7 @@
 <script lang="ts">
 	import BranchBadge from "$components/branch/BranchBadge.svelte";
 	import { AvatarGroup, Button } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Author, PushStatus } from "@gitbutler/but-sdk";
 	import type { Snippet } from "svelte";
 
@@ -31,7 +32,7 @@
 		</div>
 
 		<div class="factoid-wrap">
-			<span class="factoid-label">Contribs:</span>
+			<span class="factoid-label">{$t("Contribs:")}</span>
 			<AvatarGroup
 				maxAvatars={2}
 				avatars={authors.map((a) => ({
@@ -50,9 +51,9 @@
 
 			<div class="header-details__conflicts-action">
 				<div class="stack-v gap-8">
-					<h3 class="text-13 text-semibold">Conflicted commits</h3>
+					<h3 class="text-13 text-semibold">{$t("Conflicted commits")}</h3>
 					<p class="text-12 text-body clr-text-2">
-						GitButler opens the earliest commit first, since later commits depend on it.
+						{$t("GitButler opens the earliest commit first, since later commits depend on it.")}
 					</p>
 				</div>
 				<Button
@@ -61,7 +62,8 @@
 					disabled={!onResolveConflicts}
 					tooltip={onResolveConflicts
 						? undefined
-						: "Conflicts can only be resolved in a workspace branch"}>Start resolving</Button
+						: $t("Conflicts can only be resolved in a workspace branch")}
+					>{$t("Start resolving")}</Button
 				>
 			</div>
 		</div>

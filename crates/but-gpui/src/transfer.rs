@@ -1598,7 +1598,13 @@ impl Render for DragPreview {
             .and_then(|moving| moving.stacks_with(store));
         let hint = match (moved, stacks_with) {
             (Some((_, lands)), _) => lands.then_some("Move".into()),
-            (None, Some(on)) => Some(format!("Stack on {}", short_ref(on)).into()),
+            (None, Some(on)) => Some(
+                crate::i18n::tf(
+                    "transfer-stack",
+                    &[("on", (format!("{}", short_ref(on))).into())],
+                )
+                .into(),
+            ),
             (None, None) => held.map(SharedString::from),
         };
         let hint = tile_hint(store).map(SharedString::from).or(hint);
@@ -1867,6 +1873,7 @@ pub fn drag_pill(
         .max_w(dp(320.))
         .border_color(theme.pop)
         .font_family(theme.ui_font.clone())
+        .map(crate::ui::with_cjk_fallback)
         .text_12()
         .text_color(theme.text_1)
         .child(mark)

@@ -6,6 +6,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { AsyncButton, Button, FileListItem, Modal, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { SelectionId } from "$lib/selection/key";
 	import type { TreeChange } from "@gitbutler/but-sdk";
 
@@ -62,7 +63,7 @@
 <Modal
 	width="small"
 	type="warning"
-	title="Discard changes"
+	title={$t("Discard changes")}
 	testId={TestId.DiscardFileChangesConfirmationModal}
 	bind:this={modal}
 >
@@ -70,14 +71,16 @@
 		{#if isChangedFilesItem(item)}
 			{#if isChangedFolderItem(item)}
 				<p class="discard-caption">
-					Are you sure you want to discard all changes in
+					{$t("Are you sure you want to discard all changes in")}
 					<span class="text-bold">{item.path}</span>?
 				</p>
 			{:else}
 				{@const changes = item.changes}
 				{#if changes.length < 10}
 					<p class="discard-caption">
-						Are you sure you want to discard the changes<br />to the following files:
+						{$t("Are you sure you want to discard the changes")}<br />{$t(
+							"to the following files:",
+						)}
 					</p>
 					<ul class="file-list">
 						{#each changes as change}
@@ -91,21 +94,22 @@
 					</ul>
 				{:else}
 					<p>
-						Discard the changes to all <span class="text-bold">
-							{changes.length} files
+						{$t("Discard the changes to all")}
+						<span class="text-bold">
+							{$t("{length} files", { length: changes.length })}
 						</span>?
 					</p>
 				{/if}
 			{/if}
 		{:else}
-			<p class="text-13">Woops! Malformed data :(</p>
+			<p class="text-13">{$t("Woops! Malformed data :(")}</p>
 		{/if}
 	{/snippet}
 	{#snippet controls(close, item)}
 		<Button
 			testId={TestId.DiscardFileChangesConfirmationModal_Cancel}
 			kind="outline"
-			onclick={close}>Cancel</Button
+			onclick={close}>{$t("Cancel")}</Button
 		>
 		<AsyncButton
 			testId={TestId.DiscardFileChangesConfirmationModal_Discard}
@@ -115,7 +119,7 @@
 				if (isChangedFilesItem(item)) await confirmDiscard(item);
 			}}
 		>
-			Confirm
+			{$t("Confirm")}
 		</AsyncButton>
 	{/snippet}
 </Modal>

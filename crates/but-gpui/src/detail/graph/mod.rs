@@ -3091,8 +3091,11 @@ impl Render for GraphView {
         self.scale = theme.scale;
         let Some(scene) = self.scene.clone() else {
             let (title, detail) = match &self.failed {
-                Some(err) => ("Couldn't read the graph", err.clone()),
-                None => ("Reading the graph", "Its commits are on their way".into()),
+                Some(err) => (crate::i18n::t("detail-graph-read-graph-error"), err.clone()),
+                None => (
+                    crate::i18n::t("detail-graph-reading-graph"),
+                    "Its commits are on their way".into(),
+                ),
             };
             return div()
                 .size_full()
@@ -3106,7 +3109,7 @@ impl Render for GraphView {
                 .bg(theme.bg_2)
                 .child(empty_state(
                     None,
-                    "No commits yet",
+                    crate::i18n::t("detail-graph-no-commits-yet"),
                     "The graph grows as commits are made",
                     &theme,
                     cx,
@@ -3261,10 +3264,10 @@ impl Render for GraphView {
             .child(
                 controls_pill("graph-controls", &theme)
                     .child(
-                        button("graph-workspace", "Workspace")
+                        button("graph-workspace", crate::i18n::t("detail-graph-workspace"))
                             .style(ButtonStyle::Ghost)
                             .small()
-                            .tooltip("Your lanes and what they start from")
+                            .tooltip(crate::i18n::t("detail-graph-lanes-they-start"))
                             .on_click(
                                 cx.listener(|this, _: &ClickEvent, _, cx| this.go_to_workspace(cx)),
                             ),
@@ -3276,7 +3279,7 @@ impl Render for GraphView {
                         )
                         .style(ButtonStyle::Ghost)
                         .small()
-                        .tooltip("The target's newest commit")
+                        .tooltip(crate::i18n::t("detail-graph-target-s-newest-commit"))
                         .disabled_because(target.is_none().then_some("There's no target"))
                         .on_click(cx.listener(
                             |this, _: &ClickEvent, _, cx| {
@@ -3294,7 +3297,7 @@ impl Render for GraphView {
                             .pl(dp(6.))
                             .child(
                                 checkbox("graph-follow", following, &theme)
-                                    .aria_label("Follow workspace")
+                                    .aria_label(crate::i18n::t("detail-graph-follow-workspace"))
                                     .tooltip(Tooltip::text(FOLLOW_TIP))
                                     .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                                         this.toggle_following(cx)
@@ -3307,7 +3310,7 @@ impl Render for GraphView {
                                     .pl(dp(6.))
                                     .pr(dp(6.))
                                     .text_12()
-                                    .child("Follow")
+                                    .child(crate::i18n::t("detail-graph-follow"))
                                     .tooltip(Tooltip::text(FOLLOW_TIP))
                                     .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                                         this.toggle_following(cx)
@@ -3319,7 +3322,7 @@ impl Render for GraphView {
                 controls_pill("graph-view-controls", &theme)
                     .child(
                         icon_button("graph-zoom-out", Icon::Minus)
-                            .tooltip("Zoom out")
+                            .tooltip(crate::i18n::t("detail-graph-zoom-out"))
                             .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                                 this.zoom_by(1. / 1.4, cx)
                             })),
@@ -3328,14 +3331,14 @@ impl Render for GraphView {
                         button("graph-zoom-reset", format!("{}%", (zoom * 100.).round()))
                             .style(ButtonStyle::Ghost)
                             .small()
-                            .tooltip("Back to 100%")
+                            .tooltip(crate::i18n::t("detail-graph-back-100"))
                             .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                                 this.zoom_by(1. / this.camera.zoom, cx)
                             })),
                     )
                     .child(
                         icon_button("graph-zoom-in", Icon::Plus)
-                            .tooltip("Zoom in")
+                            .tooltip(crate::i18n::t("detail-graph-zoom"))
                             .on_click(
                                 cx.listener(|this, _: &ClickEvent, _, cx| this.zoom_by(1.4, cx)),
                             ),
@@ -3343,7 +3346,7 @@ impl Render for GraphView {
                     .when(!self.own_window, |el| {
                         el.child(controls_divider(&theme)).child(
                             icon_button("graph-pop-out", Icon::PopOut)
-                                .tooltip("Open in new window")
+                                .tooltip(crate::i18n::t("detail-graph-open-new-window"))
                                 .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
                                     this.pop_out(window, cx)
                                 })),

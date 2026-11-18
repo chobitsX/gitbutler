@@ -23,6 +23,7 @@ import { invalidatesItem, invalidatesList, ReduxTag } from "$lib/state/tags";
 import { type UiState } from "$lib/state/uiState.svelte";
 import { InjectionToken } from "@gitbutler/core/context";
 import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
+import { translate } from "@gitbutler/ui-svelte/utils/i18n";
 import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 import type { NormalizedError } from "$lib/error/normalizedError";
 import type { BackendApi } from "$lib/state/backendApi";
@@ -460,7 +461,10 @@ export class StackService {
 					code === "ProjectGitAuth" ? "an authentication failure" : "an unforeseen error";
 				showWarning(
 					"Git push failed",
-					`Your branch cannot be pushed due to ${reason}: ${message}\n\nPlease check our [documentation](https://docs.gitbutler.com/troubleshooting/fetch-push)\non fetching and pushing for ways to resolve the problem.`,
+					translate(
+						"Your branch cannot be pushed due to {value0}: {value1}\n\nPlease check our [documentation](https://docs.gitbutler.com/troubleshooting/fetch-push)\non fetching and pushing for ways to resolve the problem.",
+						{ value0: reason, value1: message },
+					),
 				);
 			},
 			throwSilentError: true,

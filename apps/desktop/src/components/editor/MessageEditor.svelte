@@ -37,6 +37,7 @@
 	import FileUploadPlugin, {
 		type DropFileResult,
 	} from "@gitbutler/ui-svelte/richText/plugins/FileUpload.svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import { tick, untrack } from "svelte";
 
@@ -164,7 +165,7 @@
 
 		if (failed.length > 0) {
 			console.error("File upload failed", failed);
-			showError("File upload failed", failed.map((result) => result.reason).join(", "));
+			showError($t("File upload failed"), failed.map((result) => result.reason).join(", "));
 		}
 
 		allowUploadOnce = false;
@@ -236,13 +237,13 @@
 	};
 
 	const generateMessages = $derived.by(() => ({
-		commit: "Generate commit message",
-		pr: `Generate ${reviewUnitAbbr ?? "PR"} description`,
+		commit: $t("Generate commit message"),
+		pr: $t("Generate {value0} description", { value0: reviewUnitAbbr ?? "PR" }),
 	}));
 
 	function getTooltipText(): string | undefined {
 		if (!canUseAI) {
-			return "You need to enable AI in the project settings to use this feature";
+			return $t("You need to enable AI in the project settings to use this feature");
 		}
 		if (currentEditorWidth <= DROPDOWN_BTN_BREAKPOINTS.medium) {
 			return generateMessages[messageType];
@@ -254,12 +255,12 @@
 </script>
 
 {#snippet buttonText()}
-	{currentEditorWidth > DROPDOWN_BTN_BREAKPOINTS.medium ? "Generate message" : "Generate"}
+	{currentEditorWidth > DROPDOWN_BTN_BREAKPOINTS.medium ? $t("Generate message") : $t("Generate")}
 {/snippet}
 
 <Modal
 	type="warning"
-	title="Off to the cloud it goes!"
+	title={$t("Off to the cloud it goes!")}
 	width="small"
 	bind:this={uploadConfirmationModal}
 	onSubmit={async (close) => {
@@ -280,18 +281,19 @@
 		close();
 	}}
 >
-	Your file will be stored in GitButler’s digital vault, safe and sound. We promise it’s secure, so
-	feel free to share the link however you like 🔐
+	{$t(
+		"Your file will be stored in GitButler’s digital vault, safe and sound. We promise it’s secure, so feel free to share the link however you like 🔐",
+	)}
 	{#snippet controls(close)}
 		<div class="modal-footer">
 			<div class="flex flex-1">
 				<label for="dont-show-again" class="modal-footer__checkbox">
 					<Checkbox name="dont-show-again" small bind:checked={$doNotShowUploadWarning} />
-					<span class="text-12"> Don’t show again</span>
+					<span class="text-12"> {$t("Don’t show again")}</span>
 				</label>
 			</div>
-			<Button kind="outline" onclick={close}>Cancel</Button>
-			<Button style="pop" type="submit">Yes, upload!</Button>
+			<Button kind="outline" onclick={close}>{$t("Cancel")}</Button>
+			<Button style="pop" type="submit">{$t("Yes, upload!")}</Button>
 		</div>
 	{/snippet}
 </Modal>
@@ -365,7 +367,7 @@
 				<Button
 					kind="ghost"
 					icon={useFloatingBox.current ? "pop-out-top-left" : "pop-out-bottom-right"}
-					tooltip={useFloatingBox.current ? "Exit floating mode" : "Use floating mode"}
+					tooltip={useFloatingBox.current ? $t("Exit floating mode") : $t("Use floating mode")}
 					onclick={() => {
 						useFloatingBox.set(!useFloatingBox.current);
 					}}
@@ -378,7 +380,7 @@
 					<Button
 						kind="ghost"
 						icon="paperclip"
-						tooltip="Drop, paste or click to upload files"
+						tooltip={$t("Drop, paste or click to upload files")}
 						onclick={handleAttachFiles}
 					/>
 				{/if}
@@ -386,7 +388,7 @@
 					<FormattingButton
 						icon="text-wrap"
 						activated={useRuler}
-						tooltip="Wrap text automatically"
+						tooltip={$t("Wrap text automatically")}
 						onclick={async () => {
 							uiState.global.useRuler.set(!useRuler);
 							await tick(); // Wait for reactive update.
@@ -439,7 +441,7 @@
 				{#snippet contextMenuSlot()}
 					<ContextMenuSection>
 						<ContextMenuItem
-							label="Extra concise"
+							label={$t("Extra concise")}
 							onclick={() => ($commitGenerationExtraConcise = !$commitGenerationExtraConcise)}
 						>
 							{#snippet control()}
@@ -448,7 +450,7 @@
 						</ContextMenuItem>
 
 						<ContextMenuItem
-							label="Haiku"
+							label={$t("Haiku")}
 							onclick={() => ($commitGenerationHaiku = !$commitGenerationHaiku)}
 						>
 							{#snippet control()}
@@ -457,7 +459,7 @@
 						</ContextMenuItem>
 
 						<ContextMenuItem
-							label="Use emojis 😎"
+							label={$t("Use emojis 😎")}
 							onclick={() => ($commitGenerationUseEmojis = !$commitGenerationUseEmojis)}
 						>
 							{#snippet control()}

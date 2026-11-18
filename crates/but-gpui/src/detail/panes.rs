@@ -176,8 +176,12 @@ impl Detail {
                 }
                 Selection::Section(project, section) => {
                     let label = match section {
-                        Section::Inactive => "Inactive worktrees".to_owned(),
-                        Section::Mesh => "Network worktrees".to_owned(),
+                        Section::Inactive => {
+                            crate::i18n::t("detail-panes-inactive-worktrees").to_owned()
+                        }
+                        Section::Mesh => {
+                            crate::i18n::t("detail-panes-network-worktrees").to_owned()
+                        }
                         // After the branch, as its commits have it.
                         Section::Upstream(ref_name) => {
                             let branch = workspace.and_then(|ws| ws.find_branch(Some(ref_name)));
@@ -220,7 +224,7 @@ impl Detail {
                         crumbs.push((name.into(), branch_selection));
                         // By its change ID, as y copies it, or its sha for one without.
                         let last = match store.among_picks(project, *id) {
-                            true => plural(store.picked.len(), "commit"),
+                            true => plural(store.picked.len(), crate::ui::Count::Commit),
                             false => commit.short_reference(),
                         };
                         crumbs.push((last.into(), None));
@@ -387,19 +391,21 @@ impl Detail {
         let cancel = project.clone();
         let finish = project.clone();
         [
-            button("cancel-editing", "Cancel")
+            button("cancel-editing", crate::i18n::t("common-cancel"))
                 .small()
                 .style(ButtonStyle::Ghost)
-                .tooltip("Put the commit back as it was")
+                .tooltip(crate::i18n::t("detail-panes-put-commit-back-was"))
                 .on_click(cx.listener(move |this, _, _, cx| {
                     (this.store).update(cx, |store, cx| store.cancel_editing(&cancel, false, cx))
                 }))
                 .into_any_element(),
-            button("finish-editing", "Finish")
+            button("finish-editing", crate::i18n::t("detail-panes-finish"))
                 .small()
                 .icon(Icon::Tick)
                 .style(ButtonStyle::Pop)
-                .tooltip("Commit the files as they are in its place, and rebase what's above it")
+                .tooltip(crate::i18n::t(
+                    "detail-panes-commit-files-they-are-place-rebase",
+                ))
                 .on_click(cx.listener(move |this, _, window, cx| {
                     let project = finish.clone();
                     let left = (this.store.read(cx).workspace(&project)).map_or(0, |ws| {
@@ -422,9 +428,12 @@ impl Detail {
                     this.app.update_later(window, cx, move |app, window, cx| {
                         app.confirm_then(
                             Some(at),
-                            format!("Finish with {} still conflicted?", plural(left, "file")),
-                            "They go into the commit as they are now, with any conflict markers.",
-                            "Finish",
+                            crate::i18n::tf(
+                                "detail-panes-finish-still-conflicted",
+                                &[("files", (plural(left, crate::ui::Count::File)).into())],
+                            ),
+                            crate::i18n::t("detail-panes-they-go-into-commit-they-are"),
+                            crate::i18n::t("detail-panes-finish"),
                             window,
                             cx,
                             move |_, cx| detail.update(cx, finish),
@@ -455,7 +464,13 @@ impl Detail {
                 return empty_state(None, "", said, theme, cx);
             }
             return match entry.and_then(|entry| entry.error.clone()) {
-                Some(err) => empty_state(None, "Couldn't read the project", err, theme, cx),
+                Some(err) => empty_state(
+                    None,
+                    crate::i18n::t("detail-panes-read-project-error"),
+                    err,
+                    theme,
+                    cx,
+                ),
                 None => crate::ui::loading_state("Loading…", theme, cx),
             };
         };
@@ -482,7 +497,7 @@ impl Detail {
                 (None, Checkout::Main) => "Commit to a new independent branch".to_owned(),
                 (None, Checkout::Linked(_)) => "No branch of its own checked out".to_owned(),
             };
-            let open = button("open-composer", "Commit…")
+            let open = button("open-composer", crate::i18n::t("detail-panes-commit"))
                 .small()
                 .min_width(dp(super::COMMIT_BUTTON_WIDTH))
                 .tooltip_for("Commit, choosing where in the navigator", &StartCommit)
@@ -615,7 +630,11 @@ impl Detail {
             .child(self.reference_chip(commit, theme))
             .child(div().text_color(color).child(state))
             .when(commit.conflicted, |el| {
-                el.child(div().text_color(theme.warn).child("conflicted"))
+                el.child(
+                    div()
+                        .text_color(theme.warn)
+                        .child(crate::i18n::t("detail-panes-conflicted")),
+                )
             })
             // Last, as it's read after the rest, so nothing moves when it shows.
             .when_some(
@@ -625,8 +644,11 @@ impl Detail {
                         meta_item(Icon::Lock, theme)
                             .id("commit-signed")
                             .text_color(theme.text_3)
-                            .child("Signed")
-                            .tooltip(Tooltip::text(format!("Signed with {signer}, not verified"))),
+                            .child(crate::i18n::t("detail-panes-signed"))
+                            .tooltip(Tooltip::text(crate::i18n::tf(
+                                "detail-panes-signed-not-verified",
+                                &[("signer", (signer.to_string()).into())],
+                            ))),
                     )
                 },
             )
@@ -812,8 +834,11 @@ impl Detail {
             ))
             .child(self.sha_chip(id, theme))
             .child(div().text_color(theme.warn).child(match commit.remote {
-                Some(remote) => format!("only on {remote}"),
-                None => "only on the remote".to_owned(),
+                Some(remote) => crate::i18n::tf(
+                    "detail-panes-only",
+                    &[("remote", (remote.to_string()).into())],
+                ),
+                None => crate::i18n::t("detail-panes-only-remote").to_owned(),
             }))
     }
 
@@ -929,7 +954,7 @@ impl Detail {
             .aria_label(title.to_owned())
             .text_15()
             .semibold()
-            .tooltip(Tooltip::text("Open commit"));
+            .tooltip(Tooltip::text(crate::i18n::t("detail-panes-open-commit")));
         v_flex()
             .id(("listed-commit", ix))
             .gap(dp(6.))
@@ -986,9 +1011,9 @@ impl Detail {
                 .small()
                 .selected(open)
                 .tooltip(if open {
-                    "Hide full message"
+                    crate::i18n::t("detail-panes-hide-full-message")
                 } else {
-                    "Show full message"
+                    crate::i18n::t("detail-panes-show-full-message")
                 })
                 .on_click(cx.listener(|this, _, _, cx| this.toggle_message(cx)))
         });
@@ -1066,14 +1091,12 @@ impl Detail {
             )
             .children(conflicted_note(conflicted, theme))
             .when(!one_run, |el| {
-                el.child(
-                    div()
-                        .text_color(theme.text_3)
-                        .child("With others between them, so each one's changes show in turn"),
-                )
+                el.child(div().text_color(theme.text_3).child(crate::i18n::t(
+                    "detail-panes-others-between-them-so-each-one",
+                )))
             });
-        let title =
-            page_title(Icon::Commit, theme).child(title_text(plural(picked.len(), "commit")));
+        let title = page_title(Icon::Commit, theme)
+            .child(title_text(plural(picked.len(), crate::ui::Count::Commit)));
         let target = Selection::Commit(project.clone(), id);
         self.page_header(title, meta, target, None, None, theme)
     }
@@ -1081,8 +1104,8 @@ impl Detail {
     /// A workspace commit's ID: its change ID, as y copies it, or its sha for one without.
     fn reference_chip(&self, commit: &backend::Commit, theme: &Theme) -> Stateful<Div> {
         let tooltip = match commit.has_change_id() {
-            true => "Copy change ID",
-            false => "Copy commit ID",
+            true => crate::i18n::t("detail-panes-copy-change-id"),
+            false => crate::i18n::t("detail-panes-copy-commit-id"),
         };
         self.id_chip(commit.short_reference(), commit.reference(), tooltip, theme)
     }
@@ -1265,12 +1288,15 @@ impl Detail {
         // Not on a pinned page, as creating one goes to the selected branch.
         let offer = crate::pr::create_offer(store, &target).filter(|_| self.pinned.is_none());
         let create = offer.map(|offer| {
-            button("header-create-pr", "Create pull request")
-                .small()
-                .style(ButtonStyle::Pop)
-                .tooltip("Push and open a pull request")
-                .dispatch(&crate::pr::CreatePullRequest)
-                .disabled_because(offer.err())
+            button(
+                "header-create-pr",
+                crate::i18n::t("detail-panes-create-pull-request"),
+            )
+            .small()
+            .style(ButtonStyle::Pop)
+            .tooltip(crate::i18n::t("detail-panes-push-open-pull-request"))
+            .dispatch(&crate::pr::CreatePullRequest)
+            .disabled_because(offer.err())
         });
         let meta = meta.child(div().flex_1()).children(create);
         let name = match self.rename_field(project, ref_name, theme) {
@@ -1330,15 +1356,18 @@ impl Detail {
         let commits = branches.iter().map(|branch| branch.commits.len()).sum();
         let meta = meta_row(theme)
             .child(meta_item(Icon::Commit, theme).child(match commits {
-                0 => "No commits".to_owned(),
-                n => plural(n, "commit"),
+                0 => crate::i18n::t("detail-panes-no-commits").to_owned(),
+                n => plural(n, crate::ui::Count::Commit),
             }))
             .child(
                 meta_item(Icon::Branch, theme)
                     .min_w_0()
                     .child(div().min_w_0().truncate().child(names.join(" ← "))),
             );
-        let title = format!("Stack of {}", names.len());
+        let title = crate::i18n::tf(
+            "detail-panes-stack",
+            &[("count", (format!("{}", names.len())).into())],
+        );
         let title = page_title(Icon::Stack, theme).child(title_text(title));
         let target = Selection::Stack(project.clone(), bottom.cloned());
         self.page_header(title, meta, target, None, None, theme)
@@ -1368,7 +1397,7 @@ impl Detail {
             let app = self.app.clone();
             let (project, id) = (project.clone(), commit.id);
             super::resolve::warn_banner(
-                plural(conflicted, "conflicted commit"),
+                plural(conflicted, crate::ui::Count::ConflictedCommit),
                 match holder.ref_name.as_ref() == ref_name {
                     true if conflicted == 1 => "Resolve opens it to pick what it keeps.".to_owned(),
                     true => {
@@ -1633,7 +1662,10 @@ fn day_strip(days: &[u32], most: u32, today: i64, theme: &Theme) -> Div {
             })
             .tooltip(move |window, cx| {
                 let day = crate::ui::local_weekday(noon(day));
-                Tooltip::text(format!("{day}: {}", plural(n as usize, "commit")))(window, cx)
+                Tooltip::text(format!(
+                    "{day}: {}",
+                    plural(n as usize, crate::ui::Count::Commit)
+                ))(window, cx)
             })
     });
     div()
@@ -2060,7 +2092,7 @@ impl Detail {
                     .h(dp(22.))
                     .px(dp(14.))
                     .gap(dp(8.))
-                    .child(section_label("People", theme).flex_grow(1.))
+                    .child(section_label(crate::i18n::t("overview-people"), theme).flex_grow(1.))
                     .child(faint(counted, theme))
                     .children(clear),
             )
@@ -2092,10 +2124,17 @@ impl Detail {
                     )),
             )
             .when(rest > 0 && !open, |el| {
-                el.child(fold(false).flex_none().child(format!("{rest} more")))
+                el.child(fold(false).flex_none().child(crate::i18n::tf(
+                    "detail-panes-more",
+                    &[("rest", (format!("{rest}")).into())],
+                )))
             })
             .when(open, |el| {
-                el.child(fold(true).flex_none().child("Show fewer"))
+                el.child(
+                    fold(true)
+                        .flex_none()
+                        .child(crate::i18n::t("detail-panes-show-fewer")),
+                )
             })
             .into_any_element()
     }
@@ -2283,7 +2322,9 @@ pub(super) fn share_row(
 
 /// The Clear that lets go of what's picked off an overview.
 pub(super) fn clear_button(id: &'static str) -> Button {
-    button(id, "Clear").small().style(ButtonStyle::Ghost)
+    button(id, crate::i18n::t("detail-panes-clear"))
+        .small()
+        .style(ButtonStyle::Ghost)
 }
 
 /// `n` with its thousands set apart, as 1,434 reads more easily than 1434.
@@ -2374,10 +2415,10 @@ fn branch_meta(ws: &backend::Workspace, branch: &Branch, theme: &Theme) -> Div {
         0 => el.child(
             meta_item(Icon::Commit, theme)
                 .text_color(theme.text_3)
-                .child("No commits"),
+                .child(crate::i18n::t("detail-panes-no-commits")),
         ),
         n => el
-            .child(meta_item(Icon::Commit, theme).child(plural(n, "commit")))
+            .child(meta_item(Icon::Commit, theme).child(plural(n, crate::ui::Count::Commit)))
             .child(div().text_color(color).child(state))
             .children(conflicted_note(conflicted, theme)),
     })
@@ -2385,9 +2426,10 @@ fn branch_meta(ws: &backend::Workspace, branch: &Branch, theme: &Theme) -> Div {
 
 fn conflicted_note(n: usize, theme: &Theme) -> Option<Div> {
     (n > 0).then(|| {
-        div()
-            .text_color(theme.warn)
-            .child(format!("{n} conflicted"))
+        div().text_color(theme.warn).child(crate::i18n::tf(
+            "detail-panes-conflicted-2",
+            &[("n", (format!("{n}")).into())],
+        ))
     })
 }
 
@@ -2453,10 +2495,16 @@ pub(super) fn reword_editor(
             h_flex()
                 .gap(dp(8.))
                 .justify_end()
-                .child(faint(crate::ui::keys_text("⌘↩ to save, esc to cancel"), theme).flex_1())
+                .child(
+                    faint(
+                        crate::ui::keys_text(crate::i18n::t("detail-panes-save-esc-cancel")),
+                        theme,
+                    )
+                    .flex_1(),
+                )
                 .child({
                     let input = input.clone();
-                    button("cancel-reword", "Cancel")
+                    button("cancel-reword", crate::i18n::t("common-cancel"))
                         .small()
                         .on_click(move |_, _, cx| {
                             input.update(cx, |_, cx| cx.emit(InputEvent::Cancel))
@@ -2464,13 +2512,18 @@ pub(super) fn reword_editor(
                 })
                 .child({
                     let input = input.clone();
-                    button("save-reword", if saving { "Saving…" } else { "Save" })
-                        .small()
-                        .style(ButtonStyle::Pop)
-                        .disabled_because(saving.then_some("Waiting for the forge"))
-                        .on_click(move |_, _, cx| {
-                            input.update(cx, |_, cx| cx.emit(InputEvent::Submit))
-                        })
+                    button(
+                        "save-reword",
+                        if saving {
+                            crate::i18n::t("detail-panes-saving")
+                        } else {
+                            crate::i18n::t("common-save")
+                        },
+                    )
+                    .small()
+                    .style(ButtonStyle::Pop)
+                    .disabled_because(saving.then_some("Waiting for the forge"))
+                    .on_click(move |_, _, cx| input.update(cx, |_, cx| cx.emit(InputEvent::Submit)))
                 }),
         )
         .into_any_element()

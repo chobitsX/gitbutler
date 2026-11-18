@@ -13,6 +13,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { Badge, Button, TestId } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		projectId: string;
@@ -112,7 +113,7 @@
 		<div class="unassigned-wrap">
 			<div role="presentation" class="unassigned-files-wrapper" onclick={unselectFiles}>
 				<WorktreeChanges
-					title="Unstaged"
+					title={$t("Unstaged")}
 					{projectId}
 					stackId={undefined}
 					mode="unassigned"
@@ -124,8 +125,8 @@
 						<div class="unassigned-empty">
 							{@html noChanges}
 							<p class="text-13 text-body unassigned-empty-text">
-								You're all caught up!<br />
-								No files need committing
+								{$t("You're all caught up!")}<br />
+								{$t("No files need committing")}
 							</p>
 						</div>
 					{/snippet}
@@ -155,9 +156,9 @@
 						kind="outline"
 					>
 						{#if isCommitting}
-							Committing…
+							{$t("Committing…")}
 						{:else}
-							Commit to new branch
+							{$t("Commit to new branch")}
 						{/if}
 					</Button>
 				</div>
@@ -181,7 +182,7 @@
 			<span
 				bind:clientWidth={foldedContentWidth}
 				style="height: {foldedContentWidth}px;"
-				class="unassigned-folded-text text-14 text-semibold">Unstaged</span
+				class="unassigned-folded-text text-14 text-semibold">{$t("Unstaged")}</span
 			>
 		</div>
 	</div>

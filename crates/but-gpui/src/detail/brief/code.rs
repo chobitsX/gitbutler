@@ -44,7 +44,10 @@ fn not_shown(omitted: &[String], theme: &Theme) -> Option<Div> {
         div()
             .text_11()
             .text_color(theme.text_3)
-            .child(format!("Not shown: {}", omitted.join(", ")))
+            .child(crate::i18n::tf(
+                "detail-brief-code-not-shown",
+                &[("join", (omitted.join(", ")).into())],
+            ))
     })
 }
 
@@ -229,7 +232,10 @@ impl Detail {
             .text_12()
             .when(goes, |el| {
                 el.role(gpui::Role::Button)
-                    .aria_label(SharedString::from(format!("Show {path} in Changes")))
+                    .aria_label(SharedString::from(crate::i18n::tf(
+                        "detail-brief-code-show-changes",
+                        &[("path", (path.to_string()).into())],
+                    )))
                     .hover(|el| el.bg(theme.hover))
                     .on_click(cx.listener(move |this, _, window, cx| {
                         this.brief_open_file(&clicked, line, window, cx);
@@ -263,7 +269,7 @@ impl Detail {
                         .flex_none()
                         .text_11()
                         .text_color(theme.text_3)
-                        .child("not on the branch now"),
+                        .child(crate::i18n::t("detail-brief-code-not-branch-now")),
                 )
             })
             .when(goes, |el| {

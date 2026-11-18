@@ -22,6 +22,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { injectOptional, inject } from "@gitbutler/core/context";
 	import { AsyncButton, FileListItem, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { ConflictEntriesObj } from "$lib/files/conflicts";
 
 	type Props = {
@@ -97,8 +98,9 @@
 		{#if ancestorMostConflictedCommitId}
 			<div class="conflicted-entries__action">
 				<p class="text-12 text-body clr-text-2">
-					If the branch has multiple conflicted commits, GitButler opens the earliest one first,
-					since later commits depend on it.
+					{$t(
+						"If the branch has multiple conflicted commits, GitButler opens the earliest one first, since later commits depend on it.",
+					)}
 				</p>
 				<AsyncButton
 					testId={TestId.CommitDrawerResolveConflictsButton}
@@ -113,7 +115,7 @@
 							projectId,
 						})}
 				>
-					Resolve conflicts
+					{$t("Resolve conflicts")}
 				</AsyncButton>
 			</div>
 		{/if}

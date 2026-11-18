@@ -313,7 +313,13 @@ fn bar(row: &Row, theme: &Theme) -> AnyElement {
                 .min_w_0()
                 .truncate()
                 .text_color(color)
-                .child(format!("Conflict {} of {}", row.number, row.total)),
+                .child(crate::i18n::tf(
+                    "ui-conflict-conflict",
+                    &[
+                        ("number", (format!("{}", row.number)).into()),
+                        ("total", (format!("{}", row.total)).into()),
+                    ],
+                )),
         )
         .child(segmented(
             true,
@@ -340,7 +346,7 @@ fn bar(row: &Row, theme: &Theme) -> AnyElement {
             ],
         ))
         .child(
-            button("conflict-edit", "Edit")
+            button("conflict-edit", crate::i18n::t("common-edit"))
                 .small()
                 .style(ButtonStyle::Ghost)
                 .tooltip_with_key("Write what to keep", Some("↩".into()))
@@ -373,7 +379,10 @@ fn label(side: Side, row: &Row, theme: &Theme) -> AnyElement {
     };
     let empty = side_lines(row.conflict, side).is_empty();
     let text = match empty {
-        true => format!("Nothing from {}", name.phrase),
+        true => crate::i18n::tf(
+            "ui-conflict-nothing",
+            &[("phrase", (name.phrase.to_string()).into())],
+        ),
         false => name.label.to_owned(),
     };
     strip(row.layout, row.last && empty, theme)
@@ -392,7 +401,7 @@ fn ancestor_toggle(row: &Row, theme: &Theme) -> AnyElement {
     if lines == 0 {
         return strip
             .text_color(theme.text_3)
-            .child("Both sides added these lines")
+            .child(crate::i18n::t("ui-conflict-both-sides-added-these-lines"))
             .into_any_element();
     }
     strip
@@ -400,9 +409,14 @@ fn ancestor_toggle(row: &Row, theme: &Theme) -> AnyElement {
             button(
                 "conflict-ancestor",
                 match (row.ancestor, lines) {
-                    (true, _) => "Hide how it was before".to_owned(),
-                    (false, 1) => "Show the line before either changed it".to_owned(),
-                    (false, n) => format!("Show the {n} lines before either changed them"),
+                    (true, _) => crate::i18n::t("ui-conflict-hide-was-before").to_owned(),
+                    (false, 1) => {
+                        crate::i18n::t("ui-conflict-show-line-before-either-changed").to_owned()
+                    }
+                    (false, n) => crate::i18n::tf(
+                        "ui-conflict-show-lines-before-either-changed-them",
+                        &[("n", (format!("{n}")).into())],
+                    ),
                 },
             )
             .small()
@@ -484,23 +498,26 @@ fn result(row: &Row, theme: &Theme) -> AnyElement {
                         .min_w_0()
                         .truncate()
                         .child(match lines.is_empty() {
-                            true => format!("{says}: nothing, so these lines go"),
+                            true => crate::i18n::tf(
+                                "ui-conflict-nothing-so-these-lines-go",
+                                &[("says", (says).into())],
+                            ),
                             false => says,
                         }),
                 )
                 .when(suggested, |el| {
                     el.child(
-                        button("conflict-result-edit", "Edit")
+                        button("conflict-result-edit", crate::i18n::t("common-edit"))
                             .small()
                             .style(ButtonStyle::Ghost)
                             .on_click(move |_, window, cx| edit(window, cx)),
                     )
                 })
                 .child(
-                    button("conflict-change", "Change")
+                    button("conflict-change", crate::i18n::t("ui-conflict-change"))
                         .small()
                         .style(ButtonStyle::Ghost)
-                        .tooltip("Pick again")
+                        .tooltip(crate::i18n::t("ui-conflict-pick-again"))
                         .on_click(move |_, window, cx| change(window, cx)),
                 ),
         )
@@ -555,17 +572,19 @@ fn editor(input: Entity<TextInput>, row: &Row, theme: &Theme) -> AnyElement {
                     div()
                         .flex_1()
                         .text_color(theme.text_2)
-                        .child("Leaving it empty removes these lines."),
+                        .child(crate::i18n::t(
+                            "ui-conflict-leaving-empty-removes-these-lines",
+                        )),
                 )
                 .child(
-                    button("conflict-cancel", "Cancel")
+                    button("conflict-cancel", crate::i18n::t("common-cancel"))
                         .small()
                         .style(ButtonStyle::Ghost)
                         .tooltip_with_key("Drop the edit", Some("esc".into()))
                         .on_click(move |_, window, cx| cancel(window, cx)),
                 )
                 .child(
-                    button("conflict-done", "Keep")
+                    button("conflict-done", crate::i18n::t("ui-conflict-keep"))
                         .small()
                         .style(ButtonStyle::Gray)
                         .tooltip_with_key("Keep these lines", Some("⌘↩".into()))

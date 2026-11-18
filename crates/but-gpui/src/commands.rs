@@ -19,7 +19,7 @@ use crate::edits::{
 };
 use crate::palette::{CopyMore, GoTo, GoToTerminal};
 use crate::state::Selection;
-use crate::ui::{commit_title, plural, quoted};
+use crate::ui::{commit_title, quoted};
 
 /// What the palette calls the action named `name`, or its name in words: `navigator::SelectNext`
 /// is "Select next".
@@ -42,7 +42,23 @@ pub(crate) fn title_of(name: &str) -> String {
 
 /// An action the palette and the menus offer, by the one title they all call it.
 pub(crate) trait Command: Action {
-    fn title(&self) -> &'static str;
+    fn message_id(&self) -> &'static str;
+
+    fn source_title(&self) -> &'static str {
+        crate::i18n::english(self.message_id())
+    }
+
+    fn title(&self) -> &'static str {
+        crate::i18n::t(self.message_id())
+    }
+
+    fn menu_title(&self) -> &'static str {
+        crate::i18n::language().attribute(self.message_id(), "menu")
+    }
+
+    fn source_menu_title(&self) -> &'static str {
+        crate::i18n::Language::English.attribute(self.message_id(), "menu")
+    }
 
     /// It throws work away, so ⌘K then Enter never repeats it, and letters scattered through
     /// its title don't find it.
@@ -77,11 +93,11 @@ pub(crate) trait Command: Action {
 /// that order.
 macro_rules! commands {
     ($(
-        $action:path => $title:tt $($risky:ident)? $({ $($option:ident: $method:expr),* $(,)? })?
+        $action:path => $message_id:literal $($risky:ident)? $({ $($option:ident: $method:expr),* $(,)? })?
     ),* $(,)?) => {
         $(impl Command for $action {
-            fn title(&self) -> &'static str {
-                commands!(@title $title)
+            fn message_id(&self) -> &'static str {
+                $message_id
             }
             $(fn $risky(&self) -> bool {
                 true
@@ -91,13 +107,6 @@ macro_rules! commands {
 
         /// Every command, in the order they're listed before anything is typed.
         pub(crate) const COMMANDS: &[&dyn Command] = &[$(&$action),*];
-    };
-    // A title is a string, or a constant between parentheses, as one that differs by platform.
-    (@title ($title:expr)) => {
-        $title
-    };
-    (@title $title:literal) => {
-        $title
     };
     (@option phrase $method:expr) => {
         fn phrase(&self, app: &AppView, _window: &Window, cx: &App) -> Option<String> {
@@ -126,14 +135,14 @@ macro_rules! commands {
 }
 
 commands! {
-    NextHunk => "Next hunk",
-    PreviousHunk => "Previous hunk",
-    NextFile => "Next file",
-    PreviousFile => "Previous file",
-    FoldFile => "Fold file",
-    UnfoldFile => "Unfold file",
-    ToggleFileTree => "Show files as a tree or a list",
-    Discard => "Discard" risky {
+    NextHunk => "command-next-hunk",
+    PreviousHunk => "command-previous-hunk",
+    NextFile => "command-next-file",
+    PreviousFile => "command-previous-file",
+    FoldFile => "command-fold-file",
+    UnfoldFile => "command-unfold-file",
+    ToggleFileTree => "command-toggle-file-tree",
+    Discard => "command-discard" risky {
         aliases: &[
             "Discard commit",
             "Remove commit",
@@ -155,162 +164,162 @@ commands! {
         ],
         listed: deletable,
     },
-    crate::detail::CheckAll => "Check all files",
-    crate::detail::UncheckAll => "Uncheck all files",
-    crate::detail::MarkResolved => "Mark resolved",
-    crate::detail::UncommitChanges => "Uncommit changes" risky {
-        phrase: |app, cx| Some(format!("Uncommit {}", app.detail.read(cx).changes_kind(cx)?)),
+    crate::detail::CheckAll => "command-check-all",
+    crate::detail::UncheckAll => "command-uncheck-all",
+    crate::detail::MarkResolved => "command-mark-resolved",
+    crate::detail::UncommitChanges => "command-uncommit-changes" risky {
+        phrase: |app, cx| Some(crate::i18n::tf("command-uncommit-changes-phrase", &[("changes", app.detail.read(cx).changes_kind(cx)?.into())])),
     },
-    crate::detail::SplitIntoNewCommit => "Split into a new commit",
-    StartCommit => "Commit",
-    StartAmend => "Amend",
-    Undo => "Undo",
-    Redo => "Redo",
-    Push => "Push" risky { phrase: push_phrase, listed: pushable },
-    OpenPullRequest => "Open pull request" { listed: has_pull_request },
-    Fetch => "Fetch",
-    Pull => "Pull",
-    UpdateFromTarget => "Update workspace and worktrees" { listed: target_moved },
-    UpdateWorkspace => "Update workspace" { listed: has_target },
-    UpdateWorktrees => "Update worktrees" { listed: has_target },
-    NewBranch => "New branch",
-    NewBranchOnTop => "New branch above",
-    crate::app::NewWorktree => "New worktree" { listed: has_target },
-    crate::app::NewWorktreeWithName => "New worktree with name" { listed: has_target },
-    crate::app::RecycleWorktree => "Recycle worktree" {
+    crate::detail::SplitIntoNewCommit => "command-split-into-new-commit",
+    StartCommit => "command-start-commit",
+    StartAmend => "command-start-amend",
+    Undo => "command-undo",
+    Redo => "command-redo",
+    Push => "command-push" risky { phrase: push_phrase, listed: pushable },
+    OpenPullRequest => "command-open-pull-request" { listed: has_pull_request },
+    Fetch => "command-fetch",
+    Pull => "command-pull",
+    UpdateFromTarget => "command-update-target" { listed: target_moved },
+    UpdateWorkspace => "command-update-workspace" { listed: has_target },
+    UpdateWorktrees => "command-update-worktrees" { listed: has_target },
+    NewBranch => "command-new-branch",
+    NewBranchOnTop => "command-new-branch-top",
+    crate::app::NewWorktree => "command-new-worktree" { listed: has_target },
+    crate::app::NewWorktreeWithName => "command-new-worktree-name" { listed: has_target },
+    crate::app::RecycleWorktree => "command-recycle-worktree" {
         listed: has_target,
         aliases: &["Reuse worktree"],
     },
-    Reword => "Reword" {
+    Reword => "command-reword" {
         aliases: &["Reword commit", "Rename commit", "Edit commit message"],
     },
-    RenameBranch => "Rename branch" {
+    RenameBranch => "command-rename-branch" {
         aliases: &["Reword branch", "Edit branch name"],
     },
-    NameBranch => "Name branch",
+    NameBranch => "command-name-branch",
     // What a terminal's menu called Reword before it had a command of its own.
-    RenameTerminal => "Rename terminal" { aliases: &["Reword terminal"] },
-    Uncommit => "Uncommit" risky {
-        phrase: |app, cx| picks(app, cx).map(|n| format!("Uncommit {n} commits")),
+    RenameTerminal => "command-rename-terminal" { aliases: &["Reword terminal"] },
+    Uncommit => "command-uncommit" risky {
+        phrase: |app, cx| picks(app, cx).map(|n| crate::i18n::tf("command-uncommit-picked-phrase", &[("count", n.into())])),
     },
-    CherryPick => "Cherry-pick" {
+    CherryPick => "command-cherry-pick" {
         // The workspace's commits picked, or the Branches page's.
         phrase: |app, cx| {
             let n = picks(app, cx).or_else(|| app.detail.read(cx).branch_cherry_picks())?;
-            (n > 1).then(|| format!("Cherry-pick {n} commits"))
+            (n > 1).then(|| crate::i18n::tf("command-cherry-pick-picked-phrase", &[("count", n.into())]))
         },
     },
-    AddEmptyCommitAbove => "Add empty commit above" {
+    AddEmptyCommitAbove => "command-add-empty-commit-above" {
         // On a branch, above is on top: it's the only place there.
-        phrase: |app, cx| on_branch(app, cx).then(|| "Add empty commit".to_owned()),
+        phrase: |app, cx| on_branch(app, cx).then(|| crate::i18n::t("command-add-empty-commit-phrase").to_owned()),
     },
-    AddEmptyCommitBelow => "Add empty commit below",
-    SquashAll => "Squash all commits" risky,
-    crate::edits::SquashPicked => "Squash picked commits" risky { phrase: squash_picked_phrase },
-    crate::edits::SquashIntoSelected => "Squash picked commits into this one" risky {
-        phrase: |app, cx| picks(app, cx).map(|n| format!("Squash {n} commits into this one")),
+    AddEmptyCommitBelow => "command-add-empty-commit-below",
+    SquashAll => "command-squash-all" risky,
+    crate::edits::SquashPicked => "command-squash-picked" risky { phrase: squash_picked_phrase },
+    crate::edits::SquashIntoSelected => "command-squash-into-selected" risky {
+        phrase: |app, cx| picks(app, cx).map(|n| crate::i18n::tf("command-squash-into-picked-phrase", &[("count", n.into())])),
     },
-    crate::edits::MoveToNewBranch => "Move to a new branch" {
-        phrase: |app, cx| picks(app, cx).map(|n| format!("Move {n} commits to a new branch")),
+    crate::edits::MoveToNewBranch => "command-move-new-branch" {
+        phrase: |app, cx| picks(app, cx).map(|n| crate::i18n::tf("command-move-new-branch-phrase", &[("count", n.into())])),
     },
-    crate::edits::PullRemote => "Pull from the remote" { phrase: pull_phrase },
-    crate::edits::TakeRemote => "Replace with the remote's version" risky,
-    NewBranchBelow => "New branch below",
-    NewBranchHere => "New branch ending here",
-    StackOn => "Stack on",
-    Unstack => "Unstack",
-    UnapplyStack => "Unapply stack" risky { phrase: unapply_phrase },
-    crate::edits::MergeBranch => "Merge into target" risky { phrase: merge_phrase },
-    RewrapMessage => "Rewrap message",
-    CopyChangeId => "Copy change ID",
-    CopyMessage => "Copy message",
-    CopySelection => "Copy",
-    crate::app::CopyCommitId => "Copy commit ID",
-    crate::app::CopyBranchName => "Copy branch name" {
-        phrase: |_, _| Some("Copy name".to_owned()),
+    crate::edits::PullRemote => "command-pull-remote" { phrase: pull_phrase },
+    crate::edits::TakeRemote => "command-take-remote" risky,
+    NewBranchBelow => "command-new-branch-below",
+    NewBranchHere => "command-new-branch-here",
+    StackOn => "command-stack",
+    Unstack => "command-unstack",
+    UnapplyStack => "command-unapply-stack" risky { phrase: unapply_phrase },
+    crate::edits::MergeBranch => "command-merge-branch" risky { phrase: merge_phrase },
+    RewrapMessage => "command-rewrap-message",
+    CopyChangeId => "command-copy-change-id",
+    CopyMessage => "command-copy-message",
+    CopySelection => "command-copy-selection",
+    crate::app::CopyCommitId => "command-copy-commit-id",
+    crate::app::CopyBranchName => "command-copy-branch-name" {
+        phrase: |_, _| Some(crate::i18n::t("command-copy-name-phrase").to_owned()),
     },
-    crate::app::CopyPullRequestLink => "Copy pull request link",
-    crate::app::CopySnapshotId => "Copy snapshot ID",
-    crate::app::CopyPath => "Copy path",
-    crate::app::CopyRelativePath => "Copy relative path",
-    crate::app::CopyAbsolutePath => "Copy absolute path",
-    crate::app::CopyErrorMessage => "Copy error message",
-    CopyMore => "Copy more",
-    crate::app::MoveSelection => "Move" {
-        phrase: |app, cx| picks(app, cx).map(|n| format!("Move {n} commits")),
+    crate::app::CopyPullRequestLink => "command-copy-pull-request-link",
+    crate::app::CopySnapshotId => "command-copy-snapshot-id",
+    crate::app::CopyPath => "command-copy-path",
+    crate::app::CopyRelativePath => "command-copy-relative-path",
+    crate::app::CopyAbsolutePath => "command-copy-absolute-path",
+    crate::app::CopyErrorMessage => "command-copy-error-message",
+    CopyMore => "command-copy-more",
+    crate::app::MoveSelection => "command-move-selection" {
+        phrase: |app, cx| picks(app, cx).map(|n| crate::i18n::tf("command-move-picked-phrase", &[("count", n.into())])),
     },
-    crate::app::SquashSelection => "Squash" {
+    crate::app::SquashSelection => "command-squash-selection" {
         phrase_at: squash_phrase,
         // What's uncommitted is amended instead.
         listed: |app, cx| !matches!(app.store.read(cx).selection, Some(Selection::Uncommitted(..))),
     },
-    crate::app::SquashIntoSelection => "Squash uncommitted changes into this",
-    ToggleNavigator => "Toggle navigator",
-    ToggleNavigatorPlace => "Move navigator",
-    ToggleDetail => "Toggle details",
-    ToggleTerminalOverview => "Toggle terminal overview",
-    ZoomIn => "Zoom in",
-    ZoomOut => "Zoom out",
-    ActualSize => "Actual size",
-    FocusNavigator => "Go to navigator",
-    FocusChanges => "Go to files",
-    FocusDiff => "Go to diff",
-    FocusTerminals => "Go to terminal overview",
-    AddProject => "Add project",
-    crate::projects::CloneRepository => "Clone a repository",
-    crate::settings::OpenSettings => "Settings",
-    ChangeTheme => "Change theme" { aliases: &["Colour scheme", "Color scheme"] },
-    crate::settings::OpenBriefsSettings => "Briefs settings" { listed: briefs_off },
-    crate::settings::OpenKeyboardShortcuts => "Keyboard shortcuts",
-    crate::app::OperationsHistory => "Operations history",
-    crate::app::NextProjectPage => "Next project tab" { aliases: &["Next project page"] },
-    crate::app::PreviousProjectPage => "Previous project tab" {
+    crate::app::SquashIntoSelection => "command-squash-into-selection",
+    ToggleNavigator => "command-toggle-navigator",
+    ToggleNavigatorPlace => "command-toggle-navigator-place",
+    ToggleDetail => "command-toggle-detail",
+    ToggleTerminalOverview => "command-toggle-terminal-overview",
+    ZoomIn => "command-zoom",
+    ZoomOut => "command-zoom-out",
+    ActualSize => "command-actual-size",
+    FocusNavigator => "command-focus-navigator",
+    FocusChanges => "command-focus-changes",
+    FocusDiff => "command-focus-diff",
+    FocusTerminals => "command-focus-terminals",
+    AddProject => "command-add-project",
+    crate::projects::CloneRepository => "command-clone-repository",
+    crate::settings::OpenSettings => "command-open-settings",
+    ChangeTheme => "command-change-theme" { aliases: &["Colour scheme", "Color scheme"] },
+    crate::settings::OpenBriefsSettings => "command-open-briefs-settings" { listed: briefs_off },
+    crate::settings::OpenKeyboardShortcuts => "command-open-keyboard-shortcuts",
+    crate::app::OperationsHistory => "command-operations-history",
+    crate::app::NextProjectPage => "command-next-project-page" { aliases: &["Next project page"] },
+    crate::app::PreviousProjectPage => "command-previous-project-page" {
         aliases: &["Previous project page"]
     },
-    crate::app::NextNavigatorTab => "Next navigator tab" {
+    crate::app::NextNavigatorTab => "command-next-navigator-tab" {
         aliases: &["Next worktree"],
         listed: navigator_on_top
     },
-    crate::app::PreviousNavigatorTab => "Previous navigator tab" {
+    crate::app::PreviousNavigatorTab => "command-previous-navigator-tab" {
         aliases: &["Previous worktree"],
         listed: navigator_on_top
     },
-    crate::app::FocusNextPane => "Next pane",
-    crate::app::FocusPreviousPane => "Previous pane",
-    crate::app::FocusPaneRight => "Pane to the right",
-    crate::app::FocusPaneLeft => "Pane to the left",
-    crate::app::FocusTileLeft => "Tile to the left" { aliases: &["Left split"] },
-    crate::app::FocusTileRight => "Tile to the right" { aliases: &["Right split"] },
-    crate::app::FocusTileUp => "Tile above" { aliases: &["Upper split"] },
-    crate::app::FocusTileDown => "Tile below" { aliases: &["Lower split"] },
-    crate::detail::SwitchTab => "Switch tab" {
+    crate::app::FocusNextPane => "command-focus-next-pane",
+    crate::app::FocusPreviousPane => "command-focus-previous-pane",
+    crate::app::FocusPaneRight => "command-focus-pane-right",
+    crate::app::FocusPaneLeft => "command-focus-pane-left",
+    crate::app::FocusTileLeft => "command-focus-tile-left" { aliases: &["Left split"] },
+    crate::app::FocusTileRight => "command-focus-tile-right" { aliases: &["Right split"] },
+    crate::app::FocusTileUp => "command-focus-tile-up" { aliases: &["Upper split"] },
+    crate::app::FocusTileDown => "command-focus-tile-down" { aliases: &["Lower split"] },
+    crate::detail::SwitchTab => "command-switch-tab" {
         aliases: &["Switch between Changes and Pull request"]
     },
-    crate::detail::PreviousTab => "Previous tab",
-    crate::detail::ShowBrief => "Show brief" { listed: brief_here },
-    crate::detail::ShowBranchesWithBriefs => "Show branches with a brief" {
+    crate::detail::PreviousTab => "command-previous-tab",
+    crate::detail::ShowBrief => "command-show-brief" { listed: brief_here },
+    crate::detail::ShowBranchesWithBriefs => "command-show-branches-briefs" {
         aliases: &["Find a brief"],
         listed: briefs_on,
     },
-    crate::detail::ChangesBeside => "Show changes beside the brief" { listed: changes_can_go_beside },
-    crate::detail::WriteNote => "Write a comment on this brief" { listed: brief_shown },
-    crate::detail::SendNotes => "Send comments on this brief" { listed: brief_shown },
-    crate::detail::NextBrief => "Next brief" { listed: brief_shown },
-    crate::detail::PreviousBrief => "Previous brief" { listed: brief_shown },
-    crate::app::CloseWindow => "Close window",
-    GoTo => "Go to anything",
-    GoToTerminal => "Go to a terminal",
-    crate::detail::FindInDiff => "Find" { aliases: &["Find in diff", "Find in the brief"] },
-    crate::detail::FilterFiles => "Filter files",
-    crate::detail::ToggleWrap => "Wrap long lines",
-    crate::detail::TogglePlainLines => "Toggle diff backgrounds",
-    crate::detail::ToggleSplit => "Side-by-side diff",
-    crate::detail::ToggleFiles => "Toggle files" {
+    crate::detail::ChangesBeside => "command-changes-beside" { listed: changes_can_go_beside },
+    crate::detail::WriteNote => "command-write-note" { listed: brief_shown },
+    crate::detail::SendNotes => "command-send-notes" { listed: brief_shown },
+    crate::detail::NextBrief => "command-next-brief" { listed: brief_shown },
+    crate::detail::PreviousBrief => "command-previous-brief" { listed: brief_shown },
+    crate::app::CloseWindow => "command-close-window",
+    GoTo => "command-go",
+    GoToTerminal => "command-go-terminal",
+    crate::detail::FindInDiff => "command-find-diff" { aliases: &["Find in diff", "Find in the brief"] },
+    crate::detail::FilterFiles => "command-filter-files",
+    crate::detail::ToggleWrap => "command-toggle-wrap",
+    crate::detail::TogglePlainLines => "command-toggle-plain-lines",
+    crate::detail::ToggleSplit => "command-toggle-split",
+    crate::detail::ToggleFiles => "command-toggle-files" {
         // In the single file diff the files stay beside the diff, and nothing hides them.
         listed: |app, cx| !app.detail.read(cx).single_file_diff(cx),
     },
-    crate::pr::CreatePullRequest => "Create pull request" { listed: pull_request_creatable },
-    crate::pr::MergePullRequest => "Merge pull request" risky {
+    crate::pr::CreatePullRequest => "command-create-pull-request" { listed: pull_request_creatable },
+    crate::pr::MergePullRequest => "command-merge-pull-request" risky {
         // As the forge's button says it, for how the project merges.
         phrase: |app, cx| {
             let store = app.store.read(cx);
@@ -318,78 +327,78 @@ commands! {
             Some(crate::pr::Offer::Merge.label(method).to_owned())
         },
     },
-    crate::pr::EnableAutoMerge => "Enable auto-merge",
-    crate::pr::DisableAutoMerge => "Disable auto-merge",
-    crate::pr::ConvertToDraft => "Convert to draft",
-    crate::pr::MarkReadyForReview => "Ready for review",
-    crate::detail::ResolveConflicts => "Resolve conflicts" {
+    crate::pr::EnableAutoMerge => "command-enable-auto-merge",
+    crate::pr::DisableAutoMerge => "command-disable-auto-merge",
+    crate::pr::ConvertToDraft => "command-convert-draft",
+    crate::pr::MarkReadyForReview => "command-mark-ready-review",
+    crate::detail::ResolveConflicts => "command-resolve-conflicts" {
         // A linked worktree's conflicts are resolved there.
         listed: |app, cx| {
             let store = app.store.read(cx);
             (store.selection.as_ref()).is_none_or(|s| !store.in_linked(s))
         },
     },
-    crate::detail::ApplyBranch => "Apply branch",
-    crate::detail::NewWorktreeFromBranch => "New worktree from branch" {
+    crate::detail::ApplyBranch => "command-apply-branch",
+    crate::detail::NewWorktreeFromBranch => "command-new-worktree-branch" {
         // Of the branch the menu's on.
-        phrase: |_, _| Some("New worktree".to_owned()),
+        phrase: |_, _| Some(crate::i18n::t("command-new-worktree-phrase").to_owned()),
     },
-    crate::detail::EditDescription => "Edit branch description" {
-        phrase: |_, _| Some("Edit description".to_owned()),
+    crate::detail::EditDescription => "command-edit-description" {
+        phrase: |_, _| Some(crate::i18n::t("command-edit-description-phrase").to_owned()),
     },
-    crate::detail::RestoreOperation => "Restore to before this operation" risky {
-        phrase: |_, _| Some("Restore to before this".to_owned()),
+    crate::detail::RestoreOperation => "command-restore-operation" risky {
+        phrase: |_, _| Some(crate::i18n::t("command-restore-operation-phrase").to_owned()),
     },
-    crate::open_in::OpenInEditor => "Open in editor" {
+    crate::open_in::OpenInEditor => "command-open-editor" {
         // The one chosen.
         phrase: |app, cx| Some(crate::open_in::editor_label(app.store.read(cx))),
     },
-    crate::open_in::OpenInTerminal => "Open in terminal",
-    crate::terminal::NewTerminal => "New terminal",
-    crate::terminal::NewTerminalWith => "New terminal with command" {
+    crate::open_in::OpenInTerminal => "command-open-terminal",
+    crate::terminal::NewTerminal => "command-new-terminal",
+    crate::terminal::NewTerminalWith => "command-new-terminal-with" {
         aliases: &["Open terminal with", "Run in new terminal", "New agent terminal"],
         // Short in a menu, beside "Open a file…".
-        phrase: |_, _| Some("New terminal with…".to_owned()),
+        phrase: |_, _| Some(crate::i18n::t("command-new-terminal-with-phrase").to_owned()),
     },
-    crate::app::SplitRight => "Split right" { aliases: &["Split vertically", "Pin to the right"] },
-    crate::app::SplitBelow => "Split below" {
+    crate::app::SplitRight => "command-split-right" { aliases: &["Split vertically", "Pin to the right"] },
+    crate::app::SplitBelow => "command-split-below" {
         aliases: &["Split down", "Split horizontally", "Pin below"],
     },
-    crate::app::NewTerminalRight => "New terminal to the right" {
+    crate::app::NewTerminalRight => "command-new-terminal-right" {
         aliases: &["Split terminal right", "Terminal to the right"],
     },
-    crate::app::NewTerminalBelow => "New terminal below" {
+    crate::app::NewTerminalBelow => "command-new-terminal-below" {
         aliases: &["Split terminal below", "Split terminal down", "Terminal below"],
     },
-    crate::app::NewTerminalWithRight => "New terminal with command to the right" {
+    crate::app::NewTerminalWithRight => "command-new-terminal-with-right" {
         aliases: &["Run in new terminal to the right", "New agent terminal to the right"],
     },
-    crate::app::NewTerminalWithBelow => "New terminal with command below" {
+    crate::app::NewTerminalWithBelow => "command-new-terminal-with-below" {
         aliases: &["Run in new terminal below", "New agent terminal below"],
     },
-    crate::app::EqualizeTiles => "Equalize tiles" {
+    crate::app::EqualizeTiles => "command-equalize-tiles" {
         aliases: &["Equalize splits", "Even out tiles", "Balance tiles", "Balance splits"],
     },
-    crate::app::ZoomTile => "Zoom tile" {
+    crate::app::ZoomTile => "command-zoom-tile" {
         aliases: &["Zoom split", "Maximize tile", "Maximize split"],
     },
-    crate::app::ArrangeTiles => "Arrange tiles" {
+    crate::app::ArrangeTiles => "command-arrange-tiles" {
         aliases: &["Move tile", "Move split", "Rearrange tiles", "Rearrange splits"],
     },
-    crate::app::SwapTiles => "Swap tiles" {
+    crate::app::SwapTiles => "command-swap-tiles" {
         aliases: &["Swap splits", "Exchange tiles", "Exchange splits"],
     },
-    crate::app::NextTile => "Next tile" { aliases: &["Next split"] },
-    crate::app::PreviousTile => "Previous tile" { aliases: &["Previous split"] },
-    crate::app::CopyTileDiagram => "Copy tile layout as a diagram" {
+    crate::app::NextTile => "command-next-tile" { aliases: &["Next split"] },
+    crate::app::PreviousTile => "command-previous-tile" { aliases: &["Previous split"] },
+    crate::app::CopyTileDiagram => "command-copy-tile-diagram" {
         aliases: &["Copy splits as ASCII", "Copy tiling diagram"],
     },
-    crate::navigator::Watch => "Watch",
-    crate::navigator::StopWatching => "Stop watching" { aliases: &["Unwatch"] },
-    crate::navigator::UnarchiveWorktree => "Unarchive worktree",
-    crate::navigator::Reveal => (crate::ui::REVEAL),
-    crate::navigator::OpenProjectSettings => "Project settings",
-    crate::navigator::OpenRepository => "Open repository in browser" {
+    crate::navigator::Watch => "command-watch",
+    crate::navigator::StopWatching => "command-stop-watching" { aliases: &["Unwatch"] },
+    crate::navigator::UnarchiveWorktree => "command-unarchive-worktree",
+    crate::navigator::Reveal => "command-reveal",
+    crate::navigator::OpenProjectSettings => "command-open-project-settings",
+    crate::navigator::OpenRepository => "command-open-repository" {
         aliases: &[
             "Open on GitHub",
             "Open on GitLab",
@@ -399,49 +408,49 @@ commands! {
             "View repository",
         ],
         // The forge it's on.
-        phrase: |app, cx| Some(format!("Open on {}", selected_workspace(app, cx)?.forge?.name())),
+        phrase: |app, cx| Some(crate::i18n::tf("command-open-forge-phrase", &[("provider", selected_workspace(app, cx)?.forge?.name().into())])),
     },
-    crate::navigator::ArchiveWorktree => "Archive worktree" {
-        phrase: |_, _| Some("Archive".to_owned()),
+    crate::navigator::ArchiveWorktree => "command-archive-worktree" {
+        phrase: |_, _| Some(crate::i18n::t("command-archive-phrase").to_owned()),
     },
     // Under their headings in the view menus, they're the choices.
-    crate::navigator::SortProjectsByActivity => "Sort projects by last activity" {
-        phrase: |_, _| Some("Last activity".to_owned()),
+    crate::navigator::SortProjectsByActivity => "command-sort-projects-activity" {
+        phrase: |_, _| Some(crate::i18n::t("command-sort-activity-phrase").to_owned()),
     },
-    crate::navigator::SortProjectsByName => "Sort projects by name" {
-        phrase: |_, _| Some("Name".to_owned()),
+    crate::navigator::SortProjectsByName => "command-sort-projects-name" {
+        phrase: |_, _| Some(crate::i18n::t("command-sort-name-phrase").to_owned()),
     },
-    crate::navigator::ShowAllProjects => "Show all projects" {
-        phrase: |_, _| Some("All".to_owned()),
+    crate::navigator::ShowAllProjects => "command-show-all-projects" {
+        phrase: |_, _| Some(crate::i18n::t("command-all-projects-phrase").to_owned()),
     },
-    crate::navigator::ShowActiveProjects => "Show active projects" {
-        phrase: |_, _| Some("Active in the last 7 days".to_owned()),
+    crate::navigator::ShowActiveProjects => "command-show-active-projects" {
+        phrase: |_, _| Some(crate::i18n::t("command-active-projects-phrase").to_owned()),
     },
-    crate::detail::ShowOnlyLocalBranches => "Show only local branches" {
-        phrase: |_, _| Some("Local branches".to_owned()),
+    crate::detail::ShowOnlyLocalBranches => "command-show-only-local-branches" {
+        phrase: |_, _| Some(crate::i18n::t("command-local-branches-phrase").to_owned()),
     },
-    crate::detail::ShowRemoteBranches => "Show remote branches" {
-        phrase: |_, _| Some("Remote branches".to_owned()),
+    crate::detail::ShowRemoteBranches => "command-show-remote-branches" {
+        phrase: |_, _| Some(crate::i18n::t("command-remote-branches-phrase").to_owned()),
         aliases: &["Show all remote branches"],
     },
-    crate::detail::ShowBranchesWithoutCommits => "Show branches without unique commits" {
+    crate::detail::ShowBranchesWithoutCommits => "command-show-branches-without-commits" {
         aliases: &["Include empty branches"],
     },
     // The menu bar's, for Windows, which has none.
-    CheckForUpdates => "Check for updates",
-    crate::app::BuildAndRestart => "Build and restart",
-    crate::app::BuildAndRestartFromHere => "Build and restart from here",
-    crate::command_editor::OpenCommandEditor => "Edit commands" {
+    CheckForUpdates => "command-check-updates",
+    crate::app::BuildAndRestart => "command-build-restart",
+    crate::app::BuildAndRestartFromHere => "command-build-restart-here",
+    crate::command_editor::OpenCommandEditor => "command-open-command-editor" {
         aliases: &["Keybindings", "Keymap editor", "Edit keys", "Edit shortcuts"],
     },
-    crate::help::OpenDocs => "GitButler docs",
-    crate::help::OpenReleaseNotes => "What's new (release notes)",
-    crate::help::ReportIssue => "Report an issue",
-    crate::help::OpenDiscord => "GitButler Discord",
-    crate::help::ShowConfigFolder => "Show settings folder",
-    crate::help::ShowLogsFolder => "Show logs folder",
-    crate::help::About => "About GitButler",
-    Quit => "Quit",
+    crate::help::OpenDocs => "command-open-docs",
+    crate::help::OpenReleaseNotes => "command-open-release-notes",
+    crate::help::ReportIssue => "command-report-issue",
+    crate::help::OpenDiscord => "command-open-discord",
+    crate::help::ShowConfigFolder => "command-show-config-folder",
+    crate::help::ShowLogsFolder => "command-show-logs-folder",
+    crate::help::About => "command-about",
+    Quit => "command-quit",
 }
 
 /// How many commits the selected commit acts on with those picked with it, when that's more
@@ -478,11 +487,14 @@ fn selected_workspace<'a>(app: &AppView, cx: &'a App) -> Option<&'a Workspace> {
 
 fn push_phrase(app: &AppView, cx: &App) -> Option<String> {
     let (workspace, ref_name) = selected_branch(app, cx)?;
-    let push = workspace.push_label(&ref_name);
-    Some(match app.store.read(cx).selection {
-        Some(Selection::Stack(..)) => format!("{push} stack"),
-        _ => push.to_owned(),
-    })
+    let stack = matches!(app.store.read(cx).selection, Some(Selection::Stack(..)));
+    let id = match (workspace.needs_force(&ref_name), stack) {
+        (false, false) => "command-push",
+        (true, false) => "push-force",
+        (false, true) => "command-push-stack-phrase",
+        (true, true) => "command-force-push-stack-phrase",
+    };
+    Some(crate::i18n::t(id).to_owned())
 }
 
 /// Not with nothing to push, or what stops it; from uncommitted changes, it pushes the branch
@@ -543,8 +555,10 @@ fn has_target(app: &AppView, cx: &App) -> bool {
 fn pull_phrase(app: &AppView, cx: &App) -> Option<String> {
     let store = app.store.read(cx);
     let branch = store.branch_for(store.selection.as_ref()?)?;
-    let commits = plural(branch.incoming.len(), "commit");
-    Some(format!("Pull {commits} from the remote"))
+    Some(crate::i18n::tf(
+        "command-pull-remote-phrase",
+        &[("count", branch.incoming.len().into())],
+    ))
 }
 
 /// What the navigator squashes, the row selected. With the keys in a diff it's the changes
@@ -554,10 +568,15 @@ fn squash_phrase(app: &AppView, window: &Window, cx: &App) -> Option<String> {
         return None;
     }
     if let Some(n) = picks(app, cx) {
-        return Some(format!("Squash {n} commits"));
+        return Some(crate::i18n::tf(
+            "command-squash-picked-phrase",
+            &[("count", n.into())],
+        ));
     }
     match &app.store.read(cx).selection {
-        Some(Selection::Branch(..)) => Some("Squash branch".to_owned()),
+        Some(Selection::Branch(..)) => {
+            Some(crate::i18n::t("command-squash-branch-phrase").to_owned())
+        }
         _ => None,
     }
 }
@@ -573,7 +592,10 @@ fn squash_picked_phrase(app: &AppView, cx: &App) -> Option<String> {
         .rev()
         .find_map(|id| store.find_commit(project, *id))?;
     let title = quoted(&commit_title(&oldest.title));
-    Some(format!("Squash {n} commits into {title}"))
+    Some(crate::i18n::tf(
+        "command-squash-into-oldest-phrase",
+        &[("count", n.into()), ("title", title.into())],
+    ))
 }
 
 /// A branch alone in its stack is unapplied by itself.
@@ -582,7 +604,8 @@ fn unapply_phrase(app: &AppView, cx: &App) -> Option<String> {
         return None;
     }
     let (workspace, ref_name) = selected_branch(app, cx)?;
-    (!BranchEdits::of(workspace, &ref_name).stacked).then(|| "Unapply branch".to_owned())
+    (!BranchEdits::of(workspace, &ref_name).stacked)
+        .then(|| crate::i18n::t("command-unapply-branch-phrase").to_owned())
 }
 
 /// Merging a branch with others below it takes the whole stack.
@@ -590,8 +613,14 @@ fn merge_phrase(app: &AppView, cx: &App) -> Option<String> {
     let (workspace, ref_name) = selected_branch(app, cx)?;
     let target = &workspace.target.as_ref()?.name;
     Some(match BranchEdits::of(workspace, &ref_name).merge? {
-        true => format!("Merge the stack into {target}"),
-        false => format!("Merge into {target}"),
+        true => crate::i18n::tf(
+            "command-merge-stack-phrase",
+            &[("target", target.to_string().into())],
+        ),
+        false => crate::i18n::tf(
+            "command-merge-branch-phrase",
+            &[("target", target.to_string().into())],
+        ),
     })
 }
 

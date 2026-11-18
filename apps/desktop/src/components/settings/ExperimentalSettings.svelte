@@ -5,6 +5,7 @@
 	import { hasNativeApp } from "$lib/settings/nativeApp";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Toggle } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const settingsService = inject(SETTINGS_SERVICE);
 	const settingsStore = settingsService.appSettings;
@@ -15,18 +16,18 @@
 </script>
 
 <p class="text-12 text-body experimental-settings__text">
-	Flags for features in development or beta. Features may not work fully.
+	{$t("Flags for features in development or beta. Features may not work fully.")}
 	<br />
-	Use at your own risk.
+	{$t("Use at your own risk.")}
 </p>
 
 <CardGroup>
 	<CardGroup.Item labelFor="f-mode">
 		{#snippet title()}
-			F Mode Navigation
+			{$t("F Mode Navigation")}
 		{/snippet}
 		{#snippet caption()}
-			Enable F mode for quick keyboard navigation to buttons using two-letter shortcuts.
+			{$t("Enable F mode for quick keyboard navigation to buttons using two-letter shortcuts.")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle
@@ -40,11 +41,12 @@
 	{#if nativeApp}
 		<CardGroup.Item labelFor="native-app">
 			{#snippet title()}
-				Native app
+				{$t("Native app")}
 			{/snippet}
 			{#snippet caption()}
-				Open GitButler's experimental native app instead of this one. Takes effect after you restart
-				GitButler. To come back, turn off "Open this app at start" in the native app's settings.
+				{$t(
+					"Open GitButler's experimental native app instead of this one. Takes effect after you restart GitButler. To come back, turn off \"Open this app at start\" in the native app's settings.",
+				)}
 			{/snippet}
 			{#snippet actions()}
 				<Toggle

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Tooltip from "$lib/components/Tooltip.svelte";
+	import { formatLocale } from "$lib/utils/i18n";
 	import { createTimestampStore, getAbsoluteTimestamp } from "$lib/utils/timeAgo";
 
 	interface Props {
@@ -16,8 +17,8 @@
 		return date;
 	});
 	const { date, showTooltip = true }: Props = $props();
-	const store = $derived(createTimestampStore(parsedDate));
-	const absoluteTime = $derived(getAbsoluteTimestamp(parsedDate));
+	const store = $derived(createTimestampStore(parsedDate, $formatLocale));
+	const absoluteTime = $derived(getAbsoluteTimestamp(parsedDate, $formatLocale));
 </script>
 
 {#if store}

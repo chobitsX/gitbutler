@@ -39,7 +39,9 @@ impl Store {
                     Ok(true) => store.snack("CLI installed", cx),
                     // Cancelled at the password prompt.
                     Ok(false) => cx.notify(),
-                    Err(err) => store.failed("Couldn't install the CLI", &err, cx),
+                    Err(err) => {
+                        store.failed(crate::i18n::t("state-cli-install-cli-error"), &err, cx)
+                    }
                 }
                 store.read_cli(cx);
             })

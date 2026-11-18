@@ -39,8 +39,8 @@ pub(super) struct Ai {
 
 impl Ai {
     pub(super) fn new(window: &mut Window, cx: &mut Context<SettingsView>) -> Self {
-        let key = cx.new(|cx| TextInput::new("Paste a key", false, cx).masked());
-        let model = cx.new(|cx| TextInput::new("Model", false, cx));
+        let key = cx.new(|cx| TextInput::localized("settings-ai-paste-key", false, cx).masked());
+        let model = cx.new(|cx| TextInput::localized("settings-ai-model", false, cx));
         let endpoint = cx.new(|cx| TextInput::new("http://localhost:11434", false, cx));
         for input in [&key, &model, &endpoint] {
             cx.subscribe_in(
@@ -200,7 +200,11 @@ impl SettingsView {
                     }
                     cx.notify();
                 }
-                Err(err) => this.error("Couldn't save the AI settings", err, cx),
+                Err(err) => this.error(
+                    crate::i18n::t("settings-ai-save-ai-settings-error"),
+                    err,
+                    cx,
+                ),
             })
             .ok();
         });
@@ -259,7 +263,7 @@ impl SettingsView {
                 this.retry_ai();
                 this.ensure_ai(cx)
             };
-            let title = "Couldn't read the AI settings";
+            let title = crate::i18n::t("settings-ai-read-ai-settings-error");
             let failed = (self.ai.failed.as_deref())
                 .map(|err| read_failed(Page::App(AppPage::Ai), title, err, retry, cx));
             return failed.into_iter().collect();
@@ -288,16 +292,23 @@ impl SettingsView {
             cx,
         );
         let description = if known.is_none() {
-            format!(
-                "{provider_name} was set up in another GitButler app, which is where it changes. \
-                 Pick a provider here to use that instead."
+            crate::i18n::tf(
+                "settings-ai-ai-rows-was-set-up-another",
+                &[("provider_name", (provider_name.to_string()).into())],
             )
         } else if config.is_configured {
-            "Writes commit messages and pull request descriptions, and suggests conflict merges, when you ask.".into()
+            crate::i18n::t("settings-ai-ai-rows-writes-commit-messages-pull").into()
         } else {
-            format!("{provider_name} needs a key before it can write anything.")
+            crate::i18n::tf(
+                "settings-ai-needs-key-before-write-anything",
+                &[("provider_name", (provider_name.to_string()).into())],
+            )
         };
-        let mut rows = vec![Row::new("Provider", description, control)];
+        let mut rows = vec![Row::new(
+            crate::i18n::t("settings-ai-provider-label"),
+            description,
+            control,
+        )];
         if known.is_none() {
             return rows;
         }
@@ -321,11 +332,17 @@ impl SettingsView {
                 .ok();
             };
             rows.push(Row::new(
-                "Key",
-                "GitButler's needs you signed in to GitButler; your own stays in the keychain.",
+                crate::i18n::t("settings-ai-key-label"),
+                crate::i18n::t("settings-ai-key-description"),
                 segmented(
                     "ai-key",
-                    [(GITBUTLERS_KEY, "GitButler's"), (OWN_KEY, "Your own")],
+                    [
+                        (
+                            GITBUTLERS_KEY,
+                            crate::i18n::t("settings-ai-key-description-2"),
+                        ),
+                        (OWN_KEY, crate::i18n::t("settings-ai-key-description-3")),
+                    ],
                     if own { OWN_KEY } else { GITBUTLERS_KEY },
                     pick,
                     Theme::get(cx),
@@ -333,23 +350,36 @@ impl SettingsView {
             ));
             if own {
                 let description = if has_key {
-                    "A key is stored. Paste another to replace it.".into()
+                    crate::i18n::t("settings-ai-key-stored-paste-another-replace").into()
                 } else {
-                    format!("Paste your {provider_name} key.")
+                    crate::i18n::tf(
+                        "settings-ai-paste-key-2",
+                        &[("provider_name", (provider_name.to_string()).into())],
+                    )
                 };
-                rows.push(Row::new("API key", description, ai_field(&self.ai.key, "")));
+                rows.push(Row::new(
+                    crate::i18n::t("settings-ai-api-key-label"),
+                    description,
+                    ai_field(&self.ai.key, ""),
+                ));
             }
         }
         if let Some(endpoint) = endpoint {
             rows.push(Row::new(
-                "Endpoint",
-                format!("Where {provider_name} listens."),
+                crate::i18n::t("settings-ai-endpoint-label"),
+                crate::i18n::tf(
+                    "settings-ai-endpoint-description",
+                    &[("provider_name", (provider_name.to_string()).into())],
+                ),
                 ai_field(&self.ai.endpoint, endpoint),
             ));
         }
         rows.push(Row::new(
-            "Model",
-            format!("The {provider_name} model to ask."),
+            crate::i18n::t("settings-ai-model-label"),
+            crate::i18n::tf(
+                "settings-ai-model-description",
+                &[("provider_name", (provider_name.to_string()).into())],
+            ),
             ai_field(&self.ai.model, model),
         ));
         rows

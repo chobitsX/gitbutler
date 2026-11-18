@@ -30,6 +30,7 @@
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
 
 	import { debounce } from "$lib/utils/debounce";
+	import { t } from "$lib/utils/i18n";
 
 	import { resizeObserver } from "$lib/utils/resizeObserver";
 	import { onDestroy, tick, untrack, type Snippet } from "svelte";
@@ -986,7 +987,7 @@
 							jumpToIndex(items.length - 1);
 						}}
 					>
-						New unread
+						{$t("New unread")}
 					</button>
 				{/if}
 				{#if showBottomButton && previousDistance > NEAR_BOTTOM_THRESHOLD}
@@ -994,7 +995,7 @@
 						<Button
 							kind="outline"
 							icon="arrow-down"
-							tooltip="Scroll to bottom"
+							tooltip={$t("Scroll to bottom")}
 							onclick={() => {
 								if (items && items.length > 0) {
 									scrollToBottom();

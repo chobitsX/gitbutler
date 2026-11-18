@@ -5,6 +5,7 @@
 	import loadErrorSvg from "$lib/assets/illustrations/load-error.svg?raw";
 	import { parseQueryError } from "$lib/error/error";
 	import { Button, InfoMessage } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -22,9 +23,9 @@
 
 	function apologiy(): string {
 		if (isMonday()) {
-			return "Sorry about that. Mondays can be tough!";
+			return $t("Sorry about that. Mondays can be tough!");
 		}
-		return "We apologize for the inconvenience.";
+		return $t("We apologize for the inconvenience.");
 	}
 </script>
 
@@ -34,7 +35,7 @@
 	<IllustrationSplitLayout img={loadErrorSvg}>
 		<div class="container">
 			<div class="text-content">
-				<h2 class="title-text text-18 text-body text-bold">Something went wrong</h2>
+				<h2 class="title-text text-18 text-body text-bold">{$t("Something went wrong")}</h2>
 
 				<p class="description-text text-13 text-body">
 					{apologiy()}
@@ -46,12 +47,14 @@
 					{parsedError.name}
 				{/snippet}
 				{#snippet content()}
-					An asynchronous operation failed.
+					{$t("An asynchronous operation failed.")}
 				{/snippet}
 			</InfoMessage>
 
 			<div class="button-container">
-				<Button type="button" style="pop" onclick={async () => await goto("/")}>Go back</Button>
+				<Button type="button" style="pop" onclick={async () => await goto("/")}
+					>{$t("Go back")}</Button
+				>
 			</div>
 		</div>
 	</IllustrationSplitLayout>

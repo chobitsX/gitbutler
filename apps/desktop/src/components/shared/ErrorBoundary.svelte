@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { logError } from "$lib/error/logError";
 	import { Icon } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Snippet } from "svelte";
 
 	type Props = {
@@ -9,7 +10,7 @@
 		compact?: boolean;
 	};
 
-	const { children, title = "Something went wrong", compact = false }: Props = $props();
+	const { children, title = $t("Something went wrong"), compact = false }: Props = $props();
 </script>
 
 <svelte:boundary onerror={(e) => logError(e, { skipToast: true })}>

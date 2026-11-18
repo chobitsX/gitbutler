@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { dismissToast, toastStore } from "$lib/notifications/toasts";
 	import { InfoMessage, Markdown, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { slide } from "svelte/transition";
 </script>
 
@@ -13,20 +14,20 @@
 				testId={toast.testId ?? TestId.ToastInfoMessage}
 				style={toast.style ?? "info"}
 				error={toast.error}
-				secondaryLabel={toast.extraAction ? toast.extraAction.label : "Dismiss"}
+				secondaryLabel={$t(toast.extraAction ? toast.extraAction.label : "Dismiss")}
 				secondaryTestId={toast.extraAction ? toast.extraAction.testId : undefined}
 				secondaryAction={toast.extraAction ? () => toast.extraAction?.onClick(dismiss) : dismiss}
-				tertiaryLabel={toast.extraAction ? "Dismiss" : undefined}
+				tertiaryLabel={toast.extraAction ? $t("Dismiss") : undefined}
 				tertiaryAction={toast.extraAction ? dismiss : undefined}
 				shadow
 			>
 				{#snippet title()}
-					{toast.title}
+					{$t(toast.title ?? "")}
 				{/snippet}
 
 				{#snippet content()}
 					{#if toast.message}
-						<Markdown content={toast.message} />
+						<Markdown content={$t(toast.message)} />
 					{/if}
 				{/snippet}
 			</InfoMessage>

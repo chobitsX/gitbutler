@@ -196,7 +196,7 @@ fn left_out(rejected: &[(RejectionReason, DiffSpec)]) -> LeftOut {
     (by_reason.into_iter())
         .map(|(why, paths)| match paths.split_at_checked(3) {
             Some((named, rest)) if !rest.is_empty() => {
-                let more = crate::ui::plural(rest.len(), "more file");
+                let more = crate::ui::plural(rest.len(), crate::ui::Count::MoreFile);
                 format!("{} and {more}: {why}", named.join(", "))
             }
             _ => format!("{}: {why}", paths.join(", ")),
@@ -5500,7 +5500,7 @@ managed true, below true: agent [one], <new> [two], agent checked out
         assert_eq!(
             super::left_out(&rejected),
             [
-                "lib/0.ts, lib/1.ts, lib/2.ts and 2997 more files: it builds on changes in another \
+                "lib/0.ts, lib/1.ts, lib/2.ts and \u{2068}2997\u{2069} more files: it builds on changes in another \
                  branch; commit there, or move those first",
                 "gone.ts: the file is gone from disk",
             ],

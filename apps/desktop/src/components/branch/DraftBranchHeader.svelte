@@ -3,6 +3,7 @@
 	import BranchLabel from "$components/branch/BranchLabel.svelte";
 	import CommitPositionIndicator from "$components/commit/CommitPositionIndicator.svelte";
 	import { TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		branchName: string;
@@ -52,9 +53,11 @@
 			</div>
 
 			<p class="text-12 text-body branch-header__empty-state">
-				A new branch will be created for your {mode === "commit" ? "commit" : "AI session"}.
+				{$t("A new branch will be created for your {value}.", {
+					value: mode === "commit" ? $t("commit") : $t("AI session"),
+				})}
 				<br />
-				Click the name to rename it now or later.
+				{$t("Click the name to rename it now or later.")}
 			</p>
 		</div>
 	</div>

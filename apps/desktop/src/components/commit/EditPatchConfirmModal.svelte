@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Modal, Button } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		fileName: string;
@@ -20,14 +21,14 @@
 	}
 </script>
 
-<Modal bind:this={modal} width="small" type="warning" title="Resolve conflicts to preview">
+<Modal bind:this={modal} width="small" type="warning" title={$t("Resolve conflicts to preview")}>
 	<p class="text-base-body-13 text-light">
-		The file <span class="text-bold">{fileName}</span> has unresolved merge conflicts that need to be
-		addressed before it can be previewed.
+		{$t("The file")} <span class="text-bold">{fileName}</span>
+		{$t("has unresolved merge conflicts that need to be addressed before it can be previewed.")}
 	</p>
 
 	{#snippet controls()}
-		<Button kind="outline" onclick={onCancel}>Cancel</Button>
-		<Button style="pop" onclick={onConfirm}>Resolve Conflicts</Button>
+		<Button kind="outline" onclick={onCancel}>{$t("Cancel")}</Button>
+		<Button style="pop" onclick={onConfirm}>{$t("Resolve Conflicts")}</Button>
 	{/snippet}
 </Modal>

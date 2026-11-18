@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from "$app/navigation";
 	import CliSymlinkSetup from "$components/settings/CliSymlinkSetup.svelte";
+	import LanguageSettings from "$components/settings/LanguageSettings.svelte";
 	import AccessTokenSignIn from "$components/shared/AccessTokenSignIn.svelte";
 	import { BACKEND } from "$lib/backend";
 	import { getUserErrorCode } from "$lib/backend/ipc";
@@ -29,6 +30,7 @@
 		Toggle,
 		chipToasts,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { onMount } from "svelte";
 	import type { User } from "$lib/user/user";
 
@@ -129,7 +131,7 @@
 				picture: selectedPictureFile,
 			});
 			userService.setUser(updatedUser);
-			chipToasts.success("Profile updated");
+			chipToasts.success($t("Profile updated"));
 			selectedPictureFile = undefined;
 		} finally {
 			saving = false;
@@ -147,7 +149,7 @@
 			await settingsService.deleteAllData();
 			projectsService.unsetLastOpenedProject();
 			await userService.forgetUserCredentials();
-			chipToasts.success("All data deleted");
+			chipToasts.success($t("All data deleted"));
 			goto("/", { replaceState: true, invalidateAll: true });
 		} finally {
 			deleteConfirmationModal?.close();
@@ -158,22 +160,24 @@
 	let showSymlink = $state(false);
 </script>
 
+<LanguageSettings />
+
 {#if userService.user}
 	<CardGroup>
 		<form onsubmit={onSubmit} class="profile-form">
 			<ProfilePictureUpload
 				bind:picture={userPicture}
 				onFileSelect={onPictureChange}
-				onInvalidFileType={() => chipToasts.error("Please use a valid image file")}
+				onInvalidFileType={() => chipToasts.error($t("Please use a valid image file"))}
 			/>
 
 			<div id="contact-info" class="contact-info">
 				<div class="contact-info__fields">
-					<Textbox label="Full name" bind:value={newName} required />
-					<Textbox label="Email" value={userService.user?.email} readonly />
+					<Textbox label={$t("Full name")} bind:value={newName} required />
+					<Textbox label={$t("Email")} value={userService.user?.email} readonly />
 				</div>
 
-				<Button type="submit" style="pop" loading={saving}>Update profile</Button>
+				<Button type="submit" style="pop" loading={saving}>{$t("Update profile")}</Button>
 			</div>
 		</form>
 	</CardGroup>
@@ -181,10 +185,10 @@
 	<CardGroup>
 		<CardGroup.Item>
 			{#snippet title()}
-				Forget credentials and log out
+				{$t("Forget credentials and log out")}
 			{/snippet}
 			{#snippet caption()}
-				Click here to clear your credentials and unwind.
+				{$t("Click here to clear your credentials and unwind.")}
 			{/snippet}
 			{#snippet actions()}
 				<Button
@@ -192,7 +196,7 @@
 					icon="logout"
 					onclick={async () => {
 						await userService.forgetUserCredentials();
-					}}>Forget credentials</Button
+					}}>{$t("Forget credentials")}</Button
 				>
 			{/snippet}
 		</CardGroup.Item>
@@ -206,7 +210,7 @@
 <CardGroup>
 	<CardGroup.Item alignment="center">
 		{#snippet title()}
-			Default code editor
+			{$t("Default code editor")}
 		{/snippet}
 		{#snippet actions()}
 			<Select
@@ -233,7 +237,7 @@
 	{#if platformName !== "web"}
 		<CardGroup.Item alignment="center">
 			{#snippet title()}
-				Default terminal
+				{$t("Default terminal")}
 			{/snippet}
 			{#snippet actions()}
 				<Select
@@ -260,11 +264,11 @@
 <CardGroup>
 	<CardGroup.Item labelFor="disable-auto-checks">
 		{#snippet title()}
-			Automatically check for updates
+			{$t("Automatically check for updates")}
 		{/snippet}
 
 		{#snippet caption()}
-			Automatically check for updates. You can still check manually when needed.
+			{$t("Automatically check for updates. You can still check manually when needed.")}
 		{/snippet}
 
 		{#snippet actions()}
@@ -280,23 +284,27 @@
 <CardGroup>
 	<CardGroup.Item>
 		{#snippet title()}
-			Install the GitButler CLI <code class="code-string">but</code>
+			{$t("Install the GitButler CLI")} <code class="code-string">but</code>
 		{/snippet}
 
 		{#snippet caption()}
 			{#if $appSettings?.ui.cliIsManagedByPackageManager}
-				The <code>but</code> CLI is managed by your package manager. Please use your package manager to
-				install, update, or remove it.
+				{$t("The")} <code>but</code>
+				{$t(
+					"CLI is managed by your package manager. Please use your package manager to install, update, or remove it.",
+				)}
 			{:else if platformName === "windows"}
-				On Windows, you can manually copy the executable (<code>`but`</code>) to a directory in your
-				PATH. Click "Show Command" for instructions.
+				{$t("On Windows, you can manually copy the executable (")}<code>`but`</code>{$t(
+					') to a directory in your PATH. Click "Show Command" for instructions.',
+				)}
 			{:else if platformName === "linux"}
-				On Linux, you can manually create a symlink to the CLI in your PATH. Click "Show Command"
-				for instructions.
+				{$t(
+					'On Linux, you can manually create a symlink to the CLI in your PATH. Click "Show Command" for instructions.',
+				)}
 			{:else}
-				Installs the GitButler CLI (<code>`but`</code>) in your PATH, allowing you to use it from
-				the terminal. This action will request admin privileges. Alternatively, you could create a
-				symlink manually.
+				{$t("Installs the GitButler CLI (")}<code>`but`</code>{$t(
+					") in your PATH, allowing you to use it from the terminal. This action will request admin privileges. Alternatively, you could create a symlink manually.",
+				)}
 			{/if}
 		{/snippet}
 
@@ -328,14 +336,14 @@
 							}}
 							loading={installingCLI.current.isLoading}
 						>
-							Install But CLI</Button
+							{$t("Install But CLI")}</Button
 						>
 					{/if}
 					<Button
 						style="gray"
 						kind="outline"
 						disabled={showSymlink}
-						onclick={() => (showSymlink = !showSymlink)}>Show command</Button
+						onclick={() => (showSymlink = !showSymlink)}>{$t("Show command")}</Button
 					>
 				</div>
 			</div>
@@ -352,17 +360,17 @@
 <CardGroup>
 	<CardGroup.Item>
 		{#snippet title()}
-			Remove all projects
+			{$t("Remove all projects")}
 		{/snippet}
 		{#snippet caption()}
-			You can delete all projects from the GitButler app.
+			{$t("You can delete all projects from the GitButler app.")}
 			<br />
-			Your code remains safe. it only clears the configuration.
+			{$t("Your code remains safe. it only clears the configuration.")}
 		{/snippet}
 
 		{#snippet actions()}
 			<Button style="danger" kind="outline" onclick={() => deleteConfirmationModal?.show()}>
-				Remove projects…
+				{$t("Remove projects…")}
 			</Button>
 		{/snippet}
 	</CardGroup.Item>
@@ -371,14 +379,14 @@
 <Modal
 	bind:this={deleteConfirmationModal}
 	width="small"
-	title="Remove all projects"
+	title={$t("Remove all projects")}
 	onSubmit={onDeleteClicked}
 >
-	<p>Are you sure you want to remove all GitButler projects?</p>
+	<p>{$t("Are you sure you want to remove all GitButler projects?")}</p>
 
 	{#snippet controls(close)}
-		<Button style="danger" kind="outline" loading={isDeleting} type="submit">Remove</Button>
-		<Button style="pop" onclick={close}>Cancel</Button>
+		<Button style="danger" kind="outline" loading={isDeleting} type="submit">{$t("Remove")}</Button>
+		<Button style="pop" onclick={close}>{$t("Cancel")}</Button>
 	{/snippet}
 </Modal>
 

@@ -6,6 +6,7 @@
 	import { OnboardingEvent, POSTHOG_WRAPPER } from "$lib/telemetry/posthog";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Icon, InfoMessage, Link } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { slide } from "svelte/transition";
 
 	interface Props {
@@ -75,11 +76,11 @@
 			>
 				{#snippet title()}
 					{#if loading}
-						Checking git credentials …
+						{$t("Checking git credentials …")}
 					{:else if errors > 0}
-						There was a problem with your credentials
+						{$t("There was a problem with your credentials")}
 					{:else}
-						All checks passed successfully
+						{$t("All checks passed successfully")}
 					{/if}
 				{/snippet}
 
@@ -109,13 +110,13 @@
 					{#if errors > 0}
 						<div class="text-12 text-body help-text" transition:slide>
 							<span>
-								Try another setting and test again?
+								{$t("Try another setting and test again?")}
 								<br />
-								Consult our
+								{$t("Consult our")}
 								<Link href="https://docs.gitbutler.com/troubleshooting/fetch-push">
-									fetch / push guide
+									{$t("fetch / push guide")}
 								</Link>
-								for help fixing this problem.
+								{$t("for help fixing this problem.")}
 							</span>
 						</div>
 					{/if}
@@ -125,15 +126,17 @@
 	{/if}
 	<Button style="pop" wide icon="tick" {loading} {disabled} onclick={checkCredentials}>
 		{#if loading || checks?.length === 0}
-			Test credentials
+			{$t("Test credentials")}
 		{:else}
-			Re-test credentials
+			{$t("Re-test credentials")}
 		{/if}
 	</Button>
 	<SectionCardDisclaimer>
-		To test the push command, we create an empty branch and promptly remove it after the check. <Link
-			href="https://docs.gitbutler.com/troubleshooting/fetch-push">Read more</Link
-		> about authentication methods.
+		{$t(
+			"To test the push command, we create an empty branch and promptly remove it after the check.",
+		)}
+		<Link href="https://docs.gitbutler.com/troubleshooting/fetch-push">{$t("Read more")}</Link>
+		{$t("about authentication methods.")}
 	</SectionCardDisclaimer>
 </div>
 

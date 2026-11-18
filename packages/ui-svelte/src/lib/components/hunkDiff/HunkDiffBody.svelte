@@ -13,6 +13,7 @@
 		type Row,
 		SectionType,
 	} from "$lib/utils/diffParsing";
+	import { t } from "$lib/utils/i18n";
 	import { onHighlighterChange } from "$lib/utils/shikiHighlighter";
 	import type { LineSelectionParams } from "$components/hunkDiff/lineSelection.svelte";
 	import type { Snippet } from "svelte";
@@ -154,7 +155,7 @@
 {#if commentRow}
 	<tbody>
 		<tr>
-			<td class="diff-comment__number-column" colspan={commentNumericColSpan}>comment</td>
+			<td class="diff-comment__number-column" colspan={commentNumericColSpan}>{$t("comment")}</td>
 			<td style="--tab-size: {tabSize};" class="diff-comment">
 				{@html commentRow.tokens.join("")}
 			</td>

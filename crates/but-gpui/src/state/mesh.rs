@@ -67,9 +67,25 @@ pub enum MeshState {
     #[default]
     Unknown,
     /// `but-mesh` can't run, and why.
-    Unavailable(String),
+    Unavailable(MeshUnavailable),
     SignedOut,
     Connected(Connection),
+}
+
+/// Known availability states are localized by identity; other diagnostics stay verbatim.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MeshUnavailable {
+    NotInstalled,
+    Other(String),
+}
+
+impl std::fmt::Display for MeshUnavailable {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NotInstalled => std::fmt::Display::fmt(&mesh::NotInstalled, f),
+            Self::Other(why) => f.write_str(why),
+        }
+    }
 }
 
 pub struct Mesh {
@@ -136,7 +152,10 @@ impl Store {
                 let state = match backend::run(backend::mesh::connection).await {
                     Ok(Some(connection)) => MeshState::Connected(connection),
                     Ok(None) => MeshState::SignedOut,
-                    Err(err) => MeshState::Unavailable(format!("{err:#}")),
+                    Err(err) => MeshState::Unavailable(match err.is::<mesh::NotInstalled>() {
+                        true => MeshUnavailable::NotInstalled,
+                        false => MeshUnavailable::Other(format!("{err:#}")),
+                    }),
                 };
                 let Ok(due) = this.update(cx, |store, cx| store.set_mesh_state(state, cx)) else {
                     return;
@@ -407,7 +426,9 @@ impl Store {
                 store.mesh.signing_in = false;
                 match signed_in {
                     Ok(()) => store.snack("Connected to your mesh", cx),
-                    Err(err) => store.failed("Couldn't connect to your mesh", &err, cx),
+                    Err(err) => {
+                        store.failed(crate::i18n::t("state-mesh-connect-mesh-error"), &err, cx)
+                    }
                 }
                 store.mesh.asked_to_report.clear();
                 store.mesh_read_now();
@@ -425,7 +446,9 @@ impl Store {
             this.update(cx, |store, cx| {
                 match signed_out {
                     Ok(()) => store.snack("Disconnected from your mesh", cx),
-                    Err(err) => store.failed("Couldn't disconnect from your mesh", &err, cx),
+                    Err(err) => {
+                        store.failed(crate::i18n::t("state-mesh-disconnect-mesh-error"), &err, cx)
+                    }
                 }
                 store.mesh_read_now();
             })
@@ -462,7 +485,14 @@ impl Store {
                     move |store, applied_as, cx| store.snack(format!("Applied {applied_as}"), cx),
                     cx,
                 ),
-                Err(err) => store.failed(format!("Couldn't bring {branch} here"), &err, cx),
+                Err(err) => store.failed(
+                    crate::i18n::tf(
+                        "state-mesh-bring-here-error",
+                        &[("branch", (branch.to_string()).into())],
+                    ),
+                    &err,
+                    cx,
+                ),
             })
             .ok();
         })

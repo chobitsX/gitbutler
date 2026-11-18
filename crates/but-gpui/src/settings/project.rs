@@ -117,7 +117,7 @@ impl SettingsView {
             Ok(settings) => settings,
             Err(err) => {
                 let retry = |this: &mut Self, cx: &mut Context<Self>| this.load_project(cx);
-                let title = "Couldn't read the project's settings";
+                let title = crate::i18n::t("settings-project-read-project-s-settings-error");
                 let failed =
                     read_failed(Page::Project(project.clone(), page), title, err, retry, cx);
                 // Removing doesn't need the repository, so it's offered even when a deleted or
@@ -224,12 +224,14 @@ impl SettingsView {
             });
         });
         let signing_note = self.signing.as_ref().map(|result| match result {
-            Ok(()) => div().text_color(theme.safe).child("Signing works"),
+            Ok(()) => div()
+                .text_color(theme.safe)
+                .child(crate::i18n::t("settings-project-signing-works")),
             Err(err) => div().text_color(theme.danger).child(err.clone()),
         });
         let name = Row::new(
-            "Name",
-            "What the project is called in the navigator.",
+            crate::i18n::t("settings-project-name-label"),
+            crate::i18n::t("settings-project-name-description"),
             field_with_save(
                 &self.name,
                 name_changed,
@@ -239,12 +241,11 @@ impl SettingsView {
             ),
         );
         let target = Row::new(
-            "Target branch",
+            crate::i18n::t("settings-project-target-branch-label"),
             if locked {
-                "The branch your work goes into, and pull requests aim at. To change it, \
-                     unapply every branch first."
+                crate::i18n::t("settings-project-target-branch-description")
             } else {
-                "The branch your work goes into, and pull requests aim at."
+                crate::i18n::t("settings-project-target-branch-description-2")
             },
             h_flex()
                 .gap(dp(8.))
@@ -253,10 +254,13 @@ impl SettingsView {
                         .font_family(theme.mono_font.clone()),
                 )
                 .child(
-                    button("change-target", "Change…")
-                        .small()
-                        .disabled_because(locked.then_some("Unapply every branch first"))
-                        .on_click(change_target),
+                    button(
+                        "change-target",
+                        crate::i18n::t("settings-project-target-branch-description-3"),
+                    )
+                    .small()
+                    .disabled_because(locked.then_some("Unapply every branch first"))
+                    .on_click(change_target),
                 ),
         );
         // As GitButler's other apps have it: the forge the remote names can't be changed, and
@@ -287,23 +291,21 @@ impl SettingsView {
         );
         let forge = match (settings.detected_forge, settings.forge_override) {
             (Some(detected), None) => Row::new(
-                "Forge",
-                "Where pull requests and CI are, as the remote's host names it.",
+                crate::i18n::t("settings-project-forge-label"),
+                crate::i18n::t("settings-project-forge-description"),
                 muted(detected.name(), theme),
             ),
             (Some(detected), Some(_)) => Row::new(
-                "Forge",
-                format!(
-                    "The remote's host names {}, so the forge picked here doesn't count. \
-                     None clears it.",
-                    detected.name()
+                crate::i18n::t("settings-project-forge-label"),
+                crate::i18n::tf(
+                    "settings-project-forge-description-2",
+                    &[("name", (detected.name().to_string()).into())],
                 ),
                 pick_forge,
             ),
             (None, _) => Row::new(
-                "Forge",
-                "Where pull requests and CI are, for a remote whose host doesn't say, as a \
-                 self-hosted forge's. GitHub, GitLab and Bitbucket can open pull requests.",
+                crate::i18n::t("settings-project-forge-label"),
+                crate::i18n::t("settings-project-forge-description-3"),
                 pick_forge,
             ),
         };
@@ -327,24 +329,20 @@ impl SettingsView {
                     cx,
                 );
                 Row::new(
-                    "Push new branches to",
-                    "The remote a branch goes to on its first push, as your fork when the \
-                     target is the original repository's. Updates come from the target \
-                     branch's remote.",
+                    crate::i18n::t("settings-project-push-new-branches-label"),
+                    crate::i18n::t("settings-project-push-new-branches-description"),
                     pick,
                 )
             });
         // The push checks this itself, whatever the setting GitButler's other apps share says.
         let force = Row::new(
-            "Force pushes",
-            "A force push fetches first, stops if someone else pushed to the branch since, and \
-             asks before dropping commits only the remote has, so there's no protection to turn \
-             on here.",
+            crate::i18n::t("settings-project-force-pushes-label"),
+            crate::i18n::t("settings-project-force-pushes-description"),
             muted("Always checked", theme),
         );
         let sign = Row::new(
-            "Sign commits",
-            "Sign the commits GitButler makes, with the key and program your Git config names.",
+            crate::i18n::t("settings-project-sign-commits-label"),
+            crate::i18n::t("settings-project-sign-commits-description"),
             h_flex()
                 .gap(dp(8.))
                 .children(
@@ -352,24 +350,30 @@ impl SettingsView {
                 )
                 .when(sign, |el| {
                     el.child(
-                        button("test-signing", "Test")
-                            .small()
-                            .style(ButtonStyle::Ghost)
-                            .on_click(test_signing),
+                        button(
+                            "test-signing",
+                            crate::i18n::t("settings-project-sign-commits-description-2"),
+                        )
+                        .small()
+                        .style(ButtonStyle::Ghost)
+                        .on_click(test_signing),
                     )
                 })
                 .child(switch("sign", sign, theme).on_click(toggle_sign)),
         );
         let remote = (workspace.and_then(|ws| ws.target.as_ref())).is_some_and(|t| !t.local);
         let testing = (self.credentials.iter().flatten()).any(Option::is_none);
-        let label = if testing { "Testing…" } else { "Test" };
+        let label = if testing {
+            crate::i18n::t("settings-project-testing")
+        } else {
+            crate::i18n::t("settings-project-test")
+        };
         let credentials = Row::new(
-            "Credentials",
+            crate::i18n::t("settings-project-credentials-label"),
             if remote {
-                "Fetches from the target branch's remote, then pushes an empty branch to the one \
-                 branches are pushed to and deletes it."
+                crate::i18n::t("settings-project-credentials-description")
             } else {
-                "Needs a target branch with a remote to test against."
+                crate::i18n::t("settings-project-credentials-description-2")
             },
             button("test-credentials", label)
                 .small()
@@ -390,9 +394,8 @@ impl SettingsView {
             ),
         });
         let hooks = Row::new(
-            "Run Git hooks",
-            "Runs the repository's pre-commit, commit-msg, post-commit and pre-push hooks \
-                 in the main checkout. A linked worktree's commits don't run them.",
+            crate::i18n::t("settings-project-run-git-hooks-label"),
+            crate::i18n::t("settings-project-run-git-hooks-description"),
             hooks,
         );
         match page {
@@ -402,9 +405,9 @@ impl SettingsView {
             ],
             ProjectPage::Git => vec![
                 Card::new(None, push_to.into_iter().chain([force, hooks]).collect()),
-                Card::new(Some("Signing"), vec![sign]),
+                Card::new(Some(crate::i18n::t("settings-project-signing")), vec![sign]),
                 Card::new(
-                    Some("Authentication"),
+                    Some(crate::i18n::t("settings-project-authentication")),
                     std::iter::once(credentials).chain(checks).collect(),
                 ),
             ],
@@ -417,13 +420,15 @@ impl SettingsView {
             this.remove_project(project.clone(), &name, window, cx)
         });
         Row::new(
-            "Remove project",
-            "Takes it out of GitButler, and its operations history with it. The repository's \
-             files and branches stay on disk.",
-            button("remove-project", "Remove…")
-                .small()
-                .style(ButtonStyle::Danger)
-                .on_click(remove),
+            crate::i18n::t("settings-project-remove-project-label"),
+            crate::i18n::t("settings-project-remove-project-description"),
+            button(
+                "remove-project",
+                crate::i18n::t("settings-project-remove-project-description-2"),
+            )
+            .small()
+            .style(ButtonStyle::Danger)
+            .on_click(remove),
         )
     }
 
@@ -442,8 +447,8 @@ impl SettingsView {
             app.confirm_then(
                 None,
                 title,
-                "The repository and its branches stay on disk; add it again any time.",
-                "Remove",
+                crate::i18n::t("settings-project-repository-branches-stay-disk-add-again"),
+                crate::i18n::t("common-remove"),
                 window,
                 cx,
                 move |app, cx| {

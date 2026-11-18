@@ -22,6 +22,7 @@
 	import { UI_STATE, type NewCommitMessage } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { tick } from "svelte";
 	import type { Worktree } from "@gitbutler/but-sdk";
 
@@ -121,7 +122,7 @@
 	async function hookedMessage(message: string): Promise<string | undefined> {
 		const result = await runMessageHook({ projectId, message });
 		if (result?.status === "failure") {
-			showWarning("Commit message hook failed", result.error);
+			showWarning($t("Commit message hook failed"), result.error);
 			return undefined;
 		}
 		if (result?.status === "message") return result.message;
@@ -130,7 +131,7 @@
 
 	async function createCommit(rawMessage: string) {
 		if (isCooking) {
-			showToast({ message: "Commit is already in progress", style: "danger" });
+			showToast({ message: $t("Commit is already in progress"), style: "danger" });
 			return;
 		}
 
@@ -196,7 +197,7 @@
 
 		const message = description ? title + "\n\n" + description : title;
 		if (!message) {
-			showToast({ message: "Commit message is required", style: "danger" });
+			showToast({ message: $t("Commit message is required"), style: "danger" });
 			return;
 		}
 

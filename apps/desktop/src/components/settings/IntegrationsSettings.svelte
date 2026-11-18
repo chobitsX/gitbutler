@@ -5,6 +5,7 @@
 	import { SETTINGS_SERVICE } from "$lib/settings/appSettings";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Spacer, Toggle } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const settingsService = inject(SETTINGS_SERVICE);
 	const appSettings = settingsService.appSettings;
@@ -23,10 +24,10 @@
 <CardGroup>
 	<CardGroup.Item labelFor="autoFillPrDescription">
 		{#snippet title()}
-			Auto-fill PR/MR descriptions from commit
+			{$t("Auto-fill PR/MR descriptions from commit")}
 		{/snippet}
 		{#snippet caption()}
-			Set the title and description from the commit for single-commit branches.
+			{$t("Set the title and description from the commit for single-commit branches.")}
 		{/snippet}
 		{#snippet actions()}
 			<Toggle

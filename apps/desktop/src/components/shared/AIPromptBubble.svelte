@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { MessageRole } from "$lib/ai/types";
 	import { Button, Icon, Textarea, Markdown } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		role: MessageRole;
@@ -37,13 +38,13 @@
 		<div class="bubble__header text-13 text-bold">
 			{#if role === MessageRole.User}
 				<Icon name="user" />
-				<span>User</span>
+				<span>{$t("User")}</span>
 			{:else if role === MessageRole.System}
 				<Icon name="robot" />
-				<span>System</span>
+				<span>{$t("System")}</span>
 			{:else}
 				<Icon name="robot" />
-				<span>Assistant</span>
+				<span>{$t("Assistant")}</span>
 			{/if}
 		</div>
 
@@ -69,10 +70,10 @@
 		<div class="bubble-actions">
 			{#if !disableRemove}
 				<Button icon="bin" kind="outline" style="danger" onclick={() => onRemoveLastExample()}>
-					Remove example
+					{$t("Remove example")}
 				</Button>
 			{/if}
-			<Button kind="outline" grow onclick={() => onAddExample()}>Add new example</Button>
+			<Button kind="outline" grow onclick={() => onAddExample()}>{$t("Add new example")}</Button>
 		</div>
 	{/if}
 </div>

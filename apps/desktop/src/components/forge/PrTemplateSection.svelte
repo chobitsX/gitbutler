@@ -3,6 +3,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Toggle, Select, SelectItem, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { type Writable } from "svelte/store";
 
 	interface Props {
@@ -51,7 +52,7 @@
 		{#if templates && templates.length > 0}
 			<div class="pr-template__wrap">
 				<label class="pr-template__toggle" for="pr-template-toggle">
-					<span class="text-13 text-semibold">Use template</span>
+					<span class="text-13 text-semibold">{$t("Use template")}</span>
 					<Toggle
 						testId={TestId.ReviewTemplateToggle}
 						small
@@ -65,8 +66,8 @@
 					value={$path}
 					options={templates.map((value) => ({ label: value, value }))}
 					placeholder={templates.length > 0
-						? "Choose template"
-						: "No PR templates found ¯\\_(ツ)_/¯"}
+						? $t("Choose template")
+						: $t("No PR templates found ¯\\_(ツ)_/¯")}
 					flex="1"
 					searchable
 					disabled={!$enabled || templates.length === 0 || disabled}

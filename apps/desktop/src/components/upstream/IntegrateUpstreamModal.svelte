@@ -24,6 +24,7 @@
 		TestId,
 		AsyncButton,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { tick } from "svelte";
 
 	type OperationState = "idle" | "running" | "previewFailed" | "executeFailed";
@@ -232,8 +233,9 @@
 			<div class="integration-error">
 				<InfoMessage>
 					{#snippet content()}
-						The target upstream is unavailable. Fetch or configure an upstream to update the
-						workspace.
+						{$t(
+							"The target upstream is unavailable. Fetch or configure an upstream to update the workspace.",
+						)}
 					{/snippet}
 				</InfoMessage>
 			</div>
@@ -241,9 +243,11 @@
 		{#if base && upstreamAvailable && base.upstreamCommits.length > 0}
 			<div class="section">
 				<h3 class="text-14 text-semibold section-title">
-					<span>Incoming {base.upstreamCommits.length === 1 ? "change" : "changes"}</span><Badge
-						>{base.upstreamCommits.length}</Badge
-					>
+					<span
+						>{$t("Incoming {value}", {
+							value: base.upstreamCommits.length === 1 ? $t("change") : $t("changes"),
+						})}</span
+					><Badge>{base.upstreamCommits.length}</Badge>
 				</h3>
 				<div class="scroll-wrap">
 					<ScrollableContainer maxHeight="16.5rem">
@@ -269,12 +273,12 @@
 				<img class="target-icon" src="/images/domain-icons/trunk.svg" alt="" />
 
 				<div class="target-divergence-about">
-					<h3 class="text-14 text-semibold">Target branch divergence</h3>
+					<h3 class="text-14 text-semibold">{$t("Target branch divergence")}</h3>
 					<p class="text-12 text-body target-divergence-description">
-						<span class="text-bold">{base?.branchName ?? "The target branch"}</span> has diverged
-						from the workspace.
+						<span class="text-bold">{base?.branchName ?? $t("The target branch")}</span>
+						{$t("has diverged from the workspace.")}
 						<br />
-						Resolve target branch divergence before updating the workspace.
+						{$t("Resolve target branch divergence before updating the workspace.")}
 					</p>
 				</div>
 			</div>
@@ -282,7 +286,7 @@
 		<!-- STACKS AND BRANCHES TO UPDATE -->
 		{#if statuses.length > 0}
 			<div class="section">
-				<h3 class="text-14 text-semibold">To be updated:</h3>
+				<h3 class="text-14 text-semibold">{$t("To be updated:")}</h3>
 				<div class="scroll-wrap">
 					<ScrollableContainer maxHeight="15rem">
 						{#each statuses as status}
@@ -295,10 +299,12 @@
 		{#if base && base.worktreesBehind.length > 0}
 			<div class="section" data-testid={TestId.IntegrateUpstreamWorktrees}>
 				<h3 class="text-14 text-semibold section-title">
-					<span>Worktrees to be updated</span><Badge>{base.worktreesBehind.length}</Badge>
+					<span>{$t("Worktrees to be updated")}</span><Badge>{base.worktreesBehind.length}</Badge>
 				</h3>
 				<p class="text-12 text-body worktrees-description">
-					These linked worktrees will be rebased onto {base.branchName}.
+					{$t("These linked worktrees will be rebased onto {branchName}.", {
+						branchName: base.branchName,
+					})}
 				</p>
 				<div class="scroll-wrap">
 					<ScrollableContainer maxHeight="10rem">
@@ -311,12 +317,15 @@
 		{/if}
 		{#if worktreeConflicts.length > 0}
 			<div class="worktree-conflicts" data-testid={TestId.IntegrateUpstreamWorktreeConflicts}>
-				<h3 class="text-14 text-semibold">Uncommitted changes conflict</h3>
+				<h3 class="text-14 text-semibold">{$t("Uncommitted changes conflict")}</h3>
 				<p class="text-12 text-body worktree-conflicts-description">
-					These files will conflict when your current uncommitted changes are applied onto the
-					updated workspace.
+					{$t(
+						"These files will conflict when your current uncommitted changes are applied onto the updated workspace.",
+					)}
 					<br />
-					You're free to proceed, but conflict markers will be added to your uncommitted work.
+					{$t(
+						"You're free to proceed, but conflict markers will be added to your uncommitted work.",
+					)}
 				</p>
 				<div class="scroll-wrap">
 					<ScrollableContainer maxHeight="10rem">
@@ -338,8 +347,8 @@
 				<InfoMessage style="danger" primaryLabel="Try again" primaryAction={retryFailedOperation}>
 					{#snippet content()}
 						{operationState === "previewFailed"
-							? "Couldn't preview this workspace update."
-							: "Couldn't update the workspace."}
+							? $t("Couldn't preview this workspace update.")
+							: $t("Couldn't update the workspace.")}
 					{/snippet}
 				</InfoMessage>
 			</div>
@@ -348,7 +357,7 @@
 
 	{#snippet controls()}
 		<div class="controls">
-			<Button onclick={close} kind="outline">Cancel</Button>
+			<Button onclick={close} kind="outline">{$t("Cancel")}</Button>
 			<AsyncButton
 				testId={TestId.IntegrateUpstreamActionButton}
 				wide
@@ -359,7 +368,7 @@
 					await integrate();
 				}}
 			>
-				Update workspace
+				{$t("Update workspace")}
 			</AsyncButton>
 		</div>
 	{/snippet}

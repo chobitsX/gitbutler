@@ -1,12 +1,13 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
+	import { t } from "$lib/utils/i18n";
 
 	interface Props {
 		searchValue: string;
 		placeholder?: string;
 	}
 
-	let { placeholder = "Search…", searchValue = $bindable() }: Props = $props();
+	let { placeholder = $t("Search…"), searchValue = $bindable() }: Props = $props();
 
 	let inputEl: HTMLInputElement;
 

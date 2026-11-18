@@ -812,7 +812,7 @@ fn mods(modifiers: Modifiers) -> Mods {
 /// What the shell titled the terminal, or that it's one.
 fn shown_title(title: &str) -> SharedString {
     match title.trim() {
-        "" => "Terminal".into(),
+        "" => crate::i18n::t("terminal-default-title").into(),
         title => title.to_owned().into(),
     }
 }

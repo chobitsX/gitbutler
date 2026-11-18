@@ -4,6 +4,7 @@
 	import { PROJECTS_SERVICE } from "$lib/project/projectsService";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Toggle } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const { projectId }: { projectId: string } = $props();
 	const projectsService = inject(PROJECTS_SERVICE);
@@ -15,10 +16,10 @@
 		<SettingsSection gap={8}>
 			<CardGroup.Item standalone labelFor="omitCertificateCheck">
 				{#snippet title()}
-					Ignore host certificate checks
+					{$t("Ignore host certificate checks")}
 				{/snippet}
 				{#snippet caption()}
-					Enabling this will ignore host certificate checks when authenticating with ssh.
+					{$t("Enabling this will ignore host certificate checks when authenticating with ssh.")}
 				{/snippet}
 				{#snippet actions()}
 					<Toggle

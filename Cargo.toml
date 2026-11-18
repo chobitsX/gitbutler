@@ -138,6 +138,9 @@ edition = "2024"
 rust-version = "1.95"
 
 [workspace.dependencies]
+fluent-templates = { version = "0.15.1", default-features = false, features = ["macros", "walkdir"] }
+fluent-syntax = "0.12.0"
+unic-langid = { version = "0.9.6", features = ["macros"] }
 but-debug = { path = "crates/but-debug" }
 but = { path = "crates/but" }
 but-debugging = { path = "crates/but-debugging" }

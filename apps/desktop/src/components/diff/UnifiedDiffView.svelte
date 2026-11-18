@@ -21,6 +21,7 @@
 	import { EmptyStatePlaceholder, generateHunkId, HunkDiff, TestId } from "@gitbutler/ui-svelte";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui-svelte/drag/dragStateService.svelte";
 	import { parseHunk } from "@gitbutler/ui-svelte/utils/diffParsing";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { FileDependencies } from "$lib/hunks/dependencies";
 	import type { UnifiedDiff } from "$lib/hunks/diff";
@@ -208,7 +209,7 @@
 			<div class="hunk-placehoder">
 				<EmptyStatePlaceholder image={binarySvg} gap={12} topBottomPadding={34}>
 					{#snippet caption()}
-						Was not able to load the diff
+						{$t("Was not able to load the diff")}
 					{/snippet}
 				</EmptyStatePlaceholder>
 			</div>
@@ -330,7 +331,7 @@
 						<div class="hunk-placehoder">
 							<EmptyStatePlaceholder image={emptyFileSvg} gap={12} topBottomPadding={34}>
 								{#snippet caption()}
-									It’s empty ¯\_(ツ゚)_/¯
+									{$t("It’s empty ¯\\_(ツ゚)_/¯")}
 								{/snippet}
 							</EmptyStatePlaceholder>
 						</div>
@@ -338,7 +339,7 @@
 						<div class="hunk-placehoder">
 							<EmptyStatePlaceholder gap={12} topBottomPadding={34}>
 								{#snippet caption()}
-									Loading diff…
+									{$t("Loading diff…")}
 								{/snippet}
 							</EmptyStatePlaceholder>
 						</div>
@@ -349,7 +350,7 @@
 			<div class="hunk-placehoder">
 				<EmptyStatePlaceholder image={tooLargeSvg} gap={12} topBottomPadding={34}>
 					{#snippet caption()}
-						Too large to display
+						{$t("Too large to display")}
 					{/snippet}
 				</EmptyStatePlaceholder>
 			</div>
@@ -360,7 +361,7 @@
 				<div class="hunk-placehoder">
 					<EmptyStatePlaceholder image={binarySvg} gap={12} topBottomPadding={34}>
 						{#snippet caption()}
-							Binary! Not for human eyes
+							{$t("Binary! Not for human eyes")}
 						{/snippet}
 					</EmptyStatePlaceholder>
 				</div>

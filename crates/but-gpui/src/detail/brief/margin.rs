@@ -364,8 +364,10 @@ impl Detail {
         let written = !input.written.trim().is_empty();
         let drawn = input.drawn.clone();
         let title = match writing {
-            Writing::Shortcut { editing: None, .. } => Some("New shortcut"),
-            Writing::Shortcut { .. } => Some("Edit shortcut"),
+            Writing::Shortcut { editing: None, .. } => {
+                Some(crate::i18n::t("detail-brief-margin-new-shortcut"))
+            }
+            Writing::Shortcut { .. } => Some(crate::i18n::t("detail-brief-margin-edit-shortcut")),
             _ => None,
         };
         let shortcuts =
@@ -398,8 +400,8 @@ impl Detail {
                             icon_button("brief-composer-add-shortcut", Icon::Plus)
                                 .small()
                                 .tooltip(match written {
-                                    true => "Keep as a shortcut",
-                                    false => "Add a shortcut",
+                                    true => crate::i18n::t("detail-brief-margin-keep-shortcut"),
+                                    false => crate::i18n::t("detail-brief-margin-add-shortcut"),
                                 })
                                 .on_click(cx.listener(|this, _, window, cx| {
                                     this.add_shortcut_from_writing(window, cx)
@@ -412,7 +414,7 @@ impl Detail {
             .justify_end()
             .gap(dp(4.))
             .child(
-                button("brief-composer-cancel", "Cancel")
+                button("brief-composer-cancel", crate::i18n::t("common-cancel"))
                     .small()
                     .style(ButtonStyle::Ghost)
                     .on_click(
@@ -423,9 +425,9 @@ impl Detail {
                 button(
                     "brief-composer-keep",
                     if title.is_some() || input.replaces.is_some() {
-                        "Save"
+                        crate::i18n::t("common-save")
                     } else {
-                        "Add"
+                        crate::i18n::t("common-add")
                     },
                 )
                 .small()
@@ -535,7 +537,9 @@ impl Detail {
                     .style(ButtonStyle::Ghost)
                     .tooltip(match cut {
                         true => said.to_owned(),
-                        false => "Adds it. Right-click to change".to_owned(),
+                        false => {
+                            crate::i18n::t("detail-brief-margin-adds-right-click-change").to_owned()
+                        }
                     })
                     .on_click(cx.listener(move |this, _, window, cx| on_click(this, window, cx))),
             )
@@ -629,15 +633,23 @@ impl Detail {
             move |_, _| {
                 let (edit, remove) = (this.clone(), this.clone());
                 vec![
-                    MenuItem::new("Edit shortcut", move |_, window, cx| {
-                        let to = to.clone();
-                        edit.update(cx, |this, cx| this.write_shortcut(Some(ix), to, window, cx));
-                    }),
-                    MenuItem::new("Remove shortcut", move |_, _, cx| {
-                        remove.update(cx, |this, cx| {
-                            this.save_brief_shortcut(Some(ix), String::new(), cx)
-                        });
-                    }),
+                    MenuItem::new(
+                        crate::i18n::t("detail-brief-margin-edit-shortcut"),
+                        move |_, window, cx| {
+                            let to = to.clone();
+                            edit.update(cx, |this, cx| {
+                                this.write_shortcut(Some(ix), to, window, cx)
+                            });
+                        },
+                    ),
+                    MenuItem::new(
+                        crate::i18n::t("detail-brief-margin-remove-shortcut"),
+                        move |_, _, cx| {
+                            remove.update(cx, |this, cx| {
+                                this.save_brief_shortcut(Some(ix), String::new(), cx)
+                            });
+                        },
+                    ),
                 ]
             },
             cx,

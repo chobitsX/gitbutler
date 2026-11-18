@@ -11,6 +11,7 @@
 	import { inject } from "@gitbutler/core/context";
 
 	import { Icon, Spacer, chipToasts } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import { onMount } from "svelte";
 
@@ -33,7 +34,7 @@
 		try {
 			deleteConfirmationModal?.close();
 			await projectsService.deleteProject(projectId);
-			chipToasts.success("Project deleted");
+			chipToasts.success($t("Project deleted"));
 			goto("/");
 		} finally {
 			loading = false;
@@ -52,13 +53,13 @@
 				<ProjectNameLabel projectName={projectTitle} />
 			</div>
 			<h2 class="problem__title text-18 text-body text-bold">
-				There was a problem loading this repo
+				{$t("There was a problem loading this repo")}
 			</h2>
 
 			<div class="problem__error text-12 text-body">
 				<Icon name="danger" color="var(--fill-danger-bg)" />
 				{#if !isDefined(error)}
-					'An unknown error occured'
+					{$t("'An unknown error occured'")}
 				{:else if error instanceof Object && "message" in error}
 					{error.message}
 				{:else}

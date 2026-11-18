@@ -2,6 +2,7 @@
 	import AIPromptBubble from "$components/shared/AIPromptBubble.svelte";
 	import { MessageRole, type UserPrompt } from "$lib/ai/types";
 	import { Button, Icon, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		prompt: UserPrompt;
@@ -153,9 +154,9 @@
 		{#if displayMode === "writable"}
 			<div class="actions">
 				{#if editing}
-					<Button kind="outline" onclick={() => cancel()}>Cancel</Button>
+					<Button kind="outline" onclick={() => cancel()}>{$t("Cancel")}</Button>
 					<Button disabled={errorMessages.length > 0} style="pop" onclick={() => save()}
-						>Save Changes</Button
+						>{$t("Save Changes")}</Button
 					>
 				{:else}
 					<Button
@@ -164,9 +165,11 @@
 							e.stopPropagation();
 							deletePrompt?.(prompt);
 						}}
-						icon="bin">Delete</Button
+						icon="bin">{$t("Delete")}</Button
 					>
-					<Button kind="outline" icon="edit" onclick={() => (editing = true)}>Edit prompt</Button>
+					<Button kind="outline" icon="edit" onclick={() => (editing = true)}
+						>{$t("Edit prompt")}</Button
+					>
 				{/if}
 			</div>
 		{/if}

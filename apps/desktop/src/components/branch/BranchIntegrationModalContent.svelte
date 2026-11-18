@@ -23,6 +23,7 @@
 		Badge,
 		chipToasts,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { BranchIntegrationStrategy } from "@gitbutler/but-sdk";
 	import type { IconName } from "@gitbutler/ui-svelte";
 
@@ -43,33 +44,33 @@
 		icon: IconName;
 		description: string;
 		recommended?: boolean;
-	}> = [
+	}> = $derived([
 		{
 			id: "pullRebase",
-			label: "Pull rebase",
+			label: $t("Pull rebase"),
 			icon: "branch-top-up-arrow",
-			description: "Rebuilds the branch with remote commits first, then your local commits.",
+			description: $t("Rebuilds the branch with remote commits first, then your local commits."),
 			recommended: true,
 		},
 		{
 			id: "smartSquash",
-			label: "Smart squash",
+			label: $t("Smart squash"),
 			icon: "branch-double-commit",
-			description: "Merges matching commits (by Change ID), pull-rebases the rest.",
+			description: $t("Merges matching commits (by Change ID), pull-rebases the rest."),
 		},
 		{
 			id: "merge",
-			label: "Merge",
+			label: $t("Merge"),
 			icon: "branch-merge",
-			description: "Keeps local history and merges in the remote tip.",
+			description: $t("Keeps local history and merges in the remote tip."),
 		},
 		{
 			id: "pickRemote",
-			label: "Pick remote",
+			label: $t("Pick remote"),
 			icon: "cherry-pick",
-			description: "Rebuilds the branch from remote commits only.",
+			description: $t("Rebuilds the branch from remote commits only."),
 		},
-	];
+	]);
 	const VISIBLE_TEMPLATE_COUNT = 2;
 	let selectedTemplate = $state<BranchIntegrationStrategy>(DEFAULT_TEMPLATE);
 	const initialBranchIntegration = $derived(
@@ -165,7 +166,7 @@
 				integration,
 				dryRun: false,
 			});
-			chipToasts.success(`Successfully updated "${branchName}".`);
+			chipToasts.success($t('Successfully updated "{value0}".', { value0: branchName }));
 			closeModal();
 		} catch (error) {
 			previewError = formatError(error);
@@ -215,16 +216,16 @@
 		})}
 		<div class="branch-integration">
 			<p class="text-13 text-body clr-text-2">
-				This branch and its remote have diverged.
+				{$t("This branch and its remote have diverged.")}
 				<br />
-				Pick an integration strategy below to combine them.
+				{$t("Pick an integration strategy below to combine them.")}
 			</p>
 
 			<div
 				class="strategy-cards"
 				class:strategy-cards_expanded={showAllStrategies}
 				role="radiogroup"
-				aria-label="Integration strategy selection"
+				aria-label={$t("Integration strategy selection")}
 				data-testid="branch-integration-strategies"
 			>
 				{#each visibleTemplates as template (template.id)}
@@ -248,7 +249,7 @@
 						<h3 class="text-13 text-bold strategy-card__title">
 							{template.label}
 							{#if template.recommended}
-								<span class="op-40">(Recommended)</span>
+								<span class="op-40">{$t("(Recommended)")}</span>
 							{/if}
 						</h3>
 						<p class="text-12 text-body strategy-card__caption">
@@ -273,7 +274,7 @@
 							{hiddenTemplates.map((t) => t.label.toLowerCase()).join(", ")}
 						</span>
 						<span class="text-12 underline-dotted strategy-card__more-link">
-							Show {hiddenTemplates.length} more
+							{$t("Show {length} more", { length: hiddenTemplates.length })}
 						</span>
 					</button>
 				{/if}
@@ -284,7 +285,7 @@
 			<div class="branch-integration__sections">
 				<div class="branch-integration__section">
 					<div class="branch-integration__section-header">
-						<Badge style="gray" kind="soft" size="tag">CURRENT STATE</Badge>
+						<Badge style="gray" kind="soft" size="tag">{$t("CURRENT STATE")}</Badge>
 						<div class="section-arrow">
 							<div class="section-arrow__line"></div>
 						</div>
@@ -304,7 +305,7 @@
 
 				<div class="branch-integration__section">
 					<div class="branch-integration__section-header">
-						<Badge style="gray" size="tag">OUTPUT BRANCH</Badge>
+						<Badge style="gray" size="tag">{$t("OUTPUT BRANCH")}</Badge>
 					</div>
 
 					<section class="branch-integration__graph" data-testid="branch-integration-preview">
@@ -314,11 +315,11 @@
 							</div>
 						{:else if previewRows === null}
 							<div class="branch-integration__empty" data-testid="branch-integration-empty-state">
-								Preview produced no branch segment for this ref.
+								{$t("Preview produced no branch segment for this ref.")}
 							</div>
 						{:else if previewRows.length === 0}
 							<div class="branch-integration__empty" data-testid="branch-integration-empty-state">
-								The resulting branch would be empty.
+								{$t("The resulting branch would be empty.")}
 							</div>
 						{:else}
 							<BranchIntegrationGraph
@@ -333,7 +334,7 @@
 		</div>
 
 		<ModalFooter>
-			<Button kind="outline" type="reset" onclick={closeModal}>Cancel</Button>
+			<Button kind="outline" type="reset" onclick={closeModal}>{$t("Cancel")}</Button>
 			<Button
 				style="pop"
 				type="button"
@@ -342,7 +343,7 @@
 				disabled={!preparedIntegration || preparedIntegration.steps.length === 0 || applying}
 				loading={applying}
 			>
-				Apply integration
+				{$t("Apply integration")}
 			</Button>
 		</ModalFooter>
 	{/snippet}

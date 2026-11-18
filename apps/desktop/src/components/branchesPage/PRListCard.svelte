@@ -2,6 +2,7 @@
 	import BranchesCardLayout from "$components/branchesPage/BranchesCardLayout.svelte";
 	import { getPrStatus } from "$lib/forge/interface/prUtils";
 	import { Avatar, ReviewBadge, SeriesIcon, TestId, TimeAgo } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { ForgeUnitInfo } from "@gitbutler/but-sdk";
 	type basePrData = {
 		number: number;
@@ -76,7 +77,7 @@
 			<span class="sidebar-entry__divider">•</span>
 
 			{#if noRemote || !sourceBranch}
-				<span>No remote</span>
+				<span>{$t("No remote")}</span>
 			{:else}
 				<div class="sidebar-entry__branch truncate">
 					<SeriesIcon single size={12} />
@@ -88,8 +89,8 @@
 	{#snippet details()}
 		{#if author && modifiedAt}
 			<Avatar srcUrl={author.gravatarUrl || ""} username={author.name || unknownName} />
-			<TimeAgo date={new Date(modifiedAt)} addSuffix /> by
-			{author.name || unknownName}
+			<TimeAgo date={new Date(modifiedAt)} addSuffix />
+			{$t("by {value}", { value: author.name || unknownName })}
 		{/if}
 	{/snippet}
 </BranchesCardLayout>

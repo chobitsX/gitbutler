@@ -109,10 +109,15 @@ fn discard_unrecorded(
         overlay,
         discard,
         move |store, outcome, cx| match outcome {
-            None => store.snack(store.card_title(&named, "Changes discarded".into()), cx),
-            Some(Undiscarded::Partway(why) | Undiscarded::Unrecorded(why)) => {
-                store.error(store.card_title(&named, "Discard failed".into()), why, cx)
-            }
+            None => store.snack(
+                store.card_title(&named, crate::i18n::t("edits-changes-discarded").into()),
+                cx,
+            ),
+            Some(Undiscarded::Partway(why) | Undiscarded::Unrecorded(why)) => store.error(
+                store.card_title(&named, crate::i18n::t("edits-discard-failed").into()),
+                why,
+                cx,
+            ),
         },
         cx,
     );
@@ -425,11 +430,14 @@ impl AppView {
         let name = short_ref(&ref_name).into_owned();
         self.confirm_then(
             Some(Selection::Branch(project.clone(), Some(ref_name.clone()))),
-            format!("Replace {name} with the remote's version?"),
-            &crate::ui::keys_text(
-                "This drops its commits the remote doesn't have. You can undo this with ⌘Z.",
+            crate::i18n::tf(
+                "edits-replace-remote-s-version",
+                &[("name", (name.to_string()).into())],
             ),
-            "Replace",
+            &crate::ui::keys_text(crate::i18n::t(
+                "edits-pull-remote-drops-commits-remote-doesn",
+            )),
+            crate::i18n::t("edits-replace"),
             window,
             cx,
             then_run(
@@ -574,9 +582,12 @@ impl AppView {
         // Asked here, as the project's own protection is off unless turned on.
         self.confirm_then(
             Some(Selection::Branch(project.clone(), Some(ref_name.clone()))),
-            format!("Force push {}?", short_ref(&ref_name)),
+            crate::i18n::tf(
+                "edits-force-push",
+                &[("ref_name", (format!("{}", short_ref(&ref_name))).into())],
+            ),
             &detail,
-            "Force push",
+            crate::i18n::t("edits-force-push-2"),
             window,
             cx,
             move |this, cx| {
@@ -710,12 +721,12 @@ impl AppView {
         let Some(title) = store.terminals.title(id) else {
             return;
         };
-        let message = format!("Close terminal {}?", quoted(title));
+        let message = crate::i18n::tf("edits-close-terminal", &[("title", (quoted(title)).into())]);
         self.confirm_then(
             Some(Selection::Terminal(project, id)),
             message,
-            "Its shell stops, and whatever is running in it.",
-            "Close",
+            crate::i18n::t("edits-shell-stops-whatever-running"),
+            crate::i18n::t("common-close"),
             window,
             cx,
             move |this, cx| (this.store).update(cx, |store, cx| store.close_terminal(id, cx)),
@@ -828,10 +839,9 @@ impl AppView {
                     store.keep_last_snapshot(cx);
                 }
                 if pushed {
-                    let message = format!(
-                        "Renamed to {}. The remote keeps the old name, and pushing again makes a \
-                         new remote branch, apart from any pull request of the old one",
-                        short_ref(&to)
+                    let message = crate::i18n::tf(
+                        "edits-submit-branch-name-renamed-remote-keeps-old",
+                        &[("to", (format!("{}", short_ref(&to))).into())],
                     );
                     store.snack_after(undoable, message, cx);
                 }
@@ -903,10 +913,17 @@ impl AppView {
                 .ok();
             }
             let message = match checked_out_in {
-                Some(worktree) => {
-                    format!("Created {}, checked out in {worktree}", short_ref(&branch))
-                }
-                None => format!("Created {}", short_ref(&branch)),
+                Some(worktree) => crate::i18n::tf(
+                    "edits-created-checked-out",
+                    &[
+                        ("branch", (format!("{}", short_ref(&branch))).into()),
+                        ("worktree", (format!("{worktree}")).into()),
+                    ],
+                ),
+                None => crate::i18n::tf(
+                    "edits-created",
+                    &[("branch", (format!("{}", short_ref(&branch))).into())],
+                ),
             };
             store.select(Some(Selection::Branch(selected, Some(branch))), cx);
             store.snack_after(undoable, message, cx)
@@ -955,15 +972,19 @@ impl AppView {
         let named = |b: &&Branch| b.ref_name.is_some();
         let only_named = lane.iter().filter(named).count() < 2;
         if only_named && store.in_linked(&selection) {
-            let message = format!("{name} is its worktree's last branch, which keeps it");
+            let message = crate::i18n::tf(
+                "edits-worktree-s-last-branch-which-keeps",
+                &[("name", (name).into())],
+            );
             return snack(&self.store, message, cx);
         }
         // Unnamed commits in its stack aren't its own to take along.
         let commits = lane.get(at).map_or(&[][..], |b| &b.commits);
         let lane_commits: usize = lane.iter().map(|b| b.commits.len()).sum();
         if only_named && commits.len() < lane_commits {
-            let message = format!(
-                "To delete {name} and its commits, unapply it, then delete it from Branches"
+            let message = crate::i18n::tf(
+                "edits-remove-branch-delete-commits-unapply-then",
+                &[("name", (name).into())],
             );
             return snack(&self.store, message, cx);
         }
@@ -972,7 +993,13 @@ impl AppView {
         let ids: Vec<CommitId> = commits.iter().map(|c| c.id).collect();
         let moved = store.moved_by(&project, &ids);
         if let Some(worktree) = moved.iter().find_map(Checkout::linked) {
-            let message = format!("The {worktree} worktree rests on {name}, which keeps it");
+            let message = crate::i18n::tf(
+                "edits-worktree-rests-which-keeps",
+                &[
+                    ("worktree", (format!("{worktree}")).into()),
+                    ("name", (name).into()),
+                ],
+            );
             return snack(&self.store, message, cx);
         }
         // The oplog doesn't keep a linked worktree's branches, so it can't bring one back.
@@ -1018,8 +1045,16 @@ impl AppView {
         if undoable {
             return run(self, cx);
         }
-        let message = format!("Delete branch {name}?");
-        self.confirm_then(Some(selection), message, &detail, "Delete", window, cx, run);
+        let message = crate::i18n::tf("edits-delete-branch", &[("name", (name).into())]);
+        self.confirm_then(
+            Some(selection),
+            message,
+            &detail,
+            crate::i18n::t("common-delete"),
+            window,
+            cx,
+            run,
+        );
     }
 
     /// Drop commits `ids` of `project` and what they changed, the newest listed first.
@@ -1040,14 +1075,14 @@ impl AppView {
         let overlay = Overlay::commits(ids.iter().filter_map(|id| store.key_of(&project, *id)));
         let (message, done) = match ids.len() {
             1 => (
-                format!(
-                    "Discard commit {}?",
-                    store.short_reference(&project, newest)
+                crate::i18n::tf(
+                    "edits-discard-commit",
+                    &[("newest", (store.short_reference(&project, newest)).into())],
                 ),
                 "Commit discarded".to_owned(),
             ),
             n => (
-                format!("Discard {n} commits?"),
+                crate::i18n::tf("edits-discard-commits", &[("n", (format!("{n}")).into())]),
                 format!("{n} commits discarded"),
             ),
         };
@@ -1066,7 +1101,15 @@ impl AppView {
         if undoable {
             return run(self, cx);
         }
-        self.confirm_then(Some(at), message, detail, "Discard", window, cx, run);
+        self.confirm_then(
+            Some(at),
+            message,
+            detail,
+            crate::i18n::t("edits-discard"),
+            window,
+            cx,
+            run,
+        );
     }
 
     /// Throw away uncommitted changes of `worktree`.
@@ -1142,14 +1185,17 @@ impl AppView {
             move |store, outcome, cx| match outcome {
                 None => store.snack_after(undoable, "Changes discarded", cx),
                 Some(Undiscarded::Unrecorded(why)) => store.error_with_retry(
-                    store.card_title(&asked, "Changes weren't discarded".into()),
+                    store.card_title(
+                        &asked,
+                        crate::i18n::t("edits-changes-weren-t-discarded").into(),
+                    ),
                     format!("GitButler couldn't record them to undo: {why}"),
                     "Discard anyway",
                     move |store, cx| discard_unrecorded(store, &asked, again.clone(), cx),
                     cx,
                 ),
                 Some(Undiscarded::Partway(why)) => store.error(
-                    store.card_title(&asked, "Discard failed".into()),
+                    store.card_title(&asked, crate::i18n::t("edits-discard-failed").into()),
                     format!("{why}\nUndo puts back anything it threw away before that."),
                     cx,
                 ),
@@ -1157,9 +1203,15 @@ impl AppView {
         );
         match ask {
             None => run(self, cx),
-            Some((message, detail)) => {
-                self.confirm_then(Some(at), message, &detail, "Discard", window, cx, run)
-            }
+            Some((message, detail)) => self.confirm_then(
+                Some(at),
+                message,
+                &detail,
+                crate::i18n::t("edits-discard"),
+                window,
+                cx,
+                run,
+            ),
         }
     }
 
@@ -1495,15 +1547,34 @@ impl AppView {
         };
         self.confirm_then(
             Some(Selection::Branch(project.clone(), Some(ref_name.clone()))),
-            format!("Merge {what} into {target}?"),
+            crate::i18n::tf(
+                "edits-merge-into",
+                &[
+                    ("what", (what).into()),
+                    ("target", (target.to_string()).into()),
+                ],
+            ),
             &match local {
-                true => format!("{whose} commits go straight onto {target}.{left_behind}{update}"),
-                false => format!(
-                    "{whose} commits go straight onto {target} and get pushed, skipping \
-                     review. A push can't be undone.{left_behind}{update}"
+                true => crate::i18n::tf(
+                    "edits-commits-go-straight-onto",
+                    &[
+                        ("whose", (whose.to_string()).into()),
+                        ("target", (target.to_string()).into()),
+                        ("left_behind", (left_behind).into()),
+                        ("update", (update).into()),
+                    ],
+                ),
+                false => crate::i18n::tf(
+                    "edits-merge-branch-commits-go-straight-onto",
+                    &[
+                        ("whose", (whose.to_string()).into()),
+                        ("target", (target.to_string()).into()),
+                        ("left_behind", (left_behind).into()),
+                        ("update", (update).into()),
+                    ],
                 ),
             },
-            "Merge",
+            crate::i18n::t("edits-merge"),
             window,
             cx,
             then_run(
@@ -1653,8 +1724,8 @@ impl AppView {
         self.confirm_then(
             Some(at),
             question,
-            "The commit, and the ones after it, lose the change. This can't be undone.",
-            "Discard",
+            crate::i18n::t("edits-discard-commit-commit-ones-after-lose"),
+            crate::i18n::t("edits-discard"),
             window,
             cx,
             run,

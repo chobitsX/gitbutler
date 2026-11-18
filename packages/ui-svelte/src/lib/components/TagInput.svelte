@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
 	import { focusable } from "$lib/focus/focusable";
+	import { t } from "$lib/utils/i18n";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import type { BaseInputProps, InputStylingProps } from "$components/inputTypes";
 
@@ -24,7 +25,7 @@
 		label,
 		tags = $bindable([]),
 		value = $bindable(""),
-		placeholder = "Add tags (split by space/comma)",
+		placeholder = $t("Add tags (split by space/comma)"),
 		disabled = false,
 		readonly = false,
 		autofocus: _autofocus = false,
@@ -133,7 +134,7 @@
 								e.stopPropagation();
 								removeTag(tag.id);
 							}}
-							aria-label="Remove tag"
+							aria-label={$t("Remove tag")}
 						>
 							<Icon name="cross" size={14} />
 						</button>

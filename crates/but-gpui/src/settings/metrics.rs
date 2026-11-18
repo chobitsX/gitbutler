@@ -31,14 +31,13 @@ impl SettingsView {
         ));
         vec![
             Row::new(
-                "Error reporting",
-                "Reports the app's crashes and errors, which helps us catch issues more quickly.",
+                crate::i18n::t("settings-metrics-error-reporting-label"),
+                crate::i18n::t("settings-metrics-error-reporting-description"),
                 errors,
             ),
             Row::new(
-                "Usage metrics",
-                "Shares usage statistics, strictly to help us improve the app, with no personal \
-                 information: no names, paths or anything you wrote.",
+                crate::i18n::t("settings-metrics-usage-metrics-label"),
+                crate::i18n::t("settings-metrics-usage-metrics-description"),
                 usage,
             ),
         ]

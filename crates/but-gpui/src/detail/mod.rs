@@ -674,11 +674,12 @@ impl Detail {
         };
         let message =
             cx.new(|cx| MessageEditor::new(MessageSize::Compact, COMMIT_PLACEHOLDERS, cx));
-        let branch_filter = cx.new(|cx| TextInput::new("Filter branches", false, cx));
-        let target_filter = cx.new(|cx| TextInput::new("Filter commits", false, cx));
-        let history_filter = cx.new(|cx| TextInput::new("Filter operations", false, cx));
-        let file_filter = cx.new(|cx| TextInput::new("Filter files", false, cx));
-        let find_input = cx.new(|cx| TextInput::new("Find", false, cx));
+        let branch_filter = cx.new(|cx| TextInput::localized("detail-filter-branches", false, cx));
+        let target_filter = cx.new(|cx| TextInput::localized("detail-filter-commits", false, cx));
+        let history_filter =
+            cx.new(|cx| TextInput::localized("detail-filter-operations", false, cx));
+        let file_filter = cx.new(|cx| TextInput::localized("detail-filter-files", false, cx));
+        let find_input = cx.new(|cx| TextInput::localized("detail-find", false, cx));
         let tab = page::tab_to_show(&kept, store.read(cx), pinned.as_ref(), shows.as_ref(), cx);
         let page_key = page::page_key(store.read(cx), pinned.as_ref(), shows.as_ref(), tab);
         let page = page::open_page(&kept, page_key.as_ref(), shows.as_ref(), cx);
@@ -4188,7 +4189,7 @@ impl Render for Detail {
             None if self.store.read(cx).projects.is_empty() => welcome(&self.store, &theme, cx),
             None => empty_state(
                 None,
-                "Nothing selected",
+                crate::i18n::t("detail-nothing-selected"),
                 "Pick a project, branch or commit on the left",
                 &theme,
                 cx,
@@ -4739,7 +4740,7 @@ fn welcome(store: &Entity<Store>, theme: &Theme, cx: &App) -> AnyElement {
                     div()
                         .text_h2()
                         .text_color(theme.text_1)
-                        .child("Welcome to GitButler"),
+                        .child(crate::i18n::t("detail-welcome-gitbutler")),
                 )
                 .child(
                     div()
@@ -4747,23 +4748,22 @@ fn welcome(store: &Entity<Store>, theme: &Theme, cx: &App) -> AnyElement {
                         .text_center()
                         .text_13()
                         .text_color(theme.text_2)
-                        .child(
-                            "Add a repository your coding agents work in. What they change shows \
-                             up here as it happens, to review, commit and stack into branches.",
-                        ),
+                        .child(crate::i18n::t(
+                            "detail-welcome-add-repository-coding-agents",
+                        )),
                 )
                 .child(
                     h_flex()
                         .mt(dp(6.))
                         .gap(dp(8.))
                         .child(
-                            button("welcome-add", "Add a repository…")
+                            button("welcome-add", crate::i18n::t("detail-add-repository"))
                                 .style(ButtonStyle::Pop)
-                                .tooltip("Pick a folder with a Git repository")
+                                .tooltip(crate::i18n::t("detail-pick-folder-git-repository"))
                                 .dispatch(&AddProject),
                         )
                         .child(
-                            button("welcome-clone", "Clone a repository…")
+                            button("welcome-clone", crate::i18n::t("detail-clone-repository"))
                                 .dispatch(&crate::projects::CloneRepository),
                         ),
                 )
@@ -4781,13 +4781,13 @@ fn welcome(store: &Entity<Store>, theme: &Theme, cx: &App) -> AnyElement {
                         .gap(dp(4.))
                         .child(link(
                             "welcome-docs",
-                            "Docs",
+                            crate::i18n::t("detail-docs"),
                             Icon::Docs,
                             &crate::help::OpenDocs,
                         ))
                         .child(link(
                             "welcome-discord",
-                            "Discord",
+                            crate::i18n::t("detail-discord"),
                             Icon::Discord,
                             &crate::help::OpenDiscord,
                         )),
@@ -4799,17 +4799,54 @@ fn welcome(store: &Entity<Store>, theme: &Theme, cx: &App) -> AnyElement {
 
 /// The welcome's last line, as VS Code's welcome page ends: that GitButler collects usage
 /// data, with its privacy policy and the switches that turn it off a click away.
-fn usage_notice(theme: &Theme) -> AnyElement {
-    let mut text = String::from("GitButler collects usage data. Read our ");
-    let link = |words: &str, text: &mut String| {
-        let at = text.len();
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum UsageLink {
+    Privacy,
+    OptOut,
+}
+
+/// Fluent controls the complete sentence and link order. The renderer only maps the two
+/// named overlays to native text ranges; translators never supply executable link targets.
+fn usage_text(pattern: &str) -> (String, Vec<(std::ops::Range<usize>, UsageLink)>) {
+    let markers = [
+        ("<privacy>", "</privacy>", UsageLink::Privacy),
+        ("<opt-out>", "</opt-out>", UsageLink::OptOut),
+    ];
+    let mut text = String::new();
+    let mut links = Vec::new();
+    let mut remaining = pattern;
+    loop {
+        let next = markers
+            .iter()
+            .filter_map(|(open, close, kind)| {
+                remaining.find(open).map(|at| (at, *open, *close, *kind))
+            })
+            .min_by_key(|(at, ..)| *at);
+        let Some((at, open, close, kind)) = next else {
+            text.push_str(remaining);
+            break;
+        };
+        let Some(before) = remaining.get(..at) else {
+            break;
+        };
+        text.push_str(before);
+        let Some(after) = remaining.get(at + open.len()..) else {
+            break;
+        };
+        let Some((words, rest)) = after.split_once(close) else {
+            text.push_str(after);
+            break;
+        };
+        let start = text.len();
         text.push_str(words);
-        at..text.len()
-    };
-    let policy = link("privacy policy", &mut text);
-    text.push_str(" and learn how to ");
-    let opt_out = link("opt out", &mut text);
-    text.push('.');
+        links.push((start..text.len(), kind));
+        remaining = rest;
+    }
+    (text, links)
+}
+
+fn usage_notice(theme: &Theme) -> AnyElement {
+    let (text, links) = usage_text(crate::i18n::t("welcome-usage-notice"));
     let linked = gpui::HighlightStyle {
         underline: Some(gpui::UnderlineStyle {
             thickness: fixed(1.),
@@ -4817,18 +4854,20 @@ fn usage_notice(theme: &Theme) -> AnyElement {
         }),
         ..Default::default()
     };
+    let ranges: Vec<_> = links.iter().map(|(range, _)| range.clone()).collect();
     let styled = gpui::StyledText::new(text)
-        .with_highlights([(policy.clone(), linked), (opt_out.clone(), linked)]);
-    // One line the column centers, not `text_center`: GPUI maps a click on centered text as if
-    // the line were left-aligned, so the links would miss.
+        .with_highlights(ranges.iter().cloned().map(|range| (range, linked)));
     div()
         .text_12()
         .text_color(theme.text_3)
         .child(gpui::InteractiveText::new("usage-notice", styled).on_click(
-            vec![policy, opt_out],
-            |link, window, cx| match link {
-                0 => cx.open_url("https://gitbutler.com/privacy"),
-                _ => window.dispatch_action(Box::new(crate::settings::OpenSettings), cx),
+            ranges,
+            move |index, window, cx| match links.get(index).map(|(_, kind)| kind) {
+                Some(UsageLink::Privacy) => cx.open_url("https://gitbutler.com/privacy"),
+                Some(UsageLink::OptOut) => {
+                    window.dispatch_action(Box::new(crate::settings::OpenSettings), cx)
+                }
+                None => {}
             },
         ))
         .into_any_element()
@@ -4944,6 +4983,37 @@ fn same_files<'a>(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn i18n_welcome_overlays_follow_translated_order_and_utf8_ranges() {
+        use super::{UsageLink, usage_text};
+        let (text, links) =
+            usage_text("先<opt-out>关闭统计</opt-out>，再读<privacy>隐私政策</privacy>。");
+        assert_eq!(
+            text, "先关闭统计，再读隐私政策。",
+            "markup is absent from rendered text"
+        );
+        let labels: Vec<_> = links
+            .iter()
+            .map(|(range, kind)| (&text[range.clone()], *kind))
+            .collect();
+        assert_eq!(
+            labels,
+            [
+                ("关闭统计", UsageLink::OptOut),
+                ("隐私政策", UsageLink::Privacy)
+            ],
+            "the translated order routes to named actions, preserving UTF-8 boundaries"
+        );
+        for language in crate::i18n::Language::ALL {
+            let (text, links) = usage_text(language.translate("welcome-usage-notice"));
+            assert_eq!(links.len(), 2, "both resource links remain interactive");
+            assert!(
+                !text.contains(['<', '>']),
+                "the bundled resources use balanced overlays"
+            );
+        }
+    }
+
     use std::collections::HashSet;
 
     use gpui::Pixels;

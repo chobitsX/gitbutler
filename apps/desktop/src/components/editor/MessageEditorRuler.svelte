@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		monospaceFont?: string;
@@ -23,7 +24,7 @@
 		<!-- Create a dummy amount of text to measure the width -->
 		{#if rulerCountValue.current > 0}
 			{#each Array(rulerCountValue.current) as _}
-				i
+				{$t("i")}
 			{/each}
 		{/if}
 	</div>

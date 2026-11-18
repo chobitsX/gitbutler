@@ -32,7 +32,7 @@ mod tiling;
 
 pub use activity::{Activity, QUARTER, SeenCommit};
 use load::{Change, Reload};
-pub use mesh::{MeshBranch, MeshPick, MeshPickKind, MeshState};
+pub use mesh::{MeshBranch, MeshPick, MeshPickKind, MeshState, MeshUnavailable};
 use mutation::Running;
 pub use mutation::{
     BlockedCommit, Label, NewAt, NewCommit, Overlay, Rereads, SLOW, branch_moved, conflicted_parts,
@@ -647,6 +647,7 @@ impl Store {
         let (forge_requests, requested) = mpsc::unbounded();
         let saved_db = Arc::new(backend::saved::Database::open());
         let (saved, fresh) = Saved::load(&saved_db);
+        crate::i18n::set_language(saved.prefs.language);
         let mut store = Self {
             projects: Vec::new(),
             projects_loaded: false,
@@ -809,8 +810,10 @@ impl Store {
                 // Said once, rather than opening on nothing; reading it again on each reload
                 // of the page would say so again each time.
                 let read = read.unwrap_or_else(|err| {
-                    let title =
-                        store.card_title(&project, "Couldn't read the merge's commits".into());
+                    let title = store.card_title(
+                        &project,
+                        crate::i18n::t("state-read-merge-s-commits-error").into(),
+                    );
                     store.failed(title, &err, cx);
                     Default::default()
                 });

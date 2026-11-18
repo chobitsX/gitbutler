@@ -10,6 +10,7 @@
 		type EmojiInfo,
 	} from "$components/emoji/utils";
 	import ScrollableContainer from "$components/scroll/ScrollableContainer.svelte";
+	import { t } from "$lib/utils/i18n";
 
 	type Props = {
 		onEmojiSelect: (emoji: EmojiInfo) => void;
@@ -46,7 +47,7 @@
 
 <div class="emoji-picker">
 	<div class="emoji-picker__header">
-		<Textbox placeholder="Search emojis..." iconLeft="search" bind:value={searchVal} />
+		<Textbox placeholder={$t("Search emojis...")} iconLeft="search" bind:value={searchVal} />
 
 		<div class="emoji-picker__categories">
 			{#each groups as group}
@@ -70,7 +71,7 @@
 				{#if searchVal && searchResults}
 					{#if searchResults.length === 0}
 						<div class="emoji-picker__placeholder">
-							<span class="text-13">No emojis found ¯\_(ツ)_/¯ </span>
+							<span class="text-13">{$t("No emojis found ¯\\_(ツ)_/¯")} </span>
 						</div>
 					{:else}
 						<div class="emoji-picker__group">

@@ -8,6 +8,7 @@
 	import { WORKTREE_SERVICE } from "$lib/worktree/worktreeService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { AsyncButton, FileListItem, Link, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { BaseBranch } from "@gitbutler/but-sdk";
 	import type { Snippet } from "svelte";
 
@@ -47,14 +48,16 @@
 
 			<div class="switchrepo__content" data-testid={TestId.NotOnGitButlerBranchView}>
 				<p class="switchrepo__title text-18 text-body text-bold">
-					You've switched away from <span class="code-string"> gitbutler/workspace </span>
+					{$t("You've switched away from")}
+					<span class="code-string"> {$t("gitbutler/workspace")} </span>
 				</p>
 
 				<p class="switchrepo__message text-13 text-body">
-					Due to GitButler managing multiple virtual branches, you cannot switch back and forth
-					between git branches and virtual branches easily.
+					{$t(
+						"Due to GitButler managing multiple virtual branches, you cannot switch back and forth between git branches and virtual branches easily.",
+					)}
 					<Link href="https://docs.gitbutler.com/features/branch-management/integration-branch">
-						Learn more
+						{$t("Learn more")}
 					</Link>
 				</p>
 
@@ -62,7 +65,7 @@
 					<div class="switchrepo__uncommited-changes">
 						<div class="switchrepo__uncommited-changes__section">
 							<p class="switchrepo__label text-13 text-body text-bold">
-								You have uncommitted changes:
+								{$t("You have uncommitted changes:")}
 							</p>
 							<div class="switchrepo__file-list">
 								{#each uncommittedChanges as change, i}
@@ -75,7 +78,7 @@
 							</div>
 							{#if conflicts}
 								<p class="switchrepo__label text-13 text-body clr-text-2">
-									Some files can’t be applied due to conflicts:
+									{$t("Some files can’t be applied due to conflicts:")}
 								</p>
 								<div class="switchrepo__file-list">
 									<ReduxResult result={mode.result} {projectId}>
@@ -98,8 +101,9 @@
 						</div>
 
 						<p class="text-13 text-body">
-							Your uncommitted changes will be carried into the workspace. If they conflict,
-							switching will stop. Commit or stash them before retrying.
+							{$t(
+								"Your uncommitted changes will be carried into the workspace. If they conflict, switching will stop. Commit or stash them before retrying.",
+							)}
 						</p>
 					</div>
 				{/if}
@@ -112,7 +116,7 @@
 						loading={targetBranchSwitch.current.isLoading}
 						action={initSwithToWorkspace}
 					>
-						Switch back
+						{$t("Switch back")}
 					</AsyncButton>
 				</div>
 			</div>

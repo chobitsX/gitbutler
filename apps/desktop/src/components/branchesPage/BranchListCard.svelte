@@ -8,6 +8,7 @@
 
 	import { AvatarGroup, ReviewBadge, SeriesLabelsRow, TestId, TimeAgo } from "@gitbutler/ui-svelte";
 	import { gravatarUrlFromEmail } from "@gitbutler/ui-svelte/components/avatar/gravatar";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { PullRequest } from "$lib/forge/interface/types";
 	import type { BranchListing, BranchListingDetails, ForgeUnitInfo } from "@gitbutler/but-sdk";
 
@@ -114,7 +115,7 @@
 			<SeriesLabelsRow series={filteredStackBranches} />
 			{#if branchListing.stack?.inWorkspace}
 				<div class="sidebar-entry__applied-tag">
-					<span class="text-10 text-semibold">Workspace</span>
+					<span class="text-10 text-semibold">{$t("Workspace")}</span>
 				</div>
 			{/if}
 		</div>
@@ -142,12 +143,12 @@
 			{/each}
 
 			{#if branchListing.hasLocal}
-				<span class="truncate">local</span>
+				<span class="truncate">{$t("local")}</span>
 				<span class="sidebar-entry__divider">•</span>
 			{/if}
 
 			{#if branchListing.remotes.length === 0 && !branchListing.hasLocal}
-				<span class="truncate">No remotes</span>
+				<span class="truncate">{$t("No remotes")}</span>
 			{/if}
 		</div>
 	{/snippet}
@@ -156,7 +157,7 @@
 			<span class="truncate">
 				{#if lastCommitDetails}
 					<TimeAgo date={lastCommitDetails.lastCommitAt} addSuffix />
-					by {lastCommitDetails.authorName}
+					{$t("by {authorName}", { authorName: lastCommitDetails.authorName })}
 				{/if}
 			</span>
 

@@ -12,6 +12,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { persisted } from "@gitbutler/shared/persisted";
 	import { Button, InfoMessage, type MessageStyle, Spacer, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import * as Sentry from "@sentry/sveltekit";
 	import { onMount } from "svelte";
@@ -40,7 +41,7 @@
 		const selectedPath = await backend.filePicker({
 			directory: true,
 			recursive: true,
-			title: "Target Clone Directory",
+			title: $t("Target Clone Directory"),
 		});
 		if (!selectedPath || !selectedPath[0]) return;
 
@@ -64,7 +65,7 @@
 
 		if (!repositoryUrl || !targetDirPath) {
 			errors.push({
-				label: "You must add both a repository URL and target directory.",
+				label: $t("You must add both a repository URL and target directory."),
 			});
 			loading = false;
 			return;
@@ -112,31 +113,33 @@
 	}
 </script>
 
-<h1 class="clone-title text-serif-42">Clone a <i>repository</i></h1>
+<h1 class="clone-title text-serif-42">{$t("Clone a")} <i>{$t("repository")}</i></h1>
 <SettingsSection>
-	<Textbox label="Clone URL" bind:value={repositoryUrl} />
+	<Textbox label={$t("Clone URL")} bind:value={repositoryUrl} />
 
 	<div class="clone__field repositoryTargetPath">
 		<Textbox
-			label="Where to clone"
+			label={$t("Where to clone")}
 			bind:value={targetDirPath}
 			placeholder="/Users/tipsy/Documents"
 		/>
-		<Button kind="outline" disabled={loading} onclick={handleCloneTargetSelect}>Choose..</Button>
+		<Button kind="outline" disabled={loading} onclick={handleCloneTargetSelect}
+			>{$t("Choose..")}</Button
+		>
 	</div>
 </SettingsSection>
 
 <Spacer dotted margin={24} />
 
 {#if completed}
-	{@render Notification({ title: "Success", style: "success" })}
+	{@render Notification({ title: $t("Success"), style: "success" })}
 {/if}
 {#if errors.length}
-	{@render Notification({ title: "Error", items: errors, style: "danger" })}
+	{@render Notification({ title: $t("Error"), items: errors, style: "danger" })}
 {/if}
 
 <div class="clone__actions">
-	<Button kind="outline" disabled={loading} onclick={handleCancel}>Cancel</Button>
+	<Button kind="outline" disabled={loading} onclick={handleCancel}>{$t("Cancel")}</Button>
 	<Button
 		style="pop"
 		icon={errors.length > 0 ? "refresh" : "chevron-right"}
@@ -145,11 +148,11 @@
 		onclick={cloneRepository}
 	>
 		{#if loading}
-			Cloning..
+			{$t("Cloning..")}
 		{:else if errors.length > 0}
-			Retry clone
+			{$t("Retry clone")}
 		{:else}
-			Clone
+			{$t("Clone")}
 		{/if}
 	</Button>
 </div>

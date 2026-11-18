@@ -7,6 +7,7 @@
 	import { inject } from "@gitbutler/core/context";
 
 	import { AddForgeAccountButton, Button, CardGroup, Link, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { fade } from "svelte/transition";
 
 	const bitbucketUserService = inject(BITBUCKET_USER_SERVICE);
@@ -53,8 +54,8 @@
 			const message = String(err?.message ?? err);
 			tokenError =
 				message.includes("403") || message.includes("Forbidden")
-					? "Token is missing required scopes - make sure read:user:bitbucket is granted."
-					: "Invalid email/token or network error";
+					? $t("Token is missing required scopes - make sure read:user:bitbucket is granted.")
+					: $t("Invalid email/token or network error");
 			posthog.captureOnboarding(OnboardingEvent.BitbucketStoreApiTokenFailed);
 		}
 	}
@@ -67,12 +68,12 @@
 			{#snippet error()}
 				<CardGroup.Item>
 					{#snippet title()}
-						Failed to load Bitbucket accounts
+						{$t("Failed to load Bitbucket accounts")}
 					{/snippet}
 					<Button
 						style="pop"
 						onclick={deleteAllBitbucketAccounts}
-						loading={clearingAllResult.current.isLoading}>Try again</Button
+						loading={clearingAllResult.current.isLoading}>{$t("Try again")}</Button
 					>
 				</CardGroup.Item>
 			{/snippet}
@@ -96,7 +97,7 @@
 					{/snippet}
 
 					{#snippet caption()}
-						Allows you to create Pull Requests
+						{$t("Allows you to create Pull Requests")}
 					{/snippet}
 
 					{#snippet actions()}
@@ -113,46 +114,48 @@
 			<CardGroup>
 				<CardGroup.Item>
 					{#snippet title()}
-						Add Atlassian API Token
+						{$t("Add Atlassian API Token")}
 					{/snippet}
 
 					{#snippet caption()}
-						Requires read:user:bitbucket, read:repository:bitbucket, read:pullrequest:bitbucket, and
-						write:pullrequest:bitbucket.
+						{$t(
+							"Requires read:user:bitbucket, read:repository:bitbucket, read:pullrequest:bitbucket, and write:pullrequest:bitbucket.",
+						)}
 						<br />
 						<Link href="https://id.atlassian.com/manage-profile/security/api-tokens"
-							>Create one on id.atlassian.com</Link
+							>{$t("Create one on id.atlassian.com")}</Link
 						>
 					{/snippet}
 
 					<Textbox
-						label="Atlassian account email"
+						label={$t("Atlassian account email")}
 						size="large"
 						value={emailInput}
-						placeholder="you@example.com"
+						placeholder={$t("you@example.com")}
 						oninput={(value) => (emailInput = value)}
 						error={emailError}
 					/>
 					<Textbox
-						label="API token"
+						label={$t("API token")}
 						size="large"
 						type="password"
 						value={tokenInput}
-						placeholder="ATATT************************"
+						placeholder={$t("ATATT************************")}
 						oninput={(value) => (tokenInput = value)}
 						error={tokenError}
 					/>
 				</CardGroup.Item>
 				<CardGroup.Item>
 					<div class="flex justify-end gap-6">
-						<Button style="gray" kind="outline" onclick={cleanupApiTokenFlow}>Cancel</Button>
+						<Button style="gray" kind="outline" onclick={cleanupApiTokenFlow}>{$t("Cancel")}</Button
+						>
 						<Button
 							style="pop"
 							disabled={!emailInput || !tokenInput}
 							loading={storeApiTokenResult.current.isLoading}
 							onclick={storeBitbucketApiToken}
 						>
-							Add account
+							{$t("Add account")}
 						</Button>
 					</div>
 				</CardGroup.Item>
@@ -162,7 +165,7 @@
 </div>
 
 <p class="text-12 text-body bitbucket-integration-settings__text">
-	🔒 Credentials are persisted locally in your OS Keychain / Credential Manager.
+	{$t("🔒 Credentials are persisted locally in your OS Keychain / Credential Manager.")}
 </p>
 
 {#snippet addProfileButton(noAccounts: boolean)}
@@ -171,7 +174,7 @@
 		disabled={showingFlow !== undefined}
 		loading={storeApiTokenResult.current.isLoading}
 		menuItems={[
-			{ label: "Add Atlassian API Token", icon: "lock-auth", onclick: startApiTokenFlow },
+			{ label: $t("Add Atlassian API Token"), icon: "lock-auth", onclick: startApiTokenFlow },
 		]}
 	/>
 {/snippet}

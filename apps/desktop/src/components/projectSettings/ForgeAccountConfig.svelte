@@ -1,6 +1,7 @@
 <script lang="ts" generics="TAccount">
 	import { useSettingsModal } from "$lib/settings/settingsModal.svelte";
 	import { Button, CardGroup, Link, Select, SelectItem } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Component, Snippet } from "svelte";
 
 	type Props = {
@@ -47,27 +48,28 @@
 <CardGroup.Item>
 	{#snippet title()}
 		{#if hasAccounts}
-			Configure {displayName} integration
+			{$t("Configure {displayName} integration", { displayName: displayName })}
 		{:else}
-			Connect your {displayName} account
+			{$t("Connect your {displayName} account", { displayName: displayName })}
 		{/if}
 	{/snippet}
 
 	{#snippet caption()}
-		Enable {requestType} creation. Read more in the <Link href={docsUrl}>docs</Link>
+		{$t("Enable {requestType} creation. Read more in the", { requestType: requestType })}
+		<Link href={docsUrl}>{$t("docs")}</Link>
 	{/snippet}
 
 	{#if !hasAccounts}
 		<div class="flex">
 			<Button onclick={() => openGeneralSettings("integrations")} style="pop" icon="link"
-				>Set up in General Settings</Button
+				>{$t("Set up in General Settings")}</Button
 			>
 		</div>
 	{:else}
 		{@const account = preferredAccount!}
 		{@const accountStr = accountToString(account)}
 		<Select
-			label="{displayName} account for this project"
+			label={$t("{displayName} account for this project", { displayName: displayName })}
 			value={accountStr}
 			options={accounts.map((acc) => ({
 				label: getUsername(acc),

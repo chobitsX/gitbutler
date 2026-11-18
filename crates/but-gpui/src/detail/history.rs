@@ -161,14 +161,14 @@ impl Group {
 
     fn label(self) -> &'static str {
         match self {
-            Group::Commits => "Commits made",
-            Group::Rewrites => "Commits amended, squashed or moved",
-            Group::Discards => "Changes thrown away",
-            Group::Branches => "Branches",
-            Group::Updates => "Updates from the target",
-            Group::TakeBacks => "Undos and restores",
-            Group::Snapshots => "Snapshots",
-            Group::Other => "Other",
+            Group::Commits => crate::i18n::t("detail-history-commits-made"),
+            Group::Rewrites => crate::i18n::t("detail-history-commits-amended-squashed-or-moved"),
+            Group::Discards => crate::i18n::t("detail-history-changes-thrown-away"),
+            Group::Branches => crate::i18n::t("detail-history-branches"),
+            Group::Updates => crate::i18n::t("detail-history-updates-target"),
+            Group::TakeBacks => crate::i18n::t("detail-history-undos-restores"),
+            Group::Snapshots => crate::i18n::t("detail-history-snapshots"),
+            Group::Other => crate::i18n::t("detail-history-other"),
         }
     }
 
@@ -222,7 +222,7 @@ fn subject(operation: &Operation) -> Option<String> {
     let name = |commits: &[&Recorded]| match commits {
         [] => None,
         [one] => Some(commit_title(&one.title()).to_string()),
-        many => Some(plural(many.len(), "commit")),
+        many => Some(plural(many.len(), crate::ui::Count::Commit)),
     };
     if let (Some(K::SquashCommit), [gone], [into]) = (operation.kind, &removed[..], &edited[..]) {
         let (gone, into) = (commit_title(&gone.title()), commit_title(&into.title()));
@@ -230,13 +230,18 @@ fn subject(operation: &Operation) -> Option<String> {
     }
     if let Some(K::MergeUpstream | K::UpdateWorkspaceBase) = operation.kind {
         let brought = operation.changes.iter().find_map(|change| match change {
-            Change::TargetMoved { target, commits } => {
-                Some(format!("{} from {target}", plural(*commits, "commit")))
-            }
+            Change::TargetMoved { target, commits } => Some(format!(
+                "{} from {target}",
+                plural(*commits, crate::ui::Count::Commit)
+            )),
             _ => None,
         });
-        let integrated = (!removed.is_empty())
-            .then(|| format!("{} integrated", plural(removed.len(), "commit")));
+        let integrated = (!removed.is_empty()).then(|| {
+            format!(
+                "{} integrated",
+                plural(removed.len(), crate::ui::Count::Commit)
+            )
+        });
         return match (brought, integrated) {
             (Some(brought), Some(integrated)) => Some(format!("{brought}, {integrated}")),
             (brought, integrated) => brought.or(integrated),
@@ -341,7 +346,11 @@ impl Detail {
                 match result {
                     // What's listed stays, Show older too, to try again.
                     Err(err) if after.is_some() => this.store.update(cx, |store, cx| {
-                        store.failed("Couldn't read the history", &err, cx)
+                        store.failed(
+                            crate::i18n::t("detail-history-read-history-error"),
+                            &err,
+                            cx,
+                        )
                     }),
                     Err(err) => history.failed = Some(format!("{err:#}")),
                     Ok((operations, more)) if after.is_some() => {
@@ -577,12 +586,14 @@ impl Detail {
         self.app.update_later(window, cx, move |app, window, cx| {
             app.confirm_then(
                 Some(Selection::Project(project.clone())),
-                format!("Restore to before \"{title}\"?"),
-                &crate::ui::keys_text(
-                    "Branches, commits and uncommitted changes go back to how they were. \
-                     You can undo this with ⌘Z.",
+                crate::i18n::tf(
+                    "detail-history-restore-before",
+                    &[("title", (title.to_string()).into())],
                 ),
-                "Restore",
+                &crate::ui::keys_text(crate::i18n::t(
+                    "detail-history-restore-operation-branches-commits-uncommitted-changes",
+                )),
+                crate::i18n::t("detail-history-restore"),
                 window,
                 cx,
                 move |app, cx| {
@@ -806,7 +817,7 @@ impl Detail {
                 Icon::ArrowLineDown,
                 theme.text_2,
                 None,
-                plural(*commits, "commit"),
+                plural(*commits, crate::ui::Count::Commit),
                 format!("new on {target}"),
             ),
         };
@@ -823,7 +834,7 @@ impl Detail {
             .child(faint(note, theme).flex_none().max_w(dp(320.)).truncate())
             .when_some(here, |el, id| {
                 el.hover(|el| el.text_color(theme.blue))
-                    .tooltip(Tooltip::text("Show this commit"))
+                    .tooltip(Tooltip::text(crate::i18n::t("detail-history-show-commit")))
                     .on_click(move |_, _, cx| {
                         let selection = Selection::Commit(project.clone(), id);
                         store.update(cx, |store, cx| store.select_by_hand(selection, cx));
@@ -836,7 +847,7 @@ impl Detail {
     fn take_snapshot(&self, project: &ProjectId, window: &mut Window, cx: &mut Context<Self>) {
         let project = project.clone();
         self.app.update_later(window, cx, move |app, window, cx| {
-            let input = cx.new(|cx| TextInput::new("What it's for (optional)", false, cx));
+            let input = cx.new(|cx| TextInput::localized("detail-history-s-optional", false, cx));
             let place = app
                 .store
                 .read(cx)
@@ -879,7 +890,7 @@ impl Detail {
             return loading_state("Loading history…", theme, cx);
         };
         if let Some(err) = &history.failed {
-            let title = "Couldn't read the history".to_owned();
+            let title = crate::i18n::t("detail-history-read-history-error").to_owned();
             return list_empty(Illustration::Papers, title, error_summary(err), theme, cx);
         }
         let snapshot = project.clone();
@@ -900,7 +911,9 @@ impl Detail {
             .child(
                 icon_button("take-snapshot", Icon::Plus)
                     .small()
-                    .tooltip("Take a snapshot of the project as it is, to restore later")
+                    .tooltip(crate::i18n::t(
+                        "detail-history-take-snapshot-project-restore-later",
+                    ))
                     .disabled_because(no_target.then_some("Pick a target branch first"))
                     .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                         this.take_snapshot(&snapshot, window, cx)
@@ -973,8 +986,9 @@ impl Detail {
                                         div()
                                             .id(("operation-agent", ix))
                                             .flex_none()
-                                            .tooltip(Tooltip::text(format!(
-                                                "Done by an AI agent: {agent}"
+                                            .tooltip(Tooltip::text(crate::i18n::tf(
+                                                "detail-history-done-ai-agent",
+                                                &[("agent", (agent).into())],
                                             )))
                                             .child(icon(Icon::Ai).text_color(quiet(theme.text_3))),
                                     )
@@ -1001,9 +1015,9 @@ impl Detail {
                             list_row("history-more", false, theme)
                                 .text_color(theme.text_2)
                                 .child(if history.loading {
-                                    "Loading…"
+                                    crate::i18n::t("detail-history-loading")
                                 } else {
-                                    "Show older"
+                                    crate::i18n::t("detail-history-show-older")
                                 })
                                 .on_click(cx.listener(move |this, _, _, cx| {
                                     this.load_history(&project, true, cx)

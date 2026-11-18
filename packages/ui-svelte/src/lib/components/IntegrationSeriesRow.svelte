@@ -26,6 +26,7 @@
 	import Checkbox from "$components/Checkbox.svelte";
 	import Icon from "$components/Icon.svelte";
 	import SeriesIcon from "$components/SeriesIcon.svelte";
+	import { t } from "$lib/utils/i18n";
 	import { TestId } from "$lib/utils/testIds";
 	const {
 		testId,
@@ -51,9 +52,9 @@
 					data-testid={TestId.IntegrateUpstreamSeriesRowStatusBadge}
 				>
 					{#if status === "conflicted"}
-						Conflicted
+						{$t("Conflicted")}
 					{:else if status === "integrated"}
-						Integrated
+						{$t("Integrated")}
 					{/if}
 				</span>
 			{/if}
@@ -62,7 +63,7 @@
 		{#if status === "integrated"}
 			<div class="integrated-label-wrap">
 				<Icon name="tick" />
-				<span class="integrated-label text-12"> Part of the new base </span>
+				<span class="integrated-label text-12"> {$t("Part of the new base")} </span>
 			</div>
 		{/if}
 	</div>
@@ -77,7 +78,7 @@
 						<SeriesIcon single={false} />
 					</div>
 
-					<span class="series-label text-12 text-semibold truncate"> Stack branches </span>
+					<span class="series-label text-12 text-semibold truncate"> {$t("Stack branches")} </span>
 				</div>
 
 				{#if allSeriesAreIntegrated && showDeleteControls}
@@ -85,7 +86,7 @@
 						(branch) => branchShouldBeDeletedMap[branch.name],
 					)}
 					<div class="integrated-label-wrap">
-						<span class="integrated-label text-12">Delete all local branches</span>
+						<span class="integrated-label text-12">{$t("Delete all local branches")}</span>
 						<Checkbox
 							checked={atLeastSomeWillBeDeleted}
 							onchange={(e) => {
@@ -126,15 +127,15 @@
 					<div class="branch-status-info">
 						<span class="status-badge text-10 text-semibold">
 							{#if branch.status === "conflicted"}
-								Conflicted
+								{$t("Conflicted")}
 							{:else if branch.status === "integrated"}
-								Integrated
+								{$t("Integrated")}
 							{/if}
 						</span>
 
 						{#if branch.status === "integrated" && showDeleteControls}
 							<div class="integrated-label-wrap">
-								<span class="integrated-label text-12">Delete local branch</span>
+								<span class="integrated-label text-12">{$t("Delete local branch")}</span>
 								<Checkbox
 									checked={branchShouldBeDeletedMap[branch.name]}
 									onchange={(e) => {

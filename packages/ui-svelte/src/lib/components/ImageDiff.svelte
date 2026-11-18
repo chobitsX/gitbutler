@@ -3,6 +3,7 @@
 	import RangeInput from "$components/RangeInput.svelte";
 	import SkeletonBone from "$components/SkeletonBone.svelte";
 	import { SegmentControl } from "$components/segmentControl";
+	import { t } from "$lib/utils/i18n";
 
 	type Props = {
 		beforeImageUrl?: string | null;
@@ -49,7 +50,7 @@
 		} else if (diff < 0) {
 			return `-${formatFileSize(absDiff)}`;
 		}
-		return "Same size";
+		return $t("Same size");
 	}
 
 	async function loadImageMetadata(url: string): Promise<ImageMetadata> {
@@ -183,9 +184,9 @@
 		>
 			{formatSizeDifference(beforeImageMetadata.size, afterImageMetadata.size)}
 			{#if afterImageMetadata.size < beforeImageMetadata.size}
-				<span aria-label="decreased">↘</span>
+				<span aria-label={$t("decreased")}>↘</span>
 			{:else if afterImageMetadata.size > beforeImageMetadata.size}
-				<span aria-label="increased">↗</span>
+				<span aria-label={$t("increased")}>↗</span>
 			{/if}
 		</span>
 	{/if}
@@ -237,19 +238,19 @@
 			onkeydown={handleKeyDown}
 			role="slider"
 			tabindex="0"
-			aria-label="Image comparison slider"
+			aria-label={$t("Image comparison slider")}
 			aria-valuenow={props.controlValue}
 			aria-valuemin={0}
 			aria-valuemax={100}
 		>
 			<div class="comparison-image comparison-after">
-				<img src={afterImageUrl!} alt="{fileName} (After)" />
+				<img src={afterImageUrl!} alt={$t("{fileName} (After)", { fileName: fileName })} />
 			</div>
 			<div
 				class="comparison-image comparison-before"
 				style="clip-path: inset(0 {100 - props.controlValue}% 0 0);"
 			>
-				<img src={beforeImageUrl!} alt="{fileName} (Before)" />
+				<img src={beforeImageUrl!} alt={$t("{fileName} (Before)", { fileName: fileName })} />
 			</div>
 			<div class="swipe-handle" style="left: {props.controlValue}%">
 				<div class="swipe-divider"></div>
@@ -264,16 +265,16 @@
 	<div class="comparison-container">
 		<div class="comparison-wrapper checkered-bg" bind:this={comparisonWrapperRef}>
 			<div class="comparison-image comparison-after">
-				<img src={afterImageUrl!} alt="{fileName} (After)" />
+				<img src={afterImageUrl!} alt={$t("{fileName} (After)", { fileName: fileName })} />
 			</div>
 			<div class="comparison-image comparison-before" style="opacity: {props.controlValue / 100};">
-				<img src={beforeImageUrl!} alt="{fileName} (Before)" />
+				<img src={beforeImageUrl!} alt={$t("{fileName} (Before)", { fileName: fileName })} />
 			</div>
 		</div>
 		<div class="comparison-controls">
-			<Badge style="danger" kind="soft">Before</Badge>
+			<Badge style="danger" kind="soft">{$t("Before")}</Badge>
 			<RangeInput min={0} max={100} value={props.controlValue} oninput={props.onValueChange} wide />
-			<Badge style="safe" kind="soft">After</Badge>
+			<Badge style="safe" kind="soft">{$t("After")}</Badge>
 		</div>
 		{@render comparisonFooter()}
 	</div>
@@ -287,9 +288,9 @@
 				selected={viewMode}
 				onselect={(id) => (viewMode = id as ViewMode)}
 			>
-				<SegmentControl.Item id="2-up">2-up</SegmentControl.Item>
-				<SegmentControl.Item id="swipe">Swipe</SegmentControl.Item>
-				<SegmentControl.Item id="onion-skin">Onion Skin</SegmentControl.Item>
+				<SegmentControl.Item id="2-up">{$t("2-up")}</SegmentControl.Item>
+				<SegmentControl.Item id="swipe">{$t("Swipe")}</SegmentControl.Item>
+				<SegmentControl.Item id="onion-skin">{$t("Onion Skin")}</SegmentControl.Item>
 			</SegmentControl>
 		</div>
 	{/if}
@@ -308,7 +309,7 @@
 				{#if beforeImageUrl}
 					{@render imagePanel({
 						url: beforeImageUrl,
-						label: afterImageUrl ? "Before" : "Removed",
+						label: afterImageUrl ? $t("Before") : $t("Removed"),
 						isBefore: true,
 						metadata: beforeImageMetadata,
 					})}
@@ -317,7 +318,7 @@
 				{#if afterImageUrl}
 					{@render imagePanel({
 						url: afterImageUrl,
-						label: beforeImageUrl ? "After" : "Added",
+						label: beforeImageUrl ? $t("After") : $t("Added"),
 						metadata: afterImageMetadata,
 					})}
 				{/if}

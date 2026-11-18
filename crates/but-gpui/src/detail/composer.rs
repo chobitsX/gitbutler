@@ -708,7 +708,11 @@ impl Detail {
                     let done = format!("Committed to {}", short_ref(&committed.branch));
                     store.report_left_out(&done, &committed.left_out, cx);
                     if let Some(output) = committed.hook_failed {
-                        store.error("Committed, but the post-commit hook failed", output, cx);
+                        store.error(
+                            crate::i18n::t("detail-composer-committed-but-post-commit-hook-failed"),
+                            output,
+                            cx,
+                        );
                     }
                 },
                 cx,
@@ -1268,7 +1272,11 @@ impl Detail {
                         cx,
                     );
                     if let Some(output) = committed.hook_failed {
-                        store.error("Committed, but the post-commit hook failed", output, cx);
+                        store.error(
+                            crate::i18n::t("detail-composer-committed-but-post-commit-hook-failed"),
+                            output,
+                            cx,
+                        );
                     }
                 },
                 cx,
@@ -1602,8 +1610,8 @@ impl Detail {
                     .text_12()
                     .text_color(theme.text_2)
                     .child(match amending {
-                        Some(_) => "Amend",
-                        None => "Commit to",
+                        Some(_) => crate::i18n::t("detail-composer-amend"),
+                        None => crate::i18n::t("detail-composer-commit"),
                     })
                     .child(self.render_target_picker(target, amending.is_none(), theme, cx))
                     // Saying it's writing, as an answer can take a while to start. Above the
@@ -1628,9 +1636,9 @@ impl Detail {
                                 .then_some("Check some changes to write about"),
                         )
                         .tooltip(if self.writing.is_some() {
-                            "Writing… Click to keep what's written so far"
+                            crate::i18n::t("detail-composer-writing-click-keep-s-written-so")
                         } else {
-                            "Write the message with AI, guided by what's in the box"
+                            crate::i18n::t("detail-composer-write-message-ai-guided-s-box")
                         })
                         // A slow model, as a local one can be, would otherwise hold the
                         // commit until it's done.
@@ -1663,9 +1671,12 @@ impl Detail {
                                 _ if self.files_width(window, cx) < 280. => String::new(),
                                 0 => "No changes".to_owned(),
                                 total if whole && total > 1 => {
-                                    format!("All {}", plural(total, "file"))
+                                    format!("All {}", plural(total, crate::ui::Count::File))
                                 }
-                                total => format!("{checked} of {}", plural(total, "file")),
+                                total => format!(
+                                    "{checked} of {}",
+                                    plural(total, crate::ui::Count::File)
+                                ),
                             },
                             theme,
                         )
@@ -1674,7 +1685,7 @@ impl Detail {
                         .truncate(),
                     )
                     .child(
-                        button("close-composer", "Cancel")
+                        button("close-composer", crate::i18n::t("common-cancel"))
                             .small()
                             .style(ButtonStyle::Ghost)
                             .tooltip_with_key(
@@ -1689,12 +1700,12 @@ impl Detail {
                             ),
                     )
                     .child(match amending {
-                        Some(_) => button("amend", "Amend")
+                        Some(_) => button("amend", crate::i18n::t("detail-composer-amend"))
                             .small()
                             .min_width(dp(super::COMMIT_BUTTON_WIDTH))
                             .style(ButtonStyle::Pop)
                             .disabled_because(match &amended {
-                                None => Some("Pick a commit to amend"),
+                                None => Some(crate::i18n::t("detail-composer-pick-commit-amend")),
                                 Some(_) => (checked == 0 && !self.amend_message_rewritten(cx))
                                     .then_some("Check some changes or change the message"),
                             })
@@ -1707,7 +1718,7 @@ impl Detail {
                                 &crate::app::StartAmend,
                             )
                             .on_click(cx.listener(|this, _, window, cx| this.amend(window, cx))),
-                        None => button("commit", "Commit")
+                        None => button("commit", crate::i18n::t("detail-composer-commit-2"))
                             .small()
                             .min_width(dp(super::COMMIT_BUTTON_WIDTH))
                             .style(ButtonStyle::Pop)
@@ -1756,7 +1767,9 @@ impl Detail {
             .when(pickable && !self.checks_worktree.is_linked(), |el| {
                 el.hover(|el| el.bg(theme.muted_hover))
                     .child(small_icon(Icon::ChevronDown).text_color(theme.text_2))
-                    .tooltip(Tooltip::text("Pick the branch to commit to"))
+                    .tooltip(Tooltip::text(crate::i18n::t(
+                        "detail-composer-pick-branch-commit",
+                    )))
                     .on_click(
                         cx.listener(|this, _, window, cx| this.pick_commit_target(window, cx)),
                     )
@@ -1823,7 +1836,10 @@ impl Detail {
             }
             // The new branch becomes the target, rather than the page shown.
             let done = move |store: &mut Store, branch: FullName, cx: &mut Context<Store>| {
-                let message = format!("Created {}", short_ref(&branch));
+                let message = crate::i18n::tf(
+                    "detail-composer-created",
+                    &[("branch", (format!("{}", short_ref(&branch))).into())],
+                );
                 (detail.update(cx, |detail, cx| {
                     detail.branch_created(&targeted, branch, cx)
                 }))

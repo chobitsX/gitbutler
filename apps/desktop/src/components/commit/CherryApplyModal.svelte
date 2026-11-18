@@ -8,6 +8,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, CardGroup, InfoMessage, Modal, RadioButton } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -57,7 +58,7 @@
 			});
 		} catch (error) {
 			// Keep the modal open so another stack can be tried.
-			showError("Cannot cherry-pick commit", error);
+			showError($t("Cannot cherry-pick commit"), error);
 			return;
 		}
 
@@ -70,9 +71,9 @@
 
 	/** A stack whose top segment lost its branch name has nothing to place the copy against. */
 	function targetsMessage(targetCount: number, stackCount: number): string {
-		if (targetCount > 0) return "Select the stack to copy this commit into.";
-		if (stackCount > 0) return "No applied stack has a named branch to copy this commit into.";
-		return "No stacks are currently applied to the workspace.";
+		if (targetCount > 0) return $t("Select the stack to copy this commit into.");
+		if (stackCount > 0) return $t("No applied stack has a named branch to copy this commit into.");
+		return $t("No stacks are currently applied to the workspace.");
 	}
 
 	function handleStackSelectionChange(form: HTMLFormElement) {
@@ -84,7 +85,7 @@
 	}
 </script>
 
-<Modal bind:this={modalRef} title="Cherry-pick commit" width={500}>
+<Modal bind:this={modalRef} title={$t("Cherry-pick commit")} width={500}>
 	<ReduxResult {projectId} result={stacksResult.result}>
 		{#snippet children(stacks)}
 			{@const targets = cherryPickTargets(stacks)}
@@ -105,7 +106,7 @@
 									{/snippet}
 									{#snippet caption()}
 										{branchCount}
-										{branchCount === 1 ? "branch" : "branches"}
+										{branchCount === 1 ? $t("branch") : $t("branches")}
 									{/snippet}
 									{#snippet actions()}
 										<RadioButton
@@ -124,14 +125,14 @@
 		{/snippet}
 	</ReduxResult>
 	{#snippet controls()}
-		<Button kind="outline" onclick={close} disabled={isApplying}>Cancel</Button>
+		<Button kind="outline" onclick={close} disabled={isApplying}>{$t("Cancel")}</Button>
 		<Button
 			style="pop"
 			onclick={handleApply}
 			disabled={!selectedBranchName || isApplying}
 			loading={isApplying}
 		>
-			Cherry-pick
+			{$t("Cherry-pick")}
 		</Button>
 	{/snippet}
 </Modal>

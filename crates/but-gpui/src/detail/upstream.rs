@@ -313,7 +313,11 @@ impl Detail {
                             cx.notify();
                         }
                         this.store.update(cx, |store, cx| {
-                            store.failed("Couldn't read more of the history", &err, cx)
+                            store.failed(
+                                crate::i18n::t("detail-upstream-read-more-history-error"),
+                                &err,
+                                cx,
+                            )
                         });
                         return;
                     }
@@ -762,8 +766,8 @@ impl Detail {
         let open = self.message_open(cx);
         let toggle = (!shown.is_empty()).then(|| {
             let label = match open {
-                true => "Hide message",
-                false => "Show message",
+                true => crate::i18n::t("detail-upstream-hide-message"),
+                false => crate::i18n::t("detail-upstream-show-message"),
             };
             button("target-message-more", label)
                 .small()
@@ -894,8 +898,17 @@ impl Detail {
             if rows.is_empty() {
                 // The area picked says so here too, as what picks it hides behind a commit.
                 rows.push(Row::Heading(match area {
-                    Some(area) => format!("On {target} · {area}"),
-                    None => format!("On {target}"),
+                    Some(area) => crate::i18n::tf(
+                        "overview-on-target-area",
+                        &[
+                            ("target", target.to_string().into()),
+                            ("area", area.clone().into()),
+                        ],
+                    ),
+                    None => crate::i18n::tf(
+                        "overview-on-target",
+                        &[("target", target.to_string().into())],
+                    ),
                 }));
             }
             rows.push(Row::Commit(ix));
@@ -1005,9 +1018,9 @@ impl Detail {
         let another = {
             let project = project.clone();
             let label = if picks.is_empty() {
-                "Choose a branch…"
+                crate::i18n::t("detail-upstream-choose-branch")
             } else {
-                "Choose another…"
+                crate::i18n::t("detail-upstream-choose-another")
             };
             button("target-another", label)
                 .style(ButtonStyle::Ghost)
@@ -1092,14 +1105,16 @@ impl Detail {
             .child(div().text_14().semibold().child(title))
             .child(muted(detail.into(), theme).mb(dp(8.)))
             .child(
-                crate::ui::button("pick-target", "Choose a target branch…").on_click(cx.listener(
-                    move |this, _, window, cx| {
-                        let project = project.clone();
-                        this.app.update_later(window, cx, move |app, window, cx| {
-                            app.pick_target(project, window, cx)
-                        });
-                    },
-                )),
+                crate::ui::button(
+                    "pick-target",
+                    crate::i18n::t("detail-upstream-choose-target-branch"),
+                )
+                .on_click(cx.listener(move |this, _, window, cx| {
+                    let project = project.clone();
+                    this.app.update_later(window, cx, move |app, window, cx| {
+                        app.pick_target(project, window, cx)
+                    });
+                })),
             )
             .into_any_element()
     }
@@ -1191,8 +1206,8 @@ impl Detail {
         people.sort_by_key(|(.., n)| std::cmp::Reverse(*n));
         // Merges, as a merge commit bringing in several of someone's commits counts once.
         let counted = match days {
-            None => format!("merges · {ACTIVITY_DAYS} days"),
-            Some(_) => "merges · days picked".to_owned(),
+            None => crate::i18n::tf("overview-merges-days", &[("count", ACTIVITY_DAYS.into())]),
+            Some(_) => crate::i18n::t("overview-merges-picked-days").to_owned(),
         };
         let project = project.clone();
         Some(self.people_card(
@@ -1473,8 +1488,8 @@ impl Detail {
             let shown = project.clone();
             if commit.merge {
                 let label = match upstream.view.open_merges.contains(&merge) {
-                    true => "Hide commits",
-                    false => "Show commits",
+                    true => crate::i18n::t("detail-upstream-hide-commits"),
+                    false => crate::i18n::t("detail-upstream-show-commits"),
                 };
                 // This page's, which needn't be the home tile's.
                 let this = cx.entity();
@@ -1681,7 +1696,7 @@ impl Detail {
             )
             .when(!entry.gone, |el| {
                 let said = match &fetch {
-                    Some(None) => "No remote to fetch from".into(),
+                    Some(None) => crate::i18n::t("overview-no-remote").into(),
                     Some(Some((Some(at), _))) => format!("Fetched {}", crate::ui::ago(*at)),
                     _ => "Not fetched yet".into(),
                 };
@@ -1699,7 +1714,7 @@ impl Detail {
                                     .top_0()
                                     .left_0()
                                     .whitespace_nowrap()
-                                    .child("Fetching…"),
+                                    .child(crate::i18n::t("detail-upstream-fetching")),
                             )
                         }),
                 );
@@ -1733,13 +1748,16 @@ impl Detail {
             .child(
                 meta_item(Icon::Branch, theme)
                     .flex_none()
-                    .child(format!("{applied} applied")),
+                    .child(crate::i18n::tf(
+                        "detail-upstream-applied",
+                        &[("applied", (format!("{applied}")).into())],
+                    )),
             )
             .when(worktrees > 0, |el| {
                 el.child(
                     meta_item(Icon::Folder, theme)
                         .flex_none()
-                        .child(plural(worktrees, "linked worktree")),
+                        .child(plural(worktrees, crate::ui::Count::LinkedWorktree)),
                 )
             })
             .children(self.mesh_meta(project, theme, cx))
@@ -1751,11 +1769,19 @@ impl Detail {
                         .flex_none()
                         .id("untracked-target")
                         .text_color(theme.warn)
-                        .child(format!("{} doesn't track {remote}", target.name))
-                        .tooltip(Tooltip::text(format!(
-                            "What's pushed to {remote} doesn't show here, nor can branches be \
-                             pushed. Track it with `git branch -u {remote} {}`",
-                            target.name
+                        .child(crate::i18n::tf(
+                            "detail-upstream-doesn-t-track",
+                            &[
+                                ("name", (target.name.to_string()).into()),
+                                ("remote", (remote.to_string()).into()),
+                            ],
+                        ))
+                        .tooltip(Tooltip::text(crate::i18n::tf(
+                            "detail-upstream-render-project-header-s-pushed-doesn-t",
+                            &[
+                                ("remote", (remote.to_string()).into()),
+                                ("name", (target.name.to_string()).into()),
+                            ],
                         ))),
                 )
             }));
@@ -1791,16 +1817,34 @@ impl Detail {
             .ml(dp(-8.))
             .children(ProjectTab::ALL.map(|to| {
                 let (id, glyph, label) = match to {
-                    ProjectTab::Overview => ("tab-overview", Icon::Repo, "Overview"),
-                    ProjectTab::Branches => ("tab-branches", Icon::Branch, "Branches"),
-                    ProjectTab::History => ("tab-history", Icon::Clock, "Operations history"),
-                    ProjectTab::Graph => ("tab-graph", Icon::Fork, "Graph"),
+                    ProjectTab::Overview => (
+                        "tab-overview",
+                        Icon::Repo,
+                        crate::i18n::t("detail-upstream-overview"),
+                    ),
+                    ProjectTab::Branches => (
+                        "tab-branches",
+                        Icon::Branch,
+                        crate::i18n::t("detail-upstream-branches"),
+                    ),
+                    ProjectTab::History => (
+                        "tab-history",
+                        Icon::Clock,
+                        crate::i18n::t("detail-upstream-operations-history"),
+                    ),
+                    ProjectTab::Graph => (
+                        "tab-graph",
+                        Icon::Fork,
+                        crate::i18n::t("detail-upstream-graph"),
+                    ),
                 };
                 let selected = self.project_tab() == to;
                 tab(id, glyph, label, selected, solid, theme)
                     .when(id == "tab-branches", |el| {
                         el.children(count.map(|n| count_badge(n, theme)))
-                            .tooltip(Tooltip::text("Branches matching the current filters"))
+                            .tooltip(Tooltip::text(crate::i18n::t(
+                                "detail-upstream-branches-matching-current-filters",
+                            )))
                     })
                     // Clicking what's open only gives the tabs the keys, as any press on them.
                     .when(!selected, |el| {
@@ -1866,18 +1910,21 @@ impl Detail {
             }),
             upstream.and_then(|u| u.unconnected_forge).map(|forge| {
                 callout(theme.hover)
-                    .child(div().text_color(theme.text_1).child(format!(
-                        "Connect {} to see pull requests and CI here.",
-                        forge.name()
+                    .child(div().text_color(theme.text_1).child(crate::i18n::tf(
+                        "detail-upstream-connect-see-pull-requests-ci-here",
+                        &[("name", (forge.name().to_string()).into())],
                     )))
                     .child(
-                        crate::ui::button("connect-forge", "Connect…")
-                            .small()
-                            .on_click(cx.listener(|this, _, window, cx| {
-                                this.app.update_later(window, cx, move |app, window, cx| {
-                                    app.open_accounts(window, cx)
-                                });
-                            })),
+                        crate::ui::button(
+                            "connect-forge",
+                            crate::i18n::t("detail-upstream-connect"),
+                        )
+                        .small()
+                        .on_click(cx.listener(|this, _, window, cx| {
+                            this.app.update_later(window, cx, move |app, window, cx| {
+                                app.open_accounts(window, cx)
+                            });
+                        })),
                     )
                     .into_any_element()
             }),
@@ -1886,7 +1933,7 @@ impl Detail {
                 callout(theme.surface(Hue::Danger))
                     .child(div().text_color(theme.danger).children(entry.error.clone()))
                     .child(
-                        crate::ui::button("forget", "Remove")
+                        crate::ui::button("forget", crate::i18n::t("common-remove"))
                             .small()
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 let project = remove.clone();
@@ -1901,23 +1948,26 @@ impl Detail {
                 callout(theme.surface(Hue::Danger))
                     .child(div().text_color(theme.danger).children(entry.error.clone()))
                     .child(
-                        crate::ui::button("uncommit-above", "Uncommit, keep the changes")
-                            .small()
-                            .on_click(cx.listener(move |this, _, _, cx| {
-                                let project = project.clone();
-                                this.store.update(cx, |store, cx| {
-                                    store.apply(
-                                        &project,
-                                        "Uncommit",
-                                        Default::default(),
-                                        backend::history::UncommitAboveWorkspace {
-                                            workspace_commit: above.workspace_commit_id,
-                                        },
-                                        |_, (), _| {},
-                                        cx,
-                                    )
-                                })
-                            })),
+                        crate::ui::button(
+                            "uncommit-above",
+                            crate::i18n::t("detail-upstream-uncommit-keep-changes"),
+                        )
+                        .small()
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            let project = project.clone();
+                            this.store.update(cx, |store, cx| {
+                                store.apply(
+                                    &project,
+                                    "Uncommit",
+                                    Default::default(),
+                                    backend::history::UncommitAboveWorkspace {
+                                        workspace_commit: above.workspace_commit_id,
+                                    },
+                                    |_, (), _| {},
+                                    cx,
+                                )
+                            })
+                        })),
                     )
                     .into_any_element()
             }),
@@ -1945,7 +1995,7 @@ impl Detail {
             _ if (entry.workspace.as_ref()).is_some_and(|ws| ws.tree.is_none()) => {
                 crate::ui::empty_state(
                     None,
-                    "No commits yet",
+                    crate::i18n::t("detail-upstream-no-commits-yet"),
                     "Make the first commit on this branch to see its history",
                     theme,
                     cx,
@@ -1956,7 +2006,7 @@ impl Detail {
                 failed: Some(err), ..
             }) if entry.workspace.as_ref().is_some_and(|ws| !ws.managed) => crate::ui::empty_state(
                 None,
-                "Couldn't read the checkout's history",
+                crate::i18n::t("detail-upstream-read-checkout-s-history-error"),
                 error_summary(err),
                 theme,
                 cx,
@@ -1995,29 +2045,32 @@ impl Detail {
                 let untargeted = (entry.workspace.as_ref()).is_some() && unpushed.is_none();
                 let (title, detail) = match lost {
                     Some(name) => (
-                        format!("{name} is gone"),
+                        crate::i18n::tf("detail-upstream-gone", &[("name", (name).into())]),
                         "The remote no longer has it. Pick the branch your work goes into now; \
                          one only the remote has needs a local branch first, as \
                          `git switch -c main --track origin/main` makes",
                     ),
                     // A loaded project without a target needs one picked first, remote or not.
                     None if untargeted => (
-                        "No target branch".to_owned(),
+                        crate::i18n::t("detail-upstream-no-target-branch").to_owned(),
                         "Pick the branch your work goes into, like main",
                     ),
                     // The history is the target's remote branch's, so a target picked here
                     // shows none either.
                     None if upstream.fetch.is_none() => (
-                        "No remote".to_owned(),
+                        crate::i18n::t("detail-upstream-no-remote").to_owned(),
                         "The target's history shows here once the repository has a remote",
                     ),
                     // Picked, but with no branch on the remote yet, as before a first push.
                     None if let Some(name) = unpushed => (
-                        format!("{} isn't on the remote yet", backend::short_ref(&name)),
+                        crate::i18n::tf(
+                            "detail-upstream-isn-t-remote-yet",
+                            &[("name", (format!("{}", backend::short_ref(&name))).into())],
+                        ),
                         "Push it once, with `git push -u`, and its history shows here",
                     ),
                     None => (
-                        "No target branch".to_owned(),
+                        crate::i18n::t("detail-upstream-no-target-branch").to_owned(),
                         "Pick the branch your work goes into, like main",
                     ),
                 };
@@ -2163,7 +2216,7 @@ impl Detail {
                             Row::Older if upstream.paging.get() == Paging::Loading => {
                                 list_row("target-older", false, theme)
                                     .text_color(theme.text_3)
-                                    .child("Loading…")
+                                    .child(crate::i18n::t("detail-upstream-loading"))
                                     .into_any_element()
                             }
                             // Saying how far back it has read, as a filter can find nothing
@@ -2187,7 +2240,7 @@ impl Detail {
                                 let project = shown.clone();
                                 list_row("target-changed-path", false, theme)
                                     .text_color(theme.text_2)
-                                    .child("Search changed paths")
+                                    .child(crate::i18n::t("detail-upstream-search-changed-paths"))
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         this.search_paths(&project, cx)
                                     }))
@@ -2210,14 +2263,14 @@ impl Detail {
                                 match upstream.paging.get() {
                                     Paging::Failed => list_row("target-more", false, theme)
                                         .text_color(theme.text_2)
-                                        .child("Show older")
+                                        .child(crate::i18n::t("detail-upstream-show-older"))
                                         .on_click(cx.listener(move |this, _, _, cx| {
                                             this.load_upstream(&project, true, false, cx)
                                         }))
                                         .into_any_element(),
                                     _ => list_row("target-more", false, theme)
                                         .text_color(theme.text_3)
-                                        .child("Loading…")
+                                        .child(crate::i18n::t("detail-upstream-loading"))
                                         .into_any_element(),
                                 }
                             }
@@ -2334,7 +2387,7 @@ fn activity_strip(
             let inside = picked.is_empty() || picked.contains(&day);
             let said = match n {
                 0 => "quiet".to_owned(),
-                n => plural(n as usize, "commit"),
+                n => plural(n as usize, crate::ui::Count::Commit),
             };
             let tip = format!("{} · {said}", crate::ui::local_weekday(noon(day)));
             // Room under the bars, so a band of days picked holds them as the quarters' does.
@@ -2370,7 +2423,7 @@ fn activity_strip(
             h_flex()
                 .gap(dp(6.))
                 .child(faint(
-                    format!("{days}: {}", plural(n as usize, "commit")),
+                    format!("{days}: {}", plural(n as usize, crate::ui::Count::Commit)),
                     theme,
                 ))
                 .child(
@@ -2380,9 +2433,15 @@ fn activity_strip(
                 .into_any_element()
         }
         None => faint(
-            format!(
-                "{}, {week} in the last week",
-                plural(total as usize, "commit")
+            crate::i18n::tf(
+                "overview-activity-summary",
+                &[
+                    (
+                        "commits",
+                        plural(total as usize, crate::ui::Count::Commit).into(),
+                    ),
+                    ("week", week.into()),
+                ],
             ),
             theme,
         )
@@ -2398,15 +2457,21 @@ fn activity_strip(
             h_flex()
                 .h(dp(20.))
                 .gap(dp(8.))
-                .child(section_label("Activity", theme).flex_grow(1.))
+                .child(section_label(crate::i18n::t("overview-activity"), theme).flex_grow(1.))
                 .child(said),
         )
         .child(ends_drag(h_flex().children(bars), gesture, cx))
         .child(
             h_flex()
                 .text_11()
-                .child(faint(format!("{ACTIVITY_DAYS} days ago"), theme).flex_grow(1.))
-                .child(faint("Today", theme)),
+                .child(
+                    faint(
+                        crate::i18n::tf("overview-days-ago", &[("count", ACTIVITY_DAYS.into())]),
+                        theme,
+                    )
+                    .flex_grow(1.),
+                )
+                .child(faint(crate::i18n::t("overview-today"), theme)),
         )
         .into_any_element()
 }

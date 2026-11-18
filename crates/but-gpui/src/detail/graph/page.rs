@@ -175,7 +175,10 @@ impl Detail {
             let (project, ids) = (project.clone(), store.with_picks(project, id));
             let label = match ids.len() {
                 0 | 1 => Uncommit.title().to_owned(),
-                n => format!("Uncommit {n} commits"),
+                n => crate::i18n::tf(
+                    "detail-graph-page-uncommit-commits",
+                    &[("n", (format!("{n}")).into())],
+                ),
             };
             MenuItem::new(label, move |app, _, cx| {
                 let ids = ids.clone();
@@ -184,7 +187,7 @@ impl Detail {
         });
         let groups = [
             vec![Some(MenuItem::new(
-                "Show in navigator",
+                crate::i18n::t("detail-graph-page-show-navigator"),
                 move |app, window, cx| {
                     let row = shown.clone();
                     (app.store).update(cx, |store, cx| store.select(Some(row), cx));

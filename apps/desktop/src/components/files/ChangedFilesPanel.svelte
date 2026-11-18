@@ -8,6 +8,7 @@
 	import { readStableSelectionKey, stableSelectionKey, type SelectionId } from "$lib/selection/key";
 	import { inject } from "@gitbutler/core/context";
 	import { EmptyStatePlaceholder, Icon } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import type { ConflictEntriesObj } from "$lib/files/conflicts";
 	import type { TreeStats } from "@gitbutler/but-sdk";
@@ -91,7 +92,7 @@
 					e.stopPropagation();
 					folded = !folded;
 				}}
-				aria-label="Toggle file list"
+				aria-label={$t("Toggle file list")}
 				aria-expanded={!folded}
 			>
 				<Icon name="chevron-down" />
@@ -115,7 +116,7 @@
 					bottomMargin={20}
 				>
 					{#snippet caption()}
-						No files changed
+						{$t("No files changed")}
 					{/snippet}
 				</EmptyStatePlaceholder>
 			{:else}

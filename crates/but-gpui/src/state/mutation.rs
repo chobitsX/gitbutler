@@ -340,7 +340,7 @@ pub(super) struct UndoStep {
 fn files_named(files: &[String]) -> String {
     match files {
         [file] => file.clone(),
-        files => crate::ui::plural(files.len(), "file"),
+        files => crate::ui::plural(files.len(), crate::ui::Count::File),
     }
 }
 
@@ -442,7 +442,10 @@ impl Store {
             self.snack_undoable(done.to_owned(), cx);
         } else {
             self.error(
-                format!("{done}, leaving some changes out"),
+                crate::i18n::tf(
+                    "state-mutation-leaving-some-changes-out",
+                    &[("done", (done.to_string()).into())],
+                ),
                 left_out.join("\n"),
                 cx,
             );
@@ -582,7 +585,11 @@ impl Store {
                     Some(Undone::Newer(files)) => {
                         let (what, asked) = (files_named(&files), Some(backend::now_millis()));
                         return store.error_with_retry(
-                            store.card_title(&again, "Redo takes back newer changes too".into()),
+                            store.card_title(
+                                &again,
+                                crate::i18n::t("state-mutation-redo-takes-back-newer-changes-too")
+                                    .into(),
+                            ),
                             format!(
                                 "{what} changed after the undo. Redo puts files back as they \
                                  were before it, and Undo brings the changes back."
@@ -668,7 +675,10 @@ impl Store {
             // from where it would have, but for pushes up to now.
             let asked_now = Some(backend::now_millis());
             return self.error_with_retry(
-                self.card_title(project, "Undo may take back what was pushed".into()),
+                self.card_title(
+                    project,
+                    crate::i18n::t("state-mutation-undo-may-take-back-was-pushed").into(),
+                ),
                 "A push came after the operation it undoes. If the push took what the \
                  operation did, the remote keeps that until the branch is force pushed.",
                 "Undo anyway",
@@ -691,12 +701,20 @@ impl Store {
                 newer_than: newer_than.map(|at| (at, ran)),
             },
             move |store, undone, cx| {
-                let title = |store: &Store| store.card_title(&again, "Undo failed".into());
+                let title = |store: &Store| {
+                    store.card_title(&again, crate::i18n::t("state-mutation-undo-failed").into())
+                };
                 match undone {
                     Ok(Undone::Done(operation)) => {
                         (store.undo_steps)
                             .retain(|step| step.project != again || step.snapshot != snapshot);
-                        let done = store.card_title(&again, format!("Undone: {operation}"));
+                        let done = store.card_title(
+                            &again,
+                            crate::i18n::tf(
+                                "state-mutation-undone",
+                                &[("operation", (operation.to_string()).into())],
+                            ),
+                        );
                         if let Some((_, undo)) = store.last_snapshot {
                             store.redo_steps.push((again, undo));
                         }
@@ -730,7 +748,11 @@ impl Store {
                     Ok(Undone::Newer(files)) => {
                         let (what, asked) = (files_named(&files), Some(backend::now_millis()));
                         store.error_with_retry(
-                            store.card_title(&again, "Undo takes back newer changes too".into()),
+                            store.card_title(
+                                &again,
+                                crate::i18n::t("state-mutation-undo-takes-back-newer-changes-too")
+                                    .into(),
+                            ),
                             format!(
                                 "{what} changed after the operation it undoes. Undo puts files \
                                  back as they were before it, and Redo brings the changes back."
@@ -819,7 +841,10 @@ impl Store {
                 }
                 Err(err) => {
                     store.fetch_failed_now(&fetched);
-                    let title = store.card_title(&fetched, "Fetch failed".into());
+                    let title = store.card_title(
+                        &fetched,
+                        crate::i18n::t("state-mutation-fetch-failed").into(),
+                    );
                     store.failed(title, &err, cx)
                 }
             },
@@ -946,7 +971,10 @@ impl Store {
                     commit_counts(&found)
                 );
                 store.error_with_retry(
-                    store.card_title(&pulled, "Pulling leaves conflicts".into()),
+                    store.card_title(
+                        &pulled,
+                        crate::i18n::t("state-mutation-pulling-leaves-conflicts").into(),
+                    ),
                     detail,
                     "Pull anyway",
                     move |store, cx| {
@@ -1011,18 +1039,36 @@ impl Store {
                     Err(reason) => reason,
                     Ok(sync_failed) => {
                         store.pushed(&pushed);
-                        store.snack(store.card_title(&pushed, format!("Pushed {all}")), cx);
+                        store.snack(
+                            store.card_title(
+                                &pushed,
+                                crate::i18n::tf(
+                                    "state-mutation-pushed",
+                                    &[("all", (all.to_string()).into())],
+                                ),
+                            ),
+                            cx,
+                        );
                         if let Some(message) = sync_failed {
-                            let title = format!(
-                                "Pushed {name}{}, but the stack's pull requests weren't updated",
-                                store.in_project(&pushed)
+                            let title = crate::i18n::tf(
+                                "state-mutation-pushed-but-stack-s-pull-requests",
+                                &[
+                                    ("name", (name.to_string()).into()),
+                                    ("pushed", (store.in_project(&pushed)).into()),
+                                ],
                             );
                             store.error(title, message, cx);
                         }
                         return;
                     }
                 };
-                let title = store.card_title(&pushed, format!("{name} wasn't pushed"));
+                let title = store.card_title(
+                    &pushed,
+                    crate::i18n::tf(
+                        "state-mutation-wasn-t-pushed",
+                        &[("name", (name.to_string()).into())],
+                    ),
+                );
                 if !reason.is_empty() {
                     // Forcing past a protected branch or a push rule won't help.
                     return store.error(title, format!("The remote refused it: {reason}"), cx);
@@ -1076,7 +1122,10 @@ impl Store {
             .workspace(project)
             .is_some_and(|ws| ws.editing.is_some())
         {
-            let said = self.card_title(project, "Couldn't create the pull request".to_owned());
+            let said = self.card_title(
+                project,
+                crate::i18n::t("state-mutation-create-pull-request-error").to_owned(),
+            );
             let why = "Finish or cancel editing the commit first.";
             return self.error_with_retry(said, why, "Try again", again, cx);
         }
@@ -1150,9 +1199,15 @@ impl Store {
         cx: &mut Context<Self>,
     ) {
         let (label, done) = if archived {
-            ("Archive worktree", format!("Archived {name}"))
+            (
+                crate::i18n::t("state-mutation-archive-worktree"),
+                format!("Archived {name}"),
+            )
         } else {
-            ("Unarchive worktree", format!("Unarchived {name}"))
+            (
+                crate::i18n::t("state-mutation-unarchive-worktree"),
+                format!("Unarchived {name}"),
+            )
         };
         let overlay = Overlay {
             worktrees: archived.then(|| name.clone()).into_iter().collect(),
@@ -1388,8 +1443,11 @@ impl Store {
             .and_then(|ws| ws.lane_of(Some(&branch)))
             .is_some_and(|(lane, _)| lane.branches.len() == 1);
         let (label, done) = match alone {
-            true => ("Move branch", "Branch moved"),
-            false => ("Unstack", "Moved to its own stack"),
+            true => (crate::i18n::t("state-mutation-move-branch"), "Branch moved"),
+            false => (
+                crate::i18n::t("state-mutation-unstack"),
+                "Moved to its own stack",
+            ),
         };
         self.apply(
             project,
@@ -1438,7 +1496,11 @@ impl Store {
                 }
                 store.report_left_out(&said, &amended.left_out, cx);
                 if let Some(output) = amended.hook_failed {
-                    store.error("Amended, but the post-commit hook failed", output, cx);
+                    store.error(
+                        crate::i18n::t("state-mutation-amended-but-post-commit-hook-failed"),
+                        output,
+                        cx,
+                    );
                 }
                 let made = amended.rewritten.get(&into).copied().unwrap_or(into);
                 then(store, made, cx)
@@ -1759,7 +1821,13 @@ impl Store {
                         {
                             store.select(Some(moved), cx);
                         }
-                        let title = store.card_title(&project, format!("{label} failed"));
+                        let title = store.card_title(
+                            &project,
+                            crate::i18n::tf(
+                                "state-mutation-failed",
+                                &[("label", (format!("{label}")).into())],
+                            ),
+                        );
                         // Paths in the project as it names them, so a long one doesn't push
                         // the reason off the card.
                         let mut detail = backend::failure_detail(&err);
@@ -2166,7 +2234,10 @@ impl Store {
         let title = match (ids, self.find_commit(project, *ids.first()?)) {
             ([_], Some((_, commit))) => self.message_of(project, commit).0.to_owned(),
             ([id], None) => id.short(),
-            _ => format!("{} commits", ids.len()),
+            _ => crate::i18n::tf(
+                "state-mutation-commits",
+                &[("count", (format!("{}", ids.len())).into())],
+            ),
         };
         Some((self.new_at(project, to)?, title.into()))
     }
@@ -2418,7 +2489,7 @@ pub fn conflicted_parts(conflicted: &[(Option<FullName>, usize)]) -> impl Iterat
         format!(
             "{} has {}",
             branch_name(branch.as_ref()),
-            crate::ui::plural(*count, "conflicted commit")
+            crate::ui::plural(*count, crate::ui::Count::ConflictedCommit)
         )
     })
 }
@@ -2437,7 +2508,10 @@ fn commit_counts(branches: &[(Option<FullName>, usize)]) -> String {
     let counts: Vec<String> = (branches.iter())
         .map(|(ref_name, count)| {
             let name = branch_name(ref_name.as_ref());
-            format!("{name} ({})", crate::ui::plural(*count, "commit"))
+            format!(
+                "{name} ({})",
+                crate::ui::plural(*count, crate::ui::Count::Commit)
+            )
         })
         .collect();
     counts.join(", ")
@@ -2586,7 +2660,7 @@ mod tests {
                 &[],
                 KEEP,
             ),
-            "Updated from origin/main, feature-a has 2 conflicted commits, \
+            "Updated from origin/main, feature-a has \u{2068}2\u{2069} conflicted commits, \
              feature-b was merged and removed",
             "each branch by its short name"
         );
@@ -2653,7 +2727,7 @@ mod tests {
         let alone = workspace(vec![vec![branch("middle", &[2])]], vec![]);
         assert_eq!(
             update_conflicts_detail("main", &found(&["middle"]), Some(&alone), UpdateScope::All),
-            "Rebasing onto main leaves conflicted commits in middle (1 commit). \
+            "Rebasing onto main leaves conflicted commits in middle (\u{2068}1\u{2069} commit). \
              You can resolve them afterwards, or undo the update.",
             "nothing rests on the stack"
         );
@@ -2668,7 +2742,7 @@ mod tests {
                 Some(&rested_on),
                 UpdateScope::All
             ),
-            "Rebasing onto main leaves conflicted commits in middle (1 commit), wt (1 commit). \
+            "Rebasing onto main leaves conflicted commits in middle (\u{2068}1\u{2069} commit), wt (\u{2068}1\u{2069} commit). \
              You can resolve them afterwards. The update moves linked worktrees too, so it \
              can't be undone.",
             "wt moves with middle, so the update can't be undone"
@@ -2687,7 +2761,7 @@ mod tests {
                 Some(&on_a_worktree),
                 UpdateScope::All
             ),
-            "Rebasing onto main leaves conflicted commits in middle (1 commit). \
+            "Rebasing onto main leaves conflicted commits in middle (\u{2068}1\u{2069} commit). \
              You can resolve them afterwards. The update moves linked worktrees too, so it \
              can't be undone.",
             "a rests on the target, which the update moves it onto, b with it"
@@ -2699,7 +2773,7 @@ mod tests {
                 Some(&on_a_worktree),
                 UpdateScope::Workspace
             ),
-            "Rebasing onto main leaves conflicted commits in middle (1 commit). \
+            "Rebasing onto main leaves conflicted commits in middle (\u{2068}1\u{2069} commit). \
              You can resolve them afterwards, or undo the update.",
             "updating only the workspace leaves a, on the target, where it is"
         );
@@ -2710,7 +2784,7 @@ mod tests {
                 Some(&rested_on),
                 UpdateScope::Worktrees
             ),
-            "Rebasing onto main leaves conflicted commits in a (1 commit). \
+            "Rebasing onto main leaves conflicted commits in a (\u{2068}1\u{2069} commit). \
              You can resolve them afterwards, or undo the update.",
             "updating only the worktrees leaves wt, on middle, where it is"
         );

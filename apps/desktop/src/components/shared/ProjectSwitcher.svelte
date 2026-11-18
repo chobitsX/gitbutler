@@ -5,6 +5,7 @@
 	import { projectPath } from "$lib/routes/routes.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, OptionsGroup, Select, SelectItem } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 
 	const { projectId }: { projectId?: string } = $props();
@@ -31,7 +32,7 @@
 	<Select
 		value={selectedId}
 		options={mappedProjects}
-		label="Switch to another project"
+		label={$t("Switch to another project")}
 		wide
 		onselect={(value) => {
 			selectedId = value;
@@ -64,7 +65,7 @@
 						}
 					}}
 				>
-					Add local repository
+					{$t("Add local repository")}
 				</SelectItem>
 			{/if}
 			<SelectItem
@@ -79,7 +80,7 @@
 					}
 				}}
 			>
-				Clone repository
+				{$t("Clone repository")}
 			</SelectItem>
 		</OptionsGroup>
 	</Select>
@@ -92,7 +93,7 @@
 			if (selectedId) goto(projectPath(selectedId));
 		}}
 	>
-		Open project
+		{$t("Open project")}
 	</Button>
 </div>
 

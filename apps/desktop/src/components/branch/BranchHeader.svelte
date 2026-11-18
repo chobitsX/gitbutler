@@ -18,6 +18,7 @@
 	import { Badge, TestId, Icon } from "@gitbutler/ui-svelte";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui-svelte/drag/dragStateService.svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { slide } from "svelte/transition";
 	import type { PushStatus } from "@gitbutler/but-sdk";
 	import type { Snippet } from "svelte";
@@ -169,7 +170,7 @@
 
 				{#if conflicts}
 					<div class="branch-header__top-badges">
-						<Badge style="danger">Conflicts</Badge>
+						<Badge style="danger">{$t("Conflicts")}</Badge>
 					</div>
 				{/if}
 			</div>

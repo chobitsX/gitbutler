@@ -6,6 +6,7 @@ import { createEntityAdapter, createSlice, type EntityState } from "@reduxjs/too
 import type { TerminalService } from "$lib/settings/terminalService";
 import type { AppDispatch } from "$lib/state/clientState.svelte";
 import type { ScrollbarVisilitySettings } from "@gitbutler/ui-svelte";
+import type { Language } from "@gitbutler/ui-svelte/utils/i18n";
 
 export type GeneralSettingsPageId =
 	| "general"
@@ -167,6 +168,7 @@ export type GlobalUiState = {
 	bottomPanelHeight: number;
 	peekTrayWidth: number;
 	theme: AppTheme;
+	language: Language;
 	trayWidth: number;
 	stashedBranchesHeight: number;
 	defaultLaneWidth: number;
@@ -243,6 +245,7 @@ export class UiState {
 		bottomPanelHeight: 200,
 		peekTrayWidth: 480,
 		theme: "system",
+		language: "en",
 		trayWidth: 320,
 		stashedBranchesHeight: 150,
 		defaultLaneWidth: 460,

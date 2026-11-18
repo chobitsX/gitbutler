@@ -158,7 +158,7 @@ impl Detail {
         let tiles = [
             ("Branches", grouped(kept.len()), "Branches in this list"),
             (
-                "Commits",
+                crate::i18n::t("overview-commits"),
                 commits,
                 "Their commits then, when their histories are counted",
             ),
@@ -167,7 +167,11 @@ impl Detail {
                 grouped(summary.started),
                 "Of those, how many had their first commit then",
             ),
-            ("People", grouped(summary.people), "Who wrote them"),
+            (
+                crate::i18n::t("overview-people"),
+                grouped(summary.people),
+                crate::i18n::t("overview-who-wrote"),
+            ),
         ];
         // Each branch that moved is still cooking, with a commit in the last week, or has
         // gone quiet since; one whose pull request merged or closed is done, not quiet.
@@ -328,7 +332,10 @@ fn lane_row(
             .opacity(if dim { strength * 0.3 } else { strength })
             .tooltip(move |window, cx| {
                 let day = crate::ui::local_weekday(noon(day));
-                Tooltip::text(format!("{day}: {}", plural(n as usize, "commit")))(window, cx)
+                Tooltip::text(format!(
+                    "{day}: {}",
+                    plural(n as usize, crate::ui::Count::Commit)
+                ))(window, cx)
             })
     });
     let ref_name = branch.ref_name.clone();
@@ -362,8 +369,14 @@ fn lane_row(
                         .flex_none()
                         .text_11()
                         .text_color(theme.warn)
-                        .tooltip(Tooltip::text(format!("No commits for {days} days")))
-                        .child(format!("{days}d"))
+                        .tooltip(Tooltip::text(crate::i18n::tf(
+                            "detail-branches-overview-no-commits-days",
+                            &[("days", (format!("{days}")).into())],
+                        )))
+                        .child(crate::i18n::tf(
+                            "detail-branches-overview-d",
+                            &[("days", (format!("{days}")).into())],
+                        ))
                 })),
         )
         .child(h_flex().flex_none().w(dp(40.)).children(avatars))

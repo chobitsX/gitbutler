@@ -122,14 +122,14 @@ impl Navigator {
         let store = self.store.read(cx);
         let open = self.mesh_open(id, cx);
         let checkouts = store.mesh_checkouts(id);
-        let label = "Network worktrees";
+        let label = crate::i18n::t("navigator-mesh-network-worktrees");
         let row = self.section_heading(ix, id, &Section::Mesh, label, style, cx);
         row.when(!open, |el| {
             el.child(faint(checkouts.len().to_string(), style.theme).text_color(style.quiet()))
         })
-        .tooltip(Tooltip::text(
-            "Unfinished work on your other machines, from your mesh",
-        ))
+        .tooltip(Tooltip::text(crate::i18n::t(
+            "navigator-mesh-unfinished-work-other-machines-mesh",
+        )))
         .into_any_element()
     }
 
@@ -181,7 +181,10 @@ impl Navigator {
                     this.toggle_mesh_branch(fold.clone(), open, window, cx)
                 };
                 (style.row(format!("mesh-branch-{project}-{key}-{name}"), 6.))
-                    .aria_label(format!("Branch {name}"))
+                    .aria_label(crate::i18n::tf(
+                        "navigator-mesh-branch",
+                        &[("name", (name.to_string()).into())],
+                    ))
                     .child(self.fold(
                         ("mesh-branch-fold", ix),
                         icon(glyph).text_color(color),
@@ -417,18 +420,22 @@ impl Navigator {
             && managed
         {
             let (project, name) = (project.clone(), branch.name.clone());
-            items.push(MenuItem::new("Apply here", move |app, _, cx| {
-                let (mesh_id, name) = (mesh_id.clone(), name.clone());
-                app.store.update(cx, |store, cx| {
-                    store.mesh_apply(&project, mesh_id, name, cx)
-                })
-            }));
+            items.push(MenuItem::new(
+                crate::i18n::t("navigator-mesh-apply-here"),
+                move |app, _, cx| {
+                    let (mesh_id, name) = (mesh_id.clone(), name.clone());
+                    app.store.update(cx, |store, cx| {
+                        store.mesh_apply(&project, mesh_id, name, cx)
+                    })
+                },
+            ));
         }
         if let Some(connection) = store.mesh.connection() {
             let url = mesh::link(&connection.server, id, pick.branch());
-            items.push(MenuItem::new("Open on but.dev", move |_, _, cx| {
-                cx.open_url(&url)
-            }));
+            items.push(MenuItem::new(
+                crate::i18n::t("navigator-mesh-open-but-dev"),
+                move |_, _, cx| cx.open_url(&url),
+            ));
         }
         items.push(MenuItem::command(&CopyPath, cx).keys(&CopySelection, cx));
         items

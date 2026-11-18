@@ -23,6 +23,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, FileViewHeader, HunkDiffSkeleton, VirtualList } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { TreeChange } from "@gitbutler/but-sdk";
 
@@ -116,7 +117,7 @@
 		kind="ghost"
 		icon="pop-out-bottom-right"
 		size="tag"
-		tooltip="Pop out diff view"
+		tooltip={$t("Pop out diff view")}
 		onclick={openFloatingDiff}
 	/>
 {/snippet}
@@ -206,7 +207,7 @@
 				kind="ghost"
 				icon="pop-out-bottom-right"
 				size="tag"
-				tooltip="Pop out diff view"
+				tooltip={$t("Pop out diff view")}
 				onclick={openFloatingDiff}
 			/>
 			<Button kind="ghost" icon="cross" size="tag" onclick={onclose} />

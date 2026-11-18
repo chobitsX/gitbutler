@@ -229,7 +229,12 @@ fn underlined(
 fn files_heading(count: usize, (added, removed): (u32, u32), theme: &Theme) -> Div {
     h_flex()
         .gap(dp(8.))
-        .child(div().text_14().semibold().child("Files"))
+        .child(
+            div()
+                .text_14()
+                .semibold()
+                .child(crate::i18n::t("detail-file-list-files")),
+        )
         .child(count_badge(count, theme))
         .child(diff::stats(added, removed, false, theme))
 }
@@ -296,7 +301,7 @@ impl Detail {
         let rows = match clean {
             true => empty_state(
                 Some(Illustration::Waving),
-                "No uncommitted changes",
+                crate::i18n::t("detail-file-list-no-uncommitted-changes"),
                 "Edits show up here once saved",
                 theme,
                 cx,
@@ -319,7 +324,10 @@ impl Detail {
         if !self.filtering || query.is_empty() || self.openable_checkout().is_none() {
             return None;
         }
-        let label = format!("Find \"{query}\" in all files");
+        let label = crate::i18n::tf(
+            "detail-file-list-find-all-files",
+            &[("query", (query.to_string()).into())],
+        );
         let row = file_row("find-in-all-files", false, false, theme)
             .flex_none()
             .mb(dp(2.))
@@ -424,8 +432,8 @@ impl Detail {
             false => theme.text_2,
         };
         let label = match count {
-            None => "Commit message",
-            Some(_) => "Commit messages",
+            None => crate::i18n::t("detail-file-list-commit-message"),
+            Some(_) => crate::i18n::t("detail-file-list-commit-messages"),
         };
         let row = file_row("message-entry", current, solid, theme)
             .flex_none()
@@ -1299,7 +1307,7 @@ impl Detail {
                             .child(parent.to_owned()),
                     ),
             )
-            .child(faint(plural(files.len(), "file"), theme).flex_none())
+            .child(faint(plural(files.len(), crate::ui::Count::File), theme).flex_none())
             .child(diff::stats(added, removed, false, theme))
             .children(diff::change_scale(added, removed, theme));
         let height = files.len() as f32 * theme.sizes.control + 8.;
@@ -1536,12 +1544,18 @@ impl Detail {
                     div()
                         .flex_none()
                         .text_color(theme.text_3)
-                        .child(format!("{kept} of {total}")),
+                        .child(crate::i18n::tf(
+                            "detail-file-list-of",
+                            &[
+                                ("kept", (format!("{kept}")).into()),
+                                ("total", (format!("{total}")).into()),
+                            ],
+                        )),
                 )
                 .child(
                     icon_button("close-filter", Icon::Cross)
                         .small()
-                        .tooltip("Close the filter")
+                        .tooltip(crate::i18n::t("detail-file-list-close-filter"))
                         .on_click(cx.listener(|this, _, window, cx| this.close_filter(window, cx))),
                 );
         }
@@ -1562,7 +1576,7 @@ impl Detail {
             .child(
                 icon_button("file-view", Icon::Kebab)
                     .small()
-                    .tooltip("View options")
+                    .tooltip(crate::i18n::t("detail-file-list-view-options"))
                     .on_click(cx.listener(|this, event: &ClickEvent, _, cx| {
                         this.open_menu(event.position(), |this, cx| this.view_items(cx), cx)
                     })),
@@ -1594,7 +1608,7 @@ impl Detail {
         // Files with no changes, to edit, as Go to anything finds them too.
         let open = (self.openable_checkout()).map(|_| {
             MenuItem::keyed(
-                "Open a file…",
+                crate::i18n::t("detail-file-list-open-file"),
                 &crate::palette::GoTo,
                 cx,
                 |this, window, cx| this.open_file_picker(String::new(), window, cx),
@@ -1687,7 +1701,9 @@ impl Detail {
                 div()
                     .id(("opened", ix))
                     .child(small_icon(Icon::Edit).text_color(muted))
-                    .tooltip(Tooltip::text("Opened to edit, nothing changed yet")),
+                    .tooltip(Tooltip::text(crate::i18n::t(
+                        "detail-file-list-opened-edit-nothing-changed-yet",
+                    ))),
             ),
             (false, true) => el.child(small_icon(Icon::Warning).text_color(theme.warn)),
             (false, false) => el
@@ -1766,7 +1782,9 @@ impl Detail {
                                 .id(("editing", ix))
                                 .flex_none()
                                 .child(small_icon(Icon::Edit).text_color(muted))
-                                .tooltip(Tooltip::text("Being edited")),
+                                .tooltip(Tooltip::text(crate::i18n::t(
+                                    "detail-file-list-being-edited",
+                                ))),
                         )
                     })
                     .when_some(stats, |el, (added, removed)| {
@@ -2078,7 +2096,11 @@ impl Detail {
         let mut items: Vec<MenuItem> = (changes.movable().into_iter())
             .map(|_| match from {
                 Some(_) => MenuItem::command(&crate::app::SquashSelection, cx),
-                None => MenuItem::action("Amend", &crate::app::SquashSelection, cx),
+                None => MenuItem::action(
+                    crate::i18n::t("detail-file-list-amend"),
+                    &crate::app::SquashSelection,
+                    cx,
+                ),
             })
             .collect();
         match from {
@@ -2120,7 +2142,7 @@ impl Detail {
         };
         if edited && self.has_caret() {
             items.push(MenuItem::keyed(
-                "Stop editing",
+                crate::i18n::t("detail-file-list-stop-editing"),
                 &super::FinishEdit,
                 cx,
                 on_page(Detail::leave_edit),
@@ -2128,7 +2150,7 @@ impl Detail {
         } else if edited || self.editable(file, cx).is_ok() {
             let path = path.to_owned();
             items.push(MenuItem::keyed(
-                "Edit file",
+                crate::i18n::t("detail-file-list-edit-file"),
                 &super::EditLines,
                 cx,
                 move |app, window, cx| {
@@ -2141,7 +2163,7 @@ impl Detail {
         }
         if self.unsaved(file_diff) {
             items.push(MenuItem::keyed(
-                "Save",
+                crate::i18n::t("common-save"),
                 &super::SaveEdits,
                 cx,
                 // Back to typing, where the keys were.
@@ -2225,12 +2247,14 @@ impl Detail {
             }
             // The commands copy the file under the cursor, which is never on a folder.
             true => [
-                MenuItem::new("Copy relative path", move |this, _, cx| {
-                    clipboard::copy(&this.store, relative.clone(), cx)
-                }),
-                MenuItem::new("Copy absolute path", move |this, _, cx| {
-                    clipboard::copy(&this.store, full.clone(), cx)
-                }),
+                MenuItem::new(
+                    crate::i18n::t("detail-file-list-copy-relative-path"),
+                    move |this, _, cx| clipboard::copy(&this.store, relative.clone(), cx),
+                ),
+                MenuItem::new(
+                    crate::i18n::t("detail-file-list-copy-absolute-path"),
+                    move |this, _, cx| clipboard::copy(&this.store, full.clone(), cx),
+                ),
             ],
         });
         if on_disk {

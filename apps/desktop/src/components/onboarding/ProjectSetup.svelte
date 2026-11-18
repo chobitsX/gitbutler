@@ -11,6 +11,7 @@
 	import { OnboardingEvent, POSTHOG_WRAPPER } from "$lib/telemetry/posthog";
 	import { inject } from "@gitbutler/core/context";
 	import { TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { RemoteBranchInfo } from "$lib/baseBranch/baseBranch";
 	import type { LocalTargetBranch } from "$lib/branches/branchEndpoints";
 
@@ -57,7 +58,7 @@
 		try {
 			await goto(destination, { invalidateAll: true });
 		} catch (error) {
-			showError("The target was set, but the project could not be opened", error);
+			showError($t("The target was set, but the project could not be opened"), error);
 			return false;
 		}
 		// Setting up the first project ends a new user's onboarding. Adding another project, or

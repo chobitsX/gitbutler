@@ -14,6 +14,7 @@
 	import { UI_STATE, withStackBusy } from "$lib/state/uiState.svelte";
 	import { inject, injectOptional } from "@gitbutler/core/context";
 	import { Button, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Commit, UpstreamCommit } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -105,7 +106,7 @@
 			throw new Error("No branch selected!");
 		}
 		if (!commitMessage) {
-			showToast({ message: "Commit message is required", style: "danger" });
+			showToast({ message: $t("Commit message is required"), style: "danger" });
 			return;
 		}
 
@@ -176,7 +177,7 @@
 				kind="ghost"
 				icon="pop-out-bottom-right"
 				size="tag"
-				tooltip="Pop out diff view"
+				tooltip={$t("Pop out diff view")}
 				onclick={onpopout}
 			/>
 		{/if}
@@ -204,7 +205,7 @@
 					drawer?.open();
 					setMode("edit");
 				}}
-				tooltip={isReadOnly ? "Read-only mode" : "Reword commit"}
+				tooltip={isReadOnly ? $t("Read-only mode") : $t("Reword commit")}
 				disabled={isReadOnly || isEditingMessage}
 			/>
 		{/if}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import BranchesCardLayout from "$components/branchesPage/BranchesCardLayout.svelte";
 	import { Avatar, SeriesLabelsRow, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Author } from "@gitbutler/but-sdk";
 	interface Props {
 		originName: string;
@@ -12,7 +13,7 @@
 
 	const { originName, commitsAmount: commitCount, lastCommit, selected, onclick }: Props = $props();
 
-	const authorName = $derived(lastCommit?.author.name ?? lastCommit?.author.email ?? "Unknown");
+	const authorName = $derived(lastCommit?.author.name ?? lastCommit?.author.email ?? $t("Unknown"));
 	const authorAvatar = $derived(lastCommit?.author.gravatarUrl ?? "");
 
 	const fromOtherBranch = $derived(
@@ -62,7 +63,7 @@
 			<div class="workspace-target-card__details-item">
 				{#if lastCommit}
 					<span>
-						head {lastCommit.sha.slice(0, 7)}
+						{$t("head {value}", { value: lastCommit.sha.slice(0, 7) })}
 					</span>
 				{/if}
 			</div>

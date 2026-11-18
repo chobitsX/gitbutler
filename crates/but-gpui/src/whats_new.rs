@@ -62,8 +62,14 @@ impl Section {
     /// What it folds to: "17 fixes", "28 CLI changes".
     fn folded(&self) -> String {
         match self.title.as_str() {
-            "Fixes" => plural(self.count(), "fix"),
-            title => plural(self.count(), &format!("{title} change")),
+            "Fixes" => plural(self.count(), crate::ui::Count::Fix),
+            title => crate::i18n::tf(
+                "releases-category-count",
+                &[
+                    ("category", title.to_owned().into()),
+                    ("count", self.count().into()),
+                ],
+            ),
         }
     }
 }
@@ -201,7 +207,7 @@ impl Focusable for WhatsNew {
 
 impl WhatsNew {
     fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let search = cx.new(|cx| TextInput::new("Search release notes", false, cx));
+        let search = cx.new(|cx| TextInput::localized("whats-new-search-release-notes", false, cx));
         let subscription =
             cx.subscribe_in(&search, window, |this, search, event, _, cx| match event {
                 InputEvent::Changed => {
@@ -345,7 +351,7 @@ impl WhatsNew {
                     })
                     .text_11()
                     .semibold()
-                    .child("Yours"),
+                    .child(crate::i18n::t("whats-new-yours")),
             )
         })
         .child(div().flex_grow(1.))
@@ -387,7 +393,7 @@ impl WhatsNew {
                     .rounded(dp(theme.shape.card))
                     .bg(theme.surface(Hue::Pop))
                     .text_13()
-                    .child("Not in your version yet")
+                    .child(crate::i18n::t("whats-new-not-version-yet"))
                     .into_any_element(),
             );
         }
@@ -440,7 +446,7 @@ impl WhatsNew {
         parts.push(
             div()
                 .child(
-                    button("whats-new-github", "Open on GitHub")
+                    button("whats-new-github", crate::i18n::t("whats-new-open-github"))
                         .small()
                         .style(ButtonStyle::Ghost)
                         .on_click(move |_, _, cx| cx.open_url(&url)),
@@ -461,7 +467,7 @@ impl WhatsNew {
         if found.is_empty() {
             let said = format!(
                 "Nothing in the last {} mentions {}",
-                plural(releases.len(), "release"),
+                plural(releases.len(), crate::ui::Count::Release),
                 quoted(typed)
             );
             return vec![muted(said, theme).into_any_element()];
@@ -469,8 +475,8 @@ impl WhatsNew {
         let total: usize = found.iter().map(|(_, blocks)| blocks.len()).sum();
         let said = format!(
             "{} in {}",
-            plural(total, "match"),
-            plural(found.len(), "release")
+            plural(total, crate::ui::Count::Match),
+            plural(found.len(), crate::ui::Count::Release)
         );
         let mut parts = vec![faint(said, theme).text_12().into_any_element()];
         let mut left = SHOWN;
@@ -485,10 +491,11 @@ impl WhatsNew {
                     .gap(dp(4.))
                     .text_color(theme.safe)
                     .child(small_icon(Icon::Tick).text_color(theme.safe))
-                    .child("In your version"),
-                false => div()
-                    .text_color(theme.text_2)
-                    .child(format!("Needs {}", release.version)),
+                    .child(crate::i18n::t("whats-new-version")),
+                false => div().text_color(theme.text_2).child(crate::i18n::tf(
+                    "whats-new-needs",
+                    &[("version", (format!("{}", release.version)).into())],
+                )),
             });
             parts.push(
                 v_flex()
@@ -540,15 +547,18 @@ impl WhatsNew {
                     h_flex()
                         .gap(dp(8.))
                         .child(
-                            button("whats-new-retry", "Try again")
+                            button("whats-new-retry", crate::i18n::t("whats-new-try-again"))
                                 .small()
                                 .on_click(cx.listener(|this, _, _, cx| this.read(cx))),
                         )
                         .child(
-                            button("whats-new-releases", "Open on GitHub")
-                                .small()
-                                .style(ButtonStyle::Ghost)
-                                .on_click(|_, _, cx| cx.open_url(RELEASES)),
+                            button(
+                                "whats-new-releases",
+                                crate::i18n::t("whats-new-open-github"),
+                            )
+                            .small()
+                            .style(ButtonStyle::Ghost)
+                            .on_click(|_, _, cx| cx.open_url(RELEASES)),
                         ),
                 )
                 .into_any_element(),
@@ -606,7 +616,7 @@ impl Render for WhatsNew {
                     .text_16()
                     .semibold()
                     .text_color(theme.text_1)
-                    .child("What's new"),
+                    .child(crate::i18n::t("whats-new-s-new")),
             )
             .when(self.nightly, |el| {
                 el.child(

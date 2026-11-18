@@ -149,27 +149,31 @@ impl Detail {
             .count();
         let tiles = [
             (
-                "Pull requests",
+                crate::i18n::t("overview-pull-requests"),
                 grouped(kept.iter().filter(|l| l.pull).count()),
-                "Pull requests that merged then",
+                crate::i18n::t("overview-pull-requests-hint"),
             ),
             (
-                "Commits",
+                crate::i18n::t("overview-commits"),
                 grouped(kept.iter().map(|l| l.commits as usize).sum()),
-                "The commits they brought in, merges left out",
+                crate::i18n::t("overview-commits-hint"),
             ),
-            ("People", grouped(people), "Who wrote them"),
             (
-                "Time to merge",
+                crate::i18n::t("overview-people"),
+                grouped(people),
+                crate::i18n::t("overview-who-wrote"),
+            ),
+            (
+                crate::i18n::t("overview-time-to-merge"),
                 median_took(&kept).map_or("–".to_owned(), took_said),
-                "The middle time from a pull request's first commit being written to it merging",
+                crate::i18n::t("overview-merge-time-hint"),
             ),
         ];
         let scope = [
-            Some(
-                days.and_then(days_said)
-                    .unwrap_or(format!("Last {ACTIVITY_DAYS} days")),
-            ),
+            Some(days.and_then(days_said).unwrap_or(crate::i18n::tf(
+                "overview-last-days",
+                &[("count", ACTIVITY_DAYS.into())],
+            ))),
             person.map(|p| p.name.clone()),
             area.cloned(),
         ];
@@ -178,7 +182,7 @@ impl Detail {
         overview_page(
             "shipped",
             overview_body(
-                "Shipped",
+                crate::i18n::t("overview-shipped"),
                 scope.into_iter().flatten().collect::<Vec<_>>().join(" · "),
                 theme,
             )
@@ -187,10 +191,11 @@ impl Detail {
                 el.child(
                     faint(
                         match filtered {
-                            true => "Nothing merged that the filters keep".to_owned(),
-                            false => {
-                                format!("Nothing merged in the last {ACTIVITY_DAYS} days")
-                            }
+                            true => crate::i18n::t("overview-no-matches").to_owned(),
+                            false => crate::i18n::tf(
+                                "overview-nothing-merged",
+                                &[("count", ACTIVITY_DAYS.into())],
+                            ),
                         },
                         theme,
                     )
@@ -245,7 +250,7 @@ impl Detail {
                 // At least, when the release before it merged before the days read.
                 .child(overview_column(
                     match n {
-                        (n, true) => plural(*n, "pull request"),
+                        (n, true) => plural(*n, crate::ui::Count::PullRequest),
                         (n, false) => format!("{n}+ pull requests"),
                     },
                     OVERVIEW_COUNT_WIDTH,
@@ -265,7 +270,7 @@ impl Detail {
             v_flex()
                 .child(overview_heading(
                     "Releases",
-                    faint(plural(releases.len(), "release"), theme),
+                    faint(plural(releases.len(), crate::ui::Count::Release), theme),
                     theme,
                 ))
                 .children(rows)
@@ -317,11 +322,15 @@ impl Detail {
                     )
                     .into_any_element()
             }
-            None => faint("how many merged there", theme).into_any_element(),
+            None => faint(crate::i18n::t("overview-merged-count-hint"), theme).into_any_element(),
         };
         Some(
             v_flex()
-                .child(overview_heading("Where it merged", detail, theme))
+                .child(overview_heading(
+                    crate::i18n::t("overview-where-merged"),
+                    detail,
+                    theme,
+                ))
                 .children(rows)
                 .children(and_more(rest, theme))
                 .into_any_element(),
@@ -356,7 +365,7 @@ impl Detail {
                 )
                 .children(by.map(|p| author_avatar(&p.name, &p.email, 16., theme).flex_none()))
                 .child(overview_column(
-                    plural(merge.commits as usize, "commit"),
+                    plural(merge.commits as usize, crate::ui::Count::Commit),
                     OVERVIEW_COUNT_WIDTH,
                     theme,
                 ))

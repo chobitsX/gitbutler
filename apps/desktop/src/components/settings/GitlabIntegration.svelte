@@ -11,6 +11,7 @@
 	import { inject } from "@gitbutler/core/context";
 
 	import { AddForgeAccountButton, Button, CardGroup, Link, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { fade } from "svelte/transition";
 
 	const gitlabUserService = inject(GITLAB_USER_SERVICE);
@@ -98,12 +99,12 @@
 			{#snippet error()}
 				<CardGroup.Item>
 					{#snippet title()}
-						Failed to load GitLab accounts
+						{$t("Failed to load GitLab accounts")}
 					{/snippet}
 					<Button
 						style="pop"
 						onclick={deleteAllGitLabAccounts}
-						loading={clearingAllResult.current.isLoading}>Try again</Button
+						loading={clearingAllResult.current.isLoading}>{$t("Try again")}</Button
 					>
 				</CardGroup.Item>
 			{/snippet}
@@ -127,7 +128,7 @@
 					{/snippet}
 
 					{#snippet caption()}
-						Allows you to create Merge Requests
+						{$t("Allows you to create Merge Requests")}
 					{/snippet}
 
 					{#snippet actions()}
@@ -144,28 +145,28 @@
 			<CardGroup>
 				<CardGroup.Item>
 					{#snippet title()}
-						Add Personal Access Token
+						{$t("Add Personal Access Token")}
 					{/snippet}
 
 					<Textbox
 						size="large"
 						type="password"
 						value={patInput}
-						placeholder="glpat-************************"
+						placeholder={$t("glpat-************************")}
 						oninput={(value) => (patInput = value)}
 						error={patError}
 					/>
 				</CardGroup.Item>
 				<CardGroup.Item>
 					<div class="flex justify-end gap-6">
-						<Button style="gray" kind="outline" onclick={cleanupPatFlow}>Cancel</Button>
+						<Button style="gray" kind="outline" onclick={cleanupPatFlow}>{$t("Cancel")}</Button>
 						<Button
 							style="pop"
 							disabled={!patInput}
 							loading={storePatResult.current.isLoading}
 							onclick={storePersonalAccessToken}
 						>
-							Add account
+							{$t("Add account")}
 						</Button>
 					</div>
 				</CardGroup.Item>
@@ -176,19 +177,22 @@
 			<CardGroup>
 				<CardGroup.Item>
 					{#snippet title()}
-						Add Self-Hosted GitLab Account
+						{$t("Add Self-Hosted GitLab Account")}
 					{/snippet}
 
 					{#snippet caption()}
-						To connect to your self-hosted GitLab API, allow-list it in the app's CSP settings.
+						{$t(
+							"To connect to your self-hosted GitLab API, allow-list it in the app's CSP settings.",
+						)}
 						<br />
-						See <Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
-							>docs for details</Link
+						{$t("See")}
+						<Link href="https://docs.gitbutler.com/troubleshooting/custom-csp"
+							>{$t("docs for details")}</Link
 						>
 					{/snippet}
 
 					<Textbox
-						label="API Base URL"
+						label={$t("API Base URL")}
 						size="large"
 						value={selfHostedHostInput}
 						oninput={(value) => (selfHostedHostInput = value)}
@@ -196,8 +200,8 @@
 						error={selfHostedHostError}
 					/>
 					<Textbox
-						label="Personal Access Token"
-						placeholder="glpat-************************"
+						label={$t("Personal Access Token")}
+						placeholder={$t("glpat-************************")}
 						size="large"
 						type="password"
 						value={selfHostedPatInput}
@@ -207,14 +211,16 @@
 				</CardGroup.Item>
 				<CardGroup.Item>
 					<div class="flex justify-end gap-6">
-						<Button style="gray" kind="outline" onclick={cleanupSelfHostedFlow}>Cancel</Button>
+						<Button style="gray" kind="outline" onclick={cleanupSelfHostedFlow}
+							>{$t("Cancel")}</Button
+						>
 						<Button
 							style="pop"
 							disabled={!selfHostedHostInput || !selfHostedPatInput}
 							loading={storeSelfHostedPatResult.current.isLoading}
 							onclick={storeSelfHostedToken}
 						>
-							Add account
+							{$t("Add account")}
 						</Button>
 					</div>
 				</CardGroup.Item>
@@ -229,9 +235,9 @@
 		disabled={showingFlow !== undefined}
 		loading={storePatResult.current.isLoading || storeSelfHostedPatResult.current.isLoading}
 		menuItems={[
-			{ label: "Add Personal Access Token", icon: "lock-auth", onclick: startPatFlow },
+			{ label: $t("Add Personal Access Token"), icon: "lock-auth", onclick: startPatFlow },
 			{
-				label: "Add Self-Hosted GitLab Account",
+				label: $t("Add Self-Hosted GitLab Account"),
 				icon: "factory",
 				onclick: startSelfHostedFlow,
 			},

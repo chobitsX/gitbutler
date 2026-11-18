@@ -21,14 +21,17 @@ pub(super) fn status_mark(status: &BranchSync, solid: bool, theme: &Theme) -> im
             ),
         ),
         SyncState::Untracked => (
-            Some("No upstream"),
+            Some(crate::i18n::t("detail-branches-sync-no-upstream")),
             "Set a tracking branch or publish this branch".to_owned(),
         ),
         SyncState::Missing => (
-            Some("Upstream missing"),
+            Some(crate::i18n::t("detail-branches-sync-upstream-missing")),
             format!("{upstream} is missing; fetch or publish the branch"),
         ),
-        SyncState::Unavailable(reason) => (Some("Unavailable"), format!("{upstream}\n{reason}")),
+        SyncState::Unavailable(reason) => (
+            Some(crate::i18n::t("detail-branches-sync-unavailable")),
+            format!("{upstream}\n{reason}"),
+        ),
     };
     let ink = |color| if solid { theme.text_inverted } else { color };
     h_flex()
@@ -54,7 +57,11 @@ pub(super) fn status_mark(status: &BranchSync, solid: bool, theme: &Theme) -> im
             ),
             |el| {
                 el.child(small_icon(Icon::Tick).text_color(ink(theme.text_2)))
-                    .child(div().text_color(ink(theme.text_2)).child("Synced"))
+                    .child(
+                        div()
+                            .text_color(ink(theme.text_2))
+                            .child(crate::i18n::t("detail-branches-sync-synced")),
+                    )
             },
         )
         .map(|el| match status.state {
@@ -164,9 +171,9 @@ impl Detail {
         let mut items = vec![
             action(
                 if ahead > 0 && behind > 0 {
-                    format!("Pull {}…", plural(behind, "commit"))
+                    format!("Pull {}…", plural(behind, crate::ui::Count::Commit))
                 } else if behind > 0 {
-                    format!("Pull {}", plural(behind, "commit"))
+                    format!("Pull {}", plural(behind, crate::ui::Count::Commit))
                 } else {
                     "Pull".into()
                 },
@@ -178,7 +185,7 @@ impl Detail {
                 if matches!(sync.state, SyncState::Missing) {
                     "Publish branch".into()
                 } else if ahead > 0 {
-                    format!("Push {}", plural(ahead, "commit"))
+                    format!("Push {}", plural(ahead, crate::ui::Count::Commit))
                 } else {
                     "Push".into()
                 },
@@ -193,12 +200,16 @@ impl Detail {
         );
         items.push(
             MenuItem::new(
-                format!(
-                    "Compare with {}",
-                    upstream
-                        .as_ref()
-                        .map(|r| r.shorten().to_string())
-                        .unwrap_or_else(|| "upstream".into())
+                crate::i18n::tf(
+                    "detail-branches-sync-compare",
+                    &[(
+                        "into",
+                        (upstream
+                            .as_ref()
+                            .map(|r| r.shorten().to_string())
+                            .unwrap_or_else(|| "upstream".into()))
+                        .into(),
+                    )],
                 ),
                 move |_, _, cx| {
                     detail
@@ -312,7 +323,11 @@ impl Detail {
                     Ok(choices) => choices,
                     Err(err) => {
                         this.store.update(cx, |store, cx| {
-                            store.failed("Couldn't list remotes", &err, cx)
+                            store.failed(
+                                crate::i18n::t("detail-branches-sync-list-remotes-error"),
+                                &err,
+                                cx,
+                            )
                         });
                         return;
                     }
@@ -515,17 +530,22 @@ impl Detail {
             .px(dp(12.))
             .py(dp(10.))
             .child(
-                button("back-from-compare", "Branches")
-                    .icon(Icon::ChevronLeft)
-                    .on_click(cx.listener(move |this, _, _, cx| {
-                        this.select_other_branch(reference.clone(), cx)
-                    })),
+                button(
+                    "back-from-compare",
+                    crate::i18n::t("detail-branches-sync-branches"),
+                )
+                .icon(Icon::ChevronLeft)
+                .on_click(cx.listener(move |this, _, _, cx| {
+                    this.select_other_branch(reference.clone(), cx)
+                })),
             )
             .child(
                 div()
                     .text_12()
                     .text_color(theme.text_2)
-                    .child("Commits that differ from upstream"),
+                    .child(crate::i18n::t(
+                        "detail-branches-sync-commits-differ-upstream",
+                    )),
             );
         let body = if let Some(error) = &branches.compare_error {
             div()

@@ -381,6 +381,22 @@ impl ColorScheme {
             ColorScheme::Named(name) => name,
         }
     }
+
+    /// Whether this scheme has complete colours for the requested appearance.
+    pub fn available_in(&self, shade: Shade, ghostty: &Ghostty) -> bool {
+        matches!(self, Self::GitButler)
+            || self
+                .palette(shade, ghostty)
+                .is_some_and(|palette| palette_shade(&palette) == Some(shade))
+    }
+
+    fn palette(&self, shade: Shade, ghostty: &Ghostty) -> Option<Colors> {
+        match self {
+            Self::GitButler => None,
+            Self::Ghostty => Some(ghostty.colors(shade == Shade::Dark).clone()),
+            Self::Named(name) => Ghostty::theme(name),
+        }
+    }
 }
 
 /// The interface zoom, in percent.
@@ -588,26 +604,31 @@ impl Theme {
         self.own_colours.is_some()
     }
 
+    /// The appearance actually drawn by this theme.
+    pub fn shade(&self) -> Shade {
+        shade_for_background(rgb_hex(self.bg_1))
+    }
+
     pub fn get(cx: &App) -> &Theme {
         cx.global::<Theme>()
     }
 
-    /// A scheme without a background and foreground, as a named theme that's gone, draws as
-    /// GitButler's.
+    /// A missing, incomplete or opposite-appearance scheme falls back to GitButler's colours
+    /// for the requested mode. A palette never overrides the appearance setting.
     pub fn new(shade: Shade, scheme: &ColorScheme, code: CodeSize, ghostty: &Ghostty) -> Self {
         let dark = shade == Shade::Dark;
-        // The environment overrides the settings, handy for screenshots.
+        // The environment can choose a scheme for screenshots, in the requested appearance.
         let forced = std::env::var("GITBUTLER_GPUI_COLOR_SCHEME").ok();
         let forced = forced.map(|name| match name.as_str() {
             "gitbutler" => ColorScheme::GitButler,
             "ghostty" => ColorScheme::Ghostty,
             _ => ColorScheme::Named(name),
         });
-        let palette = match forced.as_ref().unwrap_or(scheme) {
-            ColorScheme::GitButler => None,
-            ColorScheme::Ghostty => Some(ghostty.colors(dark).clone()),
-            ColorScheme::Named(name) => Ghostty::theme(name),
-        };
+        let palette = forced
+            .as_ref()
+            .unwrap_or(scheme)
+            .palette(shade, ghostty)
+            .filter(|palette| palette_shade(palette) == Some(shade));
         let gitbutler = Self::gitbutler(dark, code);
         match palette {
             Some(palette) => gitbutler.painted(palette),
@@ -831,7 +852,7 @@ impl Theme {
             return self;
         };
         let (bg, fg) = (hex(bg), hex(fg));
-        let dark = contrast(bg, 0xffffff) > contrast(bg, 0x000000);
+        let dark = shade_for_background(bg) == Shade::Dark;
         let given = |index: u8| {
             (palette.palette.iter())
                 .find(|(at, _)| *at == index)
@@ -1243,6 +1264,19 @@ fn hex(color: RgbColor) -> u32 {
     u32::from(color.r) << 16 | u32::from(color.g) << 8 | u32::from(color.b)
 }
 
+fn shade_for_background(background: u32) -> Shade {
+    if contrast(background, 0xffffff) > contrast(background, 0x000000) {
+        Shade::Dark
+    } else {
+        Shade::Light
+    }
+}
+
+fn palette_shade(palette: &Colors) -> Option<Shade> {
+    palette.foreground?;
+    Some(shade_for_background(hex(palette.background?)))
+}
+
 fn color(hex: u32) -> Hsla {
     rgb(hex).into()
 }
@@ -1433,7 +1467,14 @@ mod tests {
             ("murky", palette(0x404040, 0x707070, [0x505050; 8])),
         ];
         for (name, colors) in schemes {
-            let theme = ghostty_theme(colors, Shade::Dark);
+            let shade = super::palette_shade(&colors).expect("the fixture has complete colours");
+            let background = colors.background.expect("the fixture has a background");
+            let theme = ghostty_theme(colors, shade);
+            assert_eq!(
+                rgb_hex(theme.bg_1),
+                super::hex(background),
+                "{name} uses the actual fixture palette"
+            );
             for ground in [theme.bg_1, theme.bg_2].map(rgb_hex) {
                 for (what, ink, ratio) in [
                     ("secondary text", theme.text_2, 4.5),
@@ -1666,13 +1707,13 @@ mod tests {
     }
 
     #[test]
-    fn a_scheme_colours_the_app_and_the_terminals_whatever_the_appearance() {
+    fn a_matching_scheme_colours_both_the_app_and_its_terminals() {
         let solarized = palette(0xfdf6e3, 0x657b83, [0x073642; 8]);
-        let theme = ghostty_theme(solarized.clone(), Shade::Dark);
+        let theme = ghostty_theme(solarized.clone(), Shade::Light);
         assert_eq!(
             [theme.bg_1, theme.text_1].map(rgb_hex),
             [0xfdf6e3, 0x657b83],
-            "a light scheme draws light though the appearance asks for dark"
+            "a light scheme supplies the colours in light mode"
         );
         assert_eq!(
             theme.terminal, solarized,
@@ -1792,6 +1833,78 @@ mod tests {
             picked.terminal_bold,
             FontWeight::SEMIBOLD,
             "a picked font draws bold as the app does, as with Ghostty's features"
+        );
+    }
+
+    #[test]
+    fn an_opposite_shade_palette_cannot_override_the_selected_appearance() {
+        for (shade, bg, fg) in [
+            (Shade::Dark, 0xf0f0f0, 0x171717),
+            (Shade::Light, 0x171717, 0xf0f0f0),
+        ] {
+            let colors = Colors {
+                background: Some(rgb(bg)),
+                foreground: Some(rgb(fg)),
+                ..Colors::default()
+            };
+            let actual = ghostty_theme(colors, shade);
+            let expected = Theme::gitbutler(shade == Shade::Dark, CodeSize::Medium);
+            assert_eq!(
+                actual.bg_1, expected.bg_1,
+                "{shade:?} must stay in its selected mode when an older setting has an incompatible palette"
+            );
+            assert_eq!(
+                actual.shade(),
+                shade,
+                "the rendered mode agrees with the selected appearance"
+            );
+            assert_eq!(
+                actual.terminal, expected.terminal,
+                "the terminal uses the same fallback as the app"
+            );
+        }
+    }
+
+    #[test]
+    fn theme_choices_require_complete_colours_in_the_current_mode() {
+        let light = Colors {
+            background: Some(rgb(0xfafafa)),
+            foreground: Some(rgb(0x171717)),
+            ..Colors::default()
+        };
+        let dark = Colors {
+            background: Some(rgb(0x171717)),
+            foreground: Some(rgb(0xfafafa)),
+            ..Colors::default()
+        };
+        let mut ghostty = Ghostty {
+            light: light.clone(),
+            dark,
+            ..Ghostty::default()
+        };
+        for shade in [Shade::Light, Shade::Dark] {
+            assert!(
+                ColorScheme::GitButler.available_in(shade, &Ghostty::default()),
+                "the built-in scheme always works"
+            );
+            assert!(
+                ColorScheme::Ghostty.available_in(shade, &ghostty),
+                "a matching Ghostty variant is selectable"
+            );
+            assert!(
+                !ColorScheme::Ghostty.available_in(shade, &Ghostty::default()),
+                "an empty config is not an ineffective theme choice"
+            );
+        }
+        ghostty.dark = light;
+        assert!(
+            !ColorScheme::Ghostty.available_in(Shade::Dark, &ghostty),
+            "a light palette cannot be picked for dark mode"
+        );
+        ghostty.light.foreground = None;
+        assert!(
+            !ColorScheme::Ghostty.available_in(Shade::Light, &ghostty),
+            "an incomplete palette is not offered"
         );
     }
 

@@ -2,6 +2,7 @@
 	import Icon from "$components/Icon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 
 	interface Props {
 		single: boolean;
@@ -24,7 +25,7 @@
 	}
 </script>
 
-<Tooltip text={single ? "Single branch" : "Multiple branches"}>
+<Tooltip text={single ? $t("Single branch") : $t("Multiple branches")}>
 	<div class="stack-icon">
 		<Icon name={getIcon()} {size} />
 	</div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button from "$components/Button.svelte";
 	import Avatar from "$components/avatar/Avatar.svelte";
+	import { t } from "$lib/utils/i18n";
 	import type { Snippet } from "svelte";
 
 	type Props = {
@@ -67,18 +68,18 @@
 				{#if email}
 					{email}
 				{:else if isError}
-					Error loading user info
+					{$t("Error loading user info")}
 				{:else if isLoading}
-					Loading...
+					{$t("Loading...")}
 				{:else}
-					No email available
+					{$t("No email available")}
 				{/if}
 			</p>
 		</div>
 
 		<div class="forge-user-card__actions">
 			<Button kind="outline" style="danger" icon="bin" onclick={onForget} loading={isForgetLoading}
-				>Forget</Button
+				>{$t("Forget")}</Button
 			>
 		</div>
 	</div>

@@ -13,6 +13,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, ElementId, Modal, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const { projectId, laneId, branchName, isPushed }: BranchRenameModalProps = $props();
 	const stackService = inject(STACK_SERVICE);
@@ -37,7 +38,7 @@
 <Modal
 	testId={TestId.BranchHeaderRenameModal}
 	width="small"
-	title={isPushed ? "Branch has already been pushed" : "Rename branch"}
+	title={isPushed ? $t("Branch has already been pushed") : $t("Rename branch")}
 	type={isPushed ? "warning" : "info"}
 	bind:this={modal}
 	onSubmit={async (close) => {
@@ -57,7 +58,7 @@
 >
 	<BranchNameTextbox
 		bind:this={branchNameInput}
-		placeholder="New name"
+		placeholder={$t("New name")}
 		id={ElementId.NewBranchNameInput}
 		bind:value={newName}
 		autofocus
@@ -67,19 +68,20 @@
 
 	{#if isPushed}
 		<div class="text-12 helper-text">
-			Renaming a branch that has already been pushed will create a new branch at the remote. The old
-			one will remain untouched but will be disassociated from this branch.
+			{$t(
+				"Renaming a branch that has already been pushed will create a new branch at the remote. The old one will remain untouched but will be disassociated from this branch.",
+			)}
 		</div>
 	{/if}
 
 	{#snippet controls(close)}
-		<Button kind="outline" type="reset" onclick={close}>Cancel</Button>
+		<Button kind="outline" type="reset" onclick={close}>{$t("Cancel")}</Button>
 		<Button
 			testId={TestId.BranchHeaderRenameModal_ActionButton}
 			style="pop"
 			type="submit"
 			disabled={!isBranchNameValid}
-			loading={branchRenameQuery.current.isLoading}>Rename</Button
+			loading={branchRenameQuery.current.isLoading}>{$t("Rename")}</Button
 		>
 	{/snippet}
 </Modal>

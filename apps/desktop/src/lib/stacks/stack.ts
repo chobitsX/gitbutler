@@ -1,5 +1,6 @@
 import { showWarning } from "$lib/notifications/toasts";
 import { TestId } from "@gitbutler/ui-svelte";
+import { translate } from "@gitbutler/ui-svelte/utils/i18n";
 import type { BranchIconName } from "$lib/branches/branchIcon";
 import type { DropResult } from "$lib/dragging/dropResult";
 import type { ApplyOutcome, PushStatus, Segment, Stack as RefInfoStack } from "@gitbutler/but-sdk";
@@ -38,7 +39,10 @@ export function handleApplyOutcome(outcome: ApplyOutcome) {
 	const single = names.length === 1;
 	showWarning(
 		"Couldn't apply branch due to conflicts",
-		`It conflicts with ${prettyNamedListIfPossible(names.length, names) || "another applied stack"}. Unapply ${single ? "it" : "them"} first, then try applying again.`,
+		translate("It conflicts with {value0}. Unapply {value1} first, then try applying again.", {
+			value0: prettyNamedListIfPossible(names.length, names) || "another applied stack",
+			value1: single ? "it" : "them",
+		}),
 		undefined,
 		TestId.BranchApplyConflictToast,
 	);
@@ -165,8 +169,13 @@ export function toMoveBranchWarning(unappliedStackCount: number): DropResult | u
 	return {
 		type: "warning",
 		title: "Heads up: We had to unapply some stacks to move this branch",
-		message: `It seems that the branch moved couldn't be applied cleanly alongside your other ${unappliedStackCount} ${unappliedStackCount === 1 ? "stack" : "stacks"}.
-You can always re-apply them later from the branches page.`,
+		message: translate(
+			"It seems that the branch moved couldn't be applied cleanly alongside your other {value0} {value1}.\nYou can always re-apply them later from the branches page.",
+			{
+				value0: unappliedStackCount,
+				value1: translate(unappliedStackCount === 1 ? "stack" : "stacks"),
+			},
+		),
 		testId: TestId.StacksUnappliedToast,
 	};
 }

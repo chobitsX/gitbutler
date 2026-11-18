@@ -8,6 +8,7 @@
 	import { isNormalizedError } from "$lib/error/normalizedError";
 
 	import { Icon, InfoMessage } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { QueryStatus } from "@reduxjs/toolkit/query";
 	import type { Result } from "$lib/state/helpers";
 	import type { Snippet } from "svelte";
@@ -77,7 +78,7 @@
 					{error.name}
 				{/snippet}
 				{#snippet content()}
-					An asynchronous operation failed.
+					{$t("An asynchronous operation failed.")}
 				{/snippet}
 			</InfoMessage>
 		</div>

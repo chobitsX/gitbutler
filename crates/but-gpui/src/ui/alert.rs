@@ -97,6 +97,7 @@ impl Render for Alert {
                 .pt(dp(120.))
                 // A layer of its own, so it takes the app's look itself.
                 .font_family(theme.ui_font.clone())
+                .map(crate::ui::with_cjk_fallback)
                 .text_13()
                 .text_color(theme.text_1)
                 .child(card),

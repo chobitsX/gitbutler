@@ -4,6 +4,7 @@
 	import { PR_SERVICE } from "$lib/forge/prService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Commit } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -21,7 +22,7 @@
 
 	const forgeInfoQuery = $derived(forgeInfoService.get(projectId));
 	const forgeInfo = $derived(forgeInfoQuery.response);
-	const reviewUnitName = $derived(forgeInfo?.unit.name ?? "Pull request");
+	const reviewUnitName = $derived($t(forgeInfo?.unit.name ?? "Pull request"));
 
 	const branchEmpty = $derived(commits.length === 0);
 	const prQuery = $derived(prNumber ? prService.get(projectId, prNumber) : undefined);

@@ -133,7 +133,13 @@ pub fn byline(name: &str, email: &str, agent: Option<&Agent>, time: i64, theme: 
     super::h_flex()
         .gap(dp(8.))
         .child(byline_avatar(name, email, agent, 16., theme))
-        .child(format!("{by} at {}", super::local_time(time)))
+        .child(crate::i18n::tf(
+            "ui-person-at",
+            &[
+                ("by", (by).into()),
+                ("time", (super::local_time(time)).into()),
+            ],
+        ))
 }
 
 /// The photo for a lowercased email, fetched once a run, off the UI thread: the GitHub

@@ -7,6 +7,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { persisted } from "@gitbutler/shared/persisted";
 	import { Button, Modal } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { onMount } from "svelte";
 
 	const backend = inject(BACKEND);
@@ -39,30 +40,34 @@
 		</div>
 		<div class="native-app__content">
 			{#if switched}
-				<h2 class="text-16 text-bold">Restart to open the native app</h2>
+				<h2 class="text-16 text-bold">{$t("Restart to open the native app")}</h2>
 				<p class="text-13 text-body">
-					The native app opens the next time GitButler starts. To switch back, turn off "Open this
-					app at start" in the native app's Settings › Experimental.
+					{$t(
+						'The native app opens the next time GitButler starts. To switch back, turn off "Open this app at start" in the native app\'s Settings › Experimental.',
+					)}
 				</p>
 			{:else}
-				<h2 class="text-16 text-bold">Try the new native GitButler app</h2>
+				<h2 class="text-16 text-bold">{$t("Try the new native GitButler app")}</h2>
 				<p class="text-13 text-body">
-					It's much faster and takes a fresh approach to the interface. Your projects and settings
-					carry over. We're still building it, and it will become the default in a future release.
+					{$t(
+						"It's much faster and takes a fresh approach to the interface. Your projects and settings carry over. We're still building it, and it will become the default in a future release.",
+					)}
 				</p>
 				<p class="text-13 text-body native-app__hint">
-					Nothing changes until you restart. Turn it on or off any time in Settings › Experimental.
+					{$t(
+						"Nothing changes until you restart. Turn it on or off any time in Settings › Experimental.",
+					)}
 				</p>
 			{/if}
 		</div>
 	</div>
 	{#snippet controls(close)}
 		{#if switched}
-			<Button kind="outline" onclick={close}>Later</Button>
-			<Button style="pop" onclick={() => backend.relaunch()}>Restart now</Button>
+			<Button kind="outline" onclick={close}>{$t("Later")}</Button>
+			<Button style="pop" onclick={() => backend.relaunch()}>{$t("Restart now")}</Button>
 		{:else}
-			<Button kind="outline" onclick={close}>Not now</Button>
-			<Button style="pop" onclick={switchToNativeApp}>Try the native app</Button>
+			<Button kind="outline" onclick={close}>{$t("Not now")}</Button>
+			<Button style="pop" onclick={switchToNativeApp}>{$t("Try the native app")}</Button>
 		{/if}
 	{/snippet}
 </Modal>

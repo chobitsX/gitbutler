@@ -3,6 +3,7 @@
 	import { PROMPT_SERVICE } from "$lib/ai/aiPromptService";
 	import { inject } from "@gitbutler/core/context";
 	import { Button } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import { get } from "svelte/store";
 	import type { Prompts, UserPrompt } from "$lib/ai/types";
@@ -43,9 +44,9 @@
 {#if prompts && $userPrompts}
 	<div class="prompt-item__title">
 		<h3 class="text-15 text-bold">
-			{promptUse === "commits" ? "Commit message" : "Branch name"}
+			{promptUse === "commits" ? $t("Commit message") : $t("Branch name")}
 		</h3>
-		<Button kind="outline" icon="plus" onclick={createNewPrompt}>New prompt</Button>
+		<Button kind="outline" icon="plus" onclick={createNewPrompt}>{$t("New prompt")}</Button>
 	</div>
 	<div class="content">
 		<AIPromptEntry

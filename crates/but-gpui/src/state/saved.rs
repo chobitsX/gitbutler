@@ -207,6 +207,7 @@ impl Store {
 
     pub fn set_prefs(&mut self, update: impl FnOnce(&mut Prefs), cx: &mut Context<Self>) {
         update(&mut self.prefs);
+        crate::i18n::set_language(self.prefs.language);
         self.save_soon(cx);
         cx.notify();
     }
@@ -589,6 +590,8 @@ pub struct ProjectGroup {
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Prefs {
+    /// The native client's interface language, shared by its windows.
+    pub language: crate::i18n::Language,
     pub appearance: Appearance,
     /// The colour scheme the app draws in while it's light.
     pub light_scheme: ColorScheme,
@@ -914,6 +917,48 @@ mod tests {
     use crate::backend::{CommitId, FullName};
     use crate::links::{Route, Tab, View};
     use crate::state::Selection;
+
+    #[test]
+    fn i18n_language_round_trips_without_changing_other_preferences() {
+        let saved = Saved::parse(serde_json::json!({
+            "prefs": {"language": "zh-CN", "wrap": true, "projects_folded": true}
+        }));
+        let rows = saved.rows();
+        let fields = rows
+            .into_iter()
+            .map(|(key, value)| {
+                (
+                    key,
+                    serde_json::from_str(&value).expect("saved rows are JSON"),
+                )
+            })
+            .collect();
+        let restored = Saved::parse(serde_json::Value::Object(fields));
+        assert_eq!(
+            restored.prefs.language,
+            crate::i18n::Language::SimplifiedChinese,
+            "the language is kept in the existing native preferences"
+        );
+        assert!(
+            restored.prefs.wrap && restored.prefs.projects_folded,
+            "saving a language does not reset the existing interface choices"
+        );
+        for prefs in [
+            serde_json::json!({"wrap": true}),
+            serde_json::json!({"language": "future", "wrap": true}),
+        ] {
+            let restored = Saved::parse(serde_json::json!({"prefs": prefs}));
+            assert_eq!(
+                restored.prefs.language,
+                crate::i18n::Language::English,
+                "missing or unknown languages fall back to English"
+            );
+            assert!(
+                restored.prefs.wrap,
+                "an unreadable language leaves other preferences intact"
+            );
+        }
+    }
 
     fn params(at: &[(&str, &str)]) -> Vec<(String, String)> {
         (at.iter())

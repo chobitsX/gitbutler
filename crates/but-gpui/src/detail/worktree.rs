@@ -472,15 +472,24 @@ impl Detail {
                 el.child(
                     meta_item(Icon::File, theme)
                         .flex_none()
-                        .child(format!("{} uncommitted", files.len())),
+                        .child(crate::i18n::tf(
+                            "detail-worktree-uncommitted",
+                            &[("count", (format!("{}", files.len())).into())],
+                        )),
                 )
             })
             .when(unread > 0, |el| {
-                let said = div().min_w_0().truncate().child(format!("{unread} unread"));
+                let said = div().min_w_0().truncate().child(crate::i18n::tf(
+                    "detail-worktree-unread",
+                    &[("unread", (format!("{unread}")).into())],
+                ));
                 el.child(meta_item(Icon::Commit, theme).min_w_0().child(said))
             })
             .when(files.is_empty() && unread == 0, |el| {
-                let said = div().min_w_0().truncate().child("All caught up");
+                let said = div()
+                    .min_w_0()
+                    .truncate()
+                    .child(crate::i18n::t("detail-worktree-all-caught-up"));
                 el.child(meta_item(Icon::Tick, theme).min_w_0().child(said))
             })
     }
@@ -781,19 +790,22 @@ impl Detail {
         // titles under it.
         let mark_read = (!unread.is_empty()).then(|| {
             let project = project.clone();
-            button("now-mark-read", "Mark all as read")
-                .small()
-                .style(ButtonStyle::Ghost)
-                .tint(Hue::Gray)
-                .on_click(cx.listener(move |this, _, _, cx| {
-                    let ids = unread.clone();
-                    (this.store).update(cx, |store, cx| store.mark_read(&project, ids, true, cx))
-                }))
+            button(
+                "now-mark-read",
+                crate::i18n::t("detail-worktree-mark-all-read"),
+            )
+            .small()
+            .style(ButtonStyle::Ghost)
+            .tint(Hue::Gray)
+            .on_click(cx.listener(move |this, _, _, cx| {
+                let ids = unread.clone();
+                (this.store).update(cx, |store, cx| store.mark_read(&project, ids, true, cx))
+            }))
         });
         Some(
             v_flex()
                 .child(overview_heading(
-                    "Commits",
+                    crate::i18n::t("overview-commits"),
                     div().children(mark_read),
                     theme,
                 ))

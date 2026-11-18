@@ -18,6 +18,7 @@
 	import { FileListItem, TestId } from "@gitbutler/ui-svelte";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui-svelte/drag/dragStateService.svelte";
 	import { type FocusableOptions } from "@gitbutler/ui-svelte/focus/focusTypes";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { onDestroy } from "svelte";
 	import type { ConflictEntriesObj } from "$lib/files/conflicts";
 	import type { HunkLockTarget } from "@gitbutler/but-sdk";
@@ -124,11 +125,11 @@
 			.map(getStackName);
 
 		if (stackNames.length === 0) {
-			return "Depends on changes in an unidentified stack";
+			return $t("Depends on changes in an unidentified stack");
 		} else if (stackNames.length === 1) {
-			return `Depends on changes in:\n '${stackNames[0]}'`;
+			return $t("Depends on changes in:\n '{value0}'", { value0: stackNames[0] });
 		} else {
-			return `Depends on changes in:\n ${stackNames.join(", ")}`;
+			return $t("Depends on changes in:\n {value0}", { value0: stackNames.join(", ") });
 		}
 	});
 

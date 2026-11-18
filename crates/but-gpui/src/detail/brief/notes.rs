@@ -113,8 +113,8 @@ impl Detail {
         cx: &mut Context<Self>,
     ) {
         let placeholder = match to {
-            CommentTo::Thread(_) => "Write a reply…",
-            _ => "Write a comment…",
+            CommentTo::Thread(_) => crate::i18n::t("detail-brief-notes-write-reply"),
+            _ => crate::i18n::t("detail-brief-notes-write-comment"),
         };
         // What it's on is tinted from here, where a selection would hide that.
         self.note_selection = None;
@@ -337,11 +337,17 @@ impl Detail {
                     .text_12()
                     .text_color(theme.text_3)
                     .children(self.next_brief(true, cx).map(|next| {
-                        button("brief-next", format!("Next: {}", next.title))
-                            .small()
-                            .style(ButtonStyle::Outline)
-                            .tooltip_for(format!("Go on to {}", next.name), &NextBrief)
-                            .on_click(cx.listener(|this, _, _, cx| this.hop_to_brief(true, cx)))
+                        button(
+                            "brief-next",
+                            crate::i18n::tf(
+                                "detail-brief-notes-next",
+                                &[("title", (next.title.to_string()).into())],
+                            ),
+                        )
+                        .small()
+                        .style(ButtonStyle::Outline)
+                        .tooltip_for(format!("Go on to {}", next.name), &NextBrief)
+                        .on_click(cx.listener(|this, _, _, cx| this.hop_to_brief(true, cx)))
                     })),
             )
             // What was said on other versions, which has nowhere on this one to go.
@@ -412,14 +418,18 @@ impl Detail {
             .and_then(|writing| self.talk_composer(writing, true, cx));
         // What's next for it, in the corner: that it's done with, or the way to answer.
         let end = match (resolved, &replying) {
-            (true, _) => Some(tag(Hue::Safe, theme).child("Resolved").into_any_element()),
+            (true, _) => Some(
+                tag(Hue::Safe, theme)
+                    .child(crate::i18n::t("detail-brief-notes-resolved"))
+                    .into_any_element(),
+            ),
             (false, Some(_)) => None,
             (false, None) => {
                 let parent = thread.id.clone();
                 Some(
                     button(
                         gpui::SharedString::from(format!("brief-reply-{}", thread.id)),
-                        "Reply",
+                        crate::i18n::t("detail-brief-notes-reply"),
                     )
                     .small()
                     .style(ButtonStyle::Ghost)
@@ -494,7 +504,7 @@ impl Detail {
         let editing = note.clone();
         v_flex()
             .id(("brief-note", id as u64))
-            .tooltip(Tooltip::text("Edit"))
+            .tooltip(Tooltip::text(crate::i18n::t("common-edit")))
             .on_click(
                 cx.listener(move |this, _, window, cx| this.edit_brief_note(&editing, window, cx)),
             )
@@ -535,11 +545,14 @@ impl Detail {
                             .flex_none()
                             .ml_auto()
                             .gap(dp(6.))
-                            .child(tag(Hue::Blue, theme).child("Not sent"))
+                            .child(
+                                tag(Hue::Blue, theme)
+                                    .child(crate::i18n::t("detail-brief-notes-not-sent")),
+                            )
                             .child(
                                 icon_button(("brief-note-drop", id as u64), Icon::Cross)
                                     .small()
-                                    .tooltip("Discard")
+                                    .tooltip(crate::i18n::t("detail-brief-notes-discard"))
                                     // It may be on its way, and a new note could take its id
                                     // before sending it removes that.
                                     .disabled_because(self.brief.sending.then_some("Sending"))

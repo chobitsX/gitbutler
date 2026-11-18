@@ -1932,7 +1932,9 @@ pub(super) fn new_commit_row(
     // Untitled till its message is written, quiet as an empty title is.
     let title = match title {
         Some(title) => div().child(title.to_owned()),
-        None => div().text_color(style.muted()).child("New commit"),
+        None => div()
+            .text_color(style.muted())
+            .child(crate::i18n::t("navigator-moving-new-commit")),
     };
     (style.row(format!("new-commit-{project}"), COMMIT_INDENT))
         .gap(dp(10.))

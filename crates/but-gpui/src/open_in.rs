@@ -17,8 +17,8 @@ pub fn editor_label(store: &Store) -> String {
     (store.prefs.editor.as_ref())
         .and_then(|id| settings::editors().into_iter().find(|(e, _)| e == id))
         .map_or_else(
-            || "Open in editor".to_owned(),
-            |(_, name)| format!("Open in {name}"),
+            || crate::i18n::t("open-in-editor").to_owned(),
+            |(_, name)| crate::i18n::tf("open-in-program", &[("name", name.into())]),
         )
 }
 
@@ -50,7 +50,10 @@ impl AppView {
                             this.store.update(cx, |store, cx| {
                                 store.set_prefs(|prefs| prefs.editor = Some(id.clone()), cx);
                                 store.snack(
-                                    format!("Files now open in {name}, set in Settings → General"),
+                                    crate::i18n::tf(
+                                        "open-in-editor-selected",
+                                        &[("name", name.clone().into())],
+                                    ),
                                     cx,
                                 )
                             });
@@ -80,7 +83,7 @@ impl AppView {
         cx: &mut Context<Self>,
     ) {
         let open = move || settings::open_in_editor(&path, checkout.linked(), &editor, &file, line);
-        self.open_with("Couldn't open the editor", open, cx);
+        self.open_with(crate::i18n::t("open-in-editor-error"), open, cx);
     }
 
     /// Run `open` off the UI thread, saying `failed`, with why, when it fails.
@@ -106,7 +109,7 @@ impl AppView {
         };
         let terminal = store.prefs.terminal.clone();
         let open = move || settings::open_in_terminal(&path, terminal);
-        self.open_with("Couldn't open the terminal", open, cx);
+        self.open_with(crate::i18n::t("open-in-terminal-error"), open, cx);
     }
 
     pub fn open_selected_in_terminal(

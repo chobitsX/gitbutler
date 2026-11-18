@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button, Modal, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		projectTitle?: string;
@@ -43,7 +44,7 @@
 	reversedDirection
 	onclick={handleClick}
 >
-	Remove project…
+	{$t("Remove project…")}
 </Button>
 
 <Modal
@@ -55,13 +56,15 @@
 >
 	<div class="remove-project-description">
 		<p class="text-14 text-body">
-			Are you sure you want to remove
-			<span class="text-bold">{projectTitle}</span> from GitButler?
+			{$t("Are you sure you want to remove")}
+			<span class="text-bold">{projectTitle}</span>
+			{$t("from GitButler?")}
 		</p>
 
 		<p class="text-12 text-body details-text">
-			When you delete your project from GitButler, your repository doesn't get deleted. It just
-			removes the project from the list, keeping your repository safe and easy to access.
+			{$t(
+				"When you delete your project from GitButler, your repository doesn't get deleted. It just removes the project from the list, keeping your repository safe and easy to access.",
+			)}
 		</p>
 	</div>
 
@@ -75,9 +78,9 @@
 			icon="bin"
 			type="submit"
 		>
-			Remove
+			{$t("Remove")}
 		</Button>
-		<Button style="pop" onclick={close}>Cancel</Button>
+		<Button style="pop" onclick={close}>{$t("Cancel")}</Button>
 	{/snippet}
 </Modal>
 

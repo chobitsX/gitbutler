@@ -5,6 +5,7 @@
 	import OptionsGroup from "$components/select/OptionsGroup.svelte";
 	import SearchItem from "$components/select/SearchItem.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 	import { portal } from "$lib/utils/portal";
 	import { pxToRem } from "$lib/utils/pxToRem";
 	import { resizeObserver } from "$lib/utils/resizeObserver";
@@ -64,7 +65,7 @@
 		flex,
 		options = [],
 		value,
-		placeholder = "Select an option...",
+		placeholder = $t("Select an option..."),
 		maxHeight,
 		minHeight,
 		searchable,
@@ -394,7 +395,7 @@
 					{#if groupedOptions.length === 0}
 						<OptionsGroup>
 							<div class="text-13 text-semibold option nothing-found">
-								<span class=""> Nothing found ¯\_(ツ)_/¯ </span>
+								<span class=""> {$t("Nothing found ¯\\_(ツ)_/¯")} </span>
 							</div>
 						</OptionsGroup>
 					{:else}

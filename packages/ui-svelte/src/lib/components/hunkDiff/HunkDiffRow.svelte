@@ -18,6 +18,7 @@
 		type Row,
 	} from "$lib/utils/diffParsing";
 	import { getHunkLineId } from "$lib/utils/hunk";
+	import { t } from "$lib/utils/i18n";
 	import { onDestroy, type Snippet } from "svelte";
 	import type LineSelection from "$components/hunkDiff/lineSelection.svelte";
 
@@ -198,7 +199,7 @@
 				<button
 					type="button"
 					class="table__lockButton"
-					aria-label="Highlight depended-on commits"
+					aria-label={$t("Highlight depended-on commits")}
 					use:clearHighlightOnDestroy
 					onmouseenter={() => handleLockHover(row.locks ?? [])}
 					onmouseleave={handleLockUnhover}

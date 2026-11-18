@@ -5,6 +5,7 @@
 <script lang="ts">
 	import Badge from "$components/Badge.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	interface Props {
@@ -22,13 +23,13 @@
 	const prStatusInfo: StatusInfo = $derived.by(() => {
 		switch (status) {
 			case "loading":
-				return { text: "Loading...", icon: "spinner", style: "gray" };
+				return { text: $t("Loading..."), icon: "spinner", style: "gray" };
 			case "merged":
-				return { text: "Merged", icon: "pr-tick", style: "purple" };
+				return { text: $t("Merged"), icon: "pr-tick", style: "purple" };
 			case "closed":
 				return { text: "Closed", icon: "pr-cross", style: "danger" };
 			case "draft":
-				return { text: "Draft", icon: "pr-draft", style: "gray" };
+				return { text: $t("Draft"), icon: "pr-draft", style: "gray" };
 			default:
 				return { text: "Open", icon: "pr", style: "safe" };
 		}

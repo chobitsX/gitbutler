@@ -64,7 +64,7 @@ fn offers(blocked: &BlockedCommit) -> Vec<Offer> {
     let mut offers = Vec::new();
     if blocked.blocked.takes_others {
         offers.push(Offer {
-            label: "Leave them out".into(),
+            label: crate::i18n::t("commit-blocked-leave-them-out").into(),
             to: asked.clone(),
             leave_out: true,
             restack: None,
@@ -84,7 +84,11 @@ fn offers(blocked: &BlockedCommit) -> Vec<Offer> {
         Some(branch) if Some(branch) == into && !merged => {
             if matches!(asked, CommitTo::BelowCommit { .. }) {
                 offers.push(Offer {
-                    label: format!("Commit on top of {}", short_ref(branch)).into(),
+                    label: crate::i18n::tf(
+                        "commit-blocked-commit-top",
+                        &[("branch", (format!("{}", short_ref(branch))).into())],
+                    )
+                    .into(),
                     to: CommitTo::Branch(branch.clone()),
                     leave_out: false,
                     restack: None,
@@ -95,7 +99,11 @@ fn offers(blocked: &BlockedCommit) -> Vec<Offer> {
         }
         Some(branch) => {
             offers.push(Offer {
-                label: format!("New branch above {}", short_ref(branch)).into(),
+                label: crate::i18n::tf(
+                    "commit-blocked-new-branch-above",
+                    &[("branch", (format!("{}", short_ref(branch))).into())],
+                )
+                .into(),
                 to: CommitTo::NewBranchAt {
                     beside: Some((branch.clone(), false)),
                     before: None,
@@ -108,7 +116,11 @@ fn offers(blocked: &BlockedCommit) -> Vec<Offer> {
             });
             if !merged {
                 offers.push(Offer {
-                    label: format!("Commit to {}", short_ref(branch)).into(),
+                    label: crate::i18n::tf(
+                        "commit-blocked-commit",
+                        &[("branch", (format!("{}", short_ref(branch))).into())],
+                    )
+                    .into(),
                     to: CommitTo::Branch(branch.clone()),
                     leave_out: false,
                     restack: None,
@@ -123,7 +135,11 @@ fn offers(blocked: &BlockedCommit) -> Vec<Offer> {
     // default.
     if let Some(stacking) = &blocked.blocked.stack {
         offers.push(Offer {
-            label: format!("Stack and commit to {}", short_ref(&stacking.top)).into(),
+            label: crate::i18n::tf(
+                "commit-blocked-stack-commit",
+                &[("top", (format!("{}", short_ref(&stacking.top))).into())],
+            )
+            .into(),
             to: CommitTo::Branch(stacking.top.clone()),
             leave_out: false,
             restack: Some(stacking.clone()),
@@ -131,7 +147,7 @@ fn offers(blocked: &BlockedCommit) -> Vec<Offer> {
             shrinks: true,
         });
         offers.push(Offer {
-            label: "Stack and commit to a new branch".into(),
+            label: crate::i18n::t("commit-blocked-stack-commit-new-branch").into(),
             to: CommitTo::NewBranchAt {
                 beside: Some((stacking.top.clone(), false)),
                 before: None,
@@ -273,7 +289,10 @@ fn hunk_lines(hunk: &BlockedHunk, theme: &Theme) -> Div {
                 .px(dp(8.))
                 .py(dp(2.))
                 .text_color(theme.text_2)
-                .child(format!("{} more", plural(more, "line"))),
+                .child(crate::i18n::tf(
+                    "commit-blocked-more",
+                    &[("lines", (plural(more, crate::ui::Count::Line)).into())],
+                )),
         )
     })
 }
@@ -311,7 +330,10 @@ fn left_out(change: &BlockedChange, theme: &Theme) -> Div {
         .when_some(why, |el, why| el.child(muted(why, theme)))
         .children(hunks)
         .when(more > 0, |el| {
-            el.child(muted(format!("and {} more", plural(more, "change")), theme))
+            el.child(muted(
+                format!("and {} more", plural(more, crate::ui::Count::Change)),
+                theme,
+            ))
         })
 }
 
@@ -412,7 +434,10 @@ impl Render for CommitBlocked {
             .track_scroll(&self.scroll)
             .children(rows)
             .when(more > 0, |el| {
-                el.child(muted(format!("and {}", plural(more, "more file")), theme))
+                el.child(muted(
+                    format!("and {}", plural(more, crate::ui::Count::MoreFile)),
+                    theme,
+                ))
             });
         let list = scrolled(
             list,
@@ -449,7 +474,7 @@ impl Render for CommitBlocked {
         let actions = h_flex()
             .gap(dp(6.))
             .child(
-                button("commit-blocked-cancel", "Cancel")
+                button("commit-blocked-cancel", crate::i18n::t("common-cancel"))
                     .small()
                     .style(ButtonStyle::Ghost)
                     .on_click(cx.listener(|_, _, _, cx| cx.emit(DismissEvent))),
@@ -466,12 +491,10 @@ impl Render for CommitBlocked {
             );
         card.p(dp(16.))
             .gap(dp(12.))
-            .child(
-                div()
-                    .text_14()
-                    .semibold()
-                    .child(format!("Can't commit all of this to {target}")),
-            )
+            .child(div().text_14().semibold().child(crate::i18n::tf(
+                "commit-blocked-t-commit-all",
+                &[("target", (target).into())],
+            )))
             .child(muted(explanation(&blocked.blocked, to), theme))
             .child(list)
             .child(actions)

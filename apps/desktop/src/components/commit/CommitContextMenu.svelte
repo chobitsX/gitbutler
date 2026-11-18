@@ -71,6 +71,7 @@
 		KebabButton,
 		TestId,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		showOnHover?: boolean;
@@ -173,8 +174,8 @@
 		showToast({
 			id: progressToastId,
 			style: "info",
-			title: "Resolving conflicts with AI…",
-			message: "This can take a moment. The resolution is applied when it completes.",
+			title: $t("Resolving conflicts with AI…"),
+			message: $t("This can take a moment. The resolution is applied when it completes."),
 		});
 		try {
 			const result = await resolveConflictsAi({ projectId, stackId, commitId });
@@ -184,14 +185,14 @@
 				.join("\n");
 			showToast({
 				style: "success",
-				title: "Conflicts resolved with AI",
+				title: $t("Conflicts resolved with AI"),
 				message: `${result.summary ?? ""}\n\n${fileList}\n\nIf this isn't right, undo it from the operations history.`,
 			});
 		} catch (error: unknown) {
 			dismissToast(progressToastId);
 			showToast({
 				style: "danger",
-				title: "Failed to resolve conflicts with AI",
+				title: $t("Failed to resolve conflicts with AI"),
 				error,
 			});
 		} finally {
@@ -219,7 +220,7 @@
 					<!-- Multi-select actions -->
 					<ContextMenuSection>
 						<ContextMenuItem
-							label="Squash {multiSelect.commitIds.length} commits"
+							label={$t("Squash {length} commits", { length: multiSelect.commitIds.length })}
 							icon="commit-double-chevron-down"
 							testId={TestId.CommitRowContextMenu_SquashSelected}
 							disabled={isReadOnly}
@@ -231,7 +232,7 @@
 							}}
 						/>
 						<ContextMenuItem
-							label="Uncommit {multiSelect.commitIds.length} commits"
+							label={$t("Uncommit {length} commits", { length: multiSelect.commitIds.length })}
 							icon="undo"
 							testId={TestId.CommitRowContextMenu_UncommitSelected}
 							disabled={isReadOnly}
@@ -248,7 +249,7 @@
 					{@const { onUncommitClick, onEditMessageClick } = contextData}
 					<ContextMenuSection>
 						<ContextMenuItem
-							label="Uncommit"
+							label={$t("Uncommit")}
 							icon="undo"
 							testId={TestId.CommitRowContextMenu_UncommitMenuButton}
 							disabled={isReadOnly}
@@ -260,7 +261,7 @@
 							}}
 						/>
 						<ContextMenuItem
-							label="Reword commit"
+							label={$t("Reword commit")}
 							icon="edit"
 							testId={TestId.CommitRowContextMenu_EditMessageMenuButton}
 							disabled={isReadOnly}
@@ -272,7 +273,7 @@
 							}}
 						/>
 						<ContextMenuItem
-							label="Edit commit"
+							label={$t("Edit commit")}
 							icon="commit-edit"
 							testId={TestId.CommitRowContextMenu_EditCommit}
 							disabled={isReadOnly || inWorktree}
@@ -285,7 +286,7 @@
 						/>
 						{#if contextData.hasConflicts && $aiGenEnabled && aiConfigurationValid}
 							<ContextMenuItem
-								label="Resolve conflicts with AI"
+								label={$t("Resolve conflicts with AI")}
 								icon="ai"
 								testId={TestId.CommitRowContextMenu_ResolveConflictsAi}
 								disabled={isReadOnly || inWorktree || aiResolution.current.isLoading}
@@ -305,7 +306,7 @@
 				<ContextMenuSection>
 					{#if commitUrl}
 						<ContextMenuItem
-							label="Open in browser"
+							label={$t("Open in browser")}
 							icon="open-in-browser"
 							onclick={async () => {
 								await urlService.openExternalUrl(commitUrl);
@@ -313,12 +314,12 @@
 							}}
 						/>
 					{/if}
-					<ContextMenuItemSubmenu label="Copy" icon="copy">
+					<ContextMenuItemSubmenu label={$t("Copy")} icon="copy">
 						{#snippet submenu({ close: closeSubmenu })}
 							<ContextMenuSection>
 								{#if commitUrl}
 									<ContextMenuItem
-										label="Copy commit link"
+										label={$t("Copy commit link")}
 										onclick={() => {
 											clipboardService.write(commitUrl, { message: "Commit link copied" });
 											closeSubmenu();
@@ -327,7 +328,7 @@
 									/>
 								{/if}
 								<ContextMenuItem
-									label="Copy commit hash"
+									label={$t("Copy commit hash")}
 									onclick={() => {
 										clipboardService.write(commitId, { message: "Commit hash copied" });
 										closeSubmenu();
@@ -335,7 +336,7 @@
 									}}
 								/>
 								<ContextMenuItem
-									label="Copy commit message"
+									label={$t("Copy commit message")}
 									onclick={() => {
 										clipboardService.write(commitMessage, { message: "Commit message copied" });
 										closeSubmenu();
@@ -346,11 +347,11 @@
 						{/snippet}
 					</ContextMenuItemSubmenu>
 					{#if isLocal}
-						<ContextMenuItemSubmenu label="Add empty commit" icon="commit-plus">
+						<ContextMenuItemSubmenu label={$t("Add empty commit")} icon="commit-plus">
 							{#snippet submenu({ close: closeSubmenu })}
 								<ContextMenuSection>
 									<ContextMenuItem
-										label="Add empty commit above"
+										label={$t("Add empty commit above")}
 										disabled={isReadOnly || commitInsertion.current.isLoading}
 										onclick={() => {
 											insertBlankCommit(commitId, "above");
@@ -359,7 +360,7 @@
 										}}
 									/>
 									<ContextMenuItem
-										label="Add empty commit below"
+										label={$t("Add empty commit below")}
 										disabled={isReadOnly || commitInsertion.current.isLoading}
 										onclick={() => {
 											insertBlankCommit(commitId, "below");
@@ -370,11 +371,11 @@
 								</ContextMenuSection>
 							{/snippet}
 						</ContextMenuItemSubmenu>
-						<ContextMenuItemSubmenu label="Create branch" icon="branch">
+						<ContextMenuItemSubmenu label={$t("Create branch")} icon="branch">
 							{#snippet submenu({ close: closeSubmenu })}
 								<ContextMenuSection>
 									<ContextMenuItem
-										label="Add branch above"
+										label={$t("Add branch above")}
 										disabled={isReadOnly || inWorktree || branchCreation.current.isLoading}
 										onclick={async () => {
 											if (!isReadOnly) {
@@ -385,7 +386,7 @@
 										}}
 									/>
 									<ContextMenuItem
-										label="Add branch below"
+										label={$t("Add branch below")}
 										disabled={isReadOnly || inWorktree || branchCreation.current.isLoading}
 										onclick={async () => {
 											if (!isReadOnly) {
@@ -403,7 +404,7 @@
 
 				<ContextMenuSection>
 					<ContextMenuItem
-						label={$rewrapCommitMessage ? "Show original wrapping" : "Rewrap message"}
+						label={$rewrapCommitMessage ? $t("Show original wrapping") : $t("Rewrap message")}
 						icon="text-wrap"
 						disabled={commitInsertion.current.isLoading}
 						onclick={() => {

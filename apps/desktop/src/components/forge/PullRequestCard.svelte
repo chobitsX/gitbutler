@@ -19,6 +19,7 @@
 		TestId,
 	} from "@gitbutler/ui-svelte";
 	import { getForgeLogo } from "@gitbutler/ui-svelte/utils/getForgeLogo";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { PullRequest } from "$lib/forge/interface/types";
 	import type { Snippet } from "svelte";
 
@@ -127,7 +128,7 @@
 	const repoQuery = $derived(repoInfoEnabled ? repoService.getInfo(projectId) : undefined);
 	const repoInfo = $derived(repoQuery?.response);
 
-	const name = $derived(forgeInfo?.unit.name ?? "Pull request");
+	const name = $derived($t(forgeInfo?.unit.name ?? "Pull request"));
 	const abbr = $derived(forgeInfo?.unit.abbr ?? "PR");
 	const symbol = $derived(forgeInfo?.unit.symbol ?? "#");
 
@@ -148,7 +149,7 @@
 		let disabled = true;
 		let tooltip = undefined;
 		if (isPushed && hasParent && !parentIsPushed) {
-			tooltip = "Remote parent branch seems to have been deleted";
+			tooltip = $t("Remote parent branch seems to have been deleted");
 		} else if (!baseIsTargetBranch) {
 			tooltip = name + " is not next in stack";
 		} else if (repoInfoEnabled && !repoInfo?.canMerge) {
@@ -181,7 +182,7 @@
 		let disabled = true;
 		let tooltip = undefined;
 		if (isPushed && hasParent && !parentIsPushed) {
-			tooltip = "Remote parent branch seems to have been deleted";
+			tooltip = $t("Remote parent branch seems to have been deleted");
 		} else {
 			disabled = false;
 		}
@@ -200,21 +201,21 @@
 			>
 				<ContextMenuSection>
 					<ContextMenuItem
-						label="Open in browser"
+						label={$t("Open in browser")}
 						onclick={() => {
 							contextMenuOpen = false;
 							urlService.openExternalUrl(pr.htmlUrl);
 						}}
 					/>
 					<ContextMenuItem
-						label="Copy link"
+						label={$t("Copy link")}
 						onclick={() => {
 							contextMenuOpen = false;
 							clipboardService.write(pr.htmlUrl, { message: `${abbr} link copied` });
 						}}
 					/>
 					<ContextMenuItem
-						label="Refetch status"
+						label={$t("Refetch status")}
 						onclick={() => {
 							contextMenuOpen = false;
 							prService.fetch(projectId, pr.number, { forceRefetch: true });
@@ -226,7 +227,7 @@
 					/>
 					{#if !pr.closedAt && !pr.mergedAt}
 						<ContextMenuItem
-							label={pr.draft ? "Ready for review" : "Convert to draft"}
+							label={pr.draft ? $t("Ready for review") : $t("Convert to draft")}
 							disabled={draftToggling}
 							onclick={async () => {
 								contextMenuOpen = false;
@@ -238,14 +239,14 @@
 				{#if hasChecks}
 					<ContextMenuSection>
 						<ContextMenuItem
-							label="Open checks"
+							label={$t("Open checks")}
 							onclick={() => {
 								contextMenuOpen = false;
 								urlService.openExternalUrl(`${pr.htmlUrl}/checks`);
 							}}
 						/>
 						<ContextMenuItem
-							label="Copy checks"
+							label={$t("Copy checks")}
 							onclick={() => {
 								contextMenuOpen = false;
 								clipboardService.write(`${pr.htmlUrl}/checks`, { message: "Checks link copied" });
@@ -273,7 +274,7 @@
 					kind="outline"
 					size="tag"
 					icon="copy"
-					tooltip="Copy {abbr} link"
+					tooltip={$t("Copy {abbr} link", { abbr: abbr })}
 					onclick={() => {
 						clipboardService.write(pr.htmlUrl, { message: `${abbr} link copied` });
 					}}
@@ -282,7 +283,7 @@
 					kind="outline"
 					size="tag"
 					icon="arrow-up-righ"
-					tooltip="Open {abbr} in browser"
+					tooltip={$t("Open {abbr} in browser", { abbr: abbr })}
 					onclick={() => {
 						urlService.openExternalUrl(pr.htmlUrl);
 					}}
@@ -300,7 +301,7 @@
 			<div class="text-12 pr-row">
 				<div class="factoid">
 					{#if pr.reviewers.length > 0}
-						<span class="label">Reviewers:</span>
+						<span class="label">{$t("Reviewers:")}</span>
 						<div class="avatar-group-container">
 							<AvatarGroup
 								avatars={pr.reviewers.map((r) => ({
@@ -310,7 +311,7 @@
 							/>
 						</div>
 					{:else}
-						<span class="label italic">No reviewers</span>
+						<span class="label italic">{$t("No reviewers")}</span>
 					{/if}
 				</div>
 				<span class="separator">•</span>

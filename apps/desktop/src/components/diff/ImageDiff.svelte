@@ -3,6 +3,7 @@
 	import { FILE_SERVICE } from "$lib/files/fileService";
 	import { inject } from "@gitbutler/core/context";
 	import { ImageDiff, EmptyStatePlaceholder } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { TreeChange } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -188,7 +189,7 @@
 	<div class="imagediff-placeholder">
 		<EmptyStatePlaceholder image={emptyFileSvg} gap={12} topBottomPadding={34}>
 			{#snippet caption()}
-				Can't preview this file type
+				{$t("Can't preview this file type")}
 			{/snippet}
 		</EmptyStatePlaceholder>
 	</div>

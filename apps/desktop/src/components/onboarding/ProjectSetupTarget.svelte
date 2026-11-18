@@ -25,6 +25,7 @@
 		TestId,
 		Toggle,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { RemoteBranchInfo } from "$lib/baseBranch/baseBranch";
 	import type { LocalTargetBranch } from "$lib/branches/branchEndpoints";
 
@@ -126,7 +127,7 @@
 <div class="project-setup">
 	<div class="stack-v gap-4">
 		<ProjectNameLabel {projectName} />
-		<h1 class="text-serif-42">Configure your <i>workspace</i></h1>
+		<h1 class="text-serif-42">{$t("Configure your")} <i>{$t("workspace")}</i></h1>
 	</div>
 
 	{#if notice}
@@ -147,7 +148,7 @@
 				onselect={(value) => {
 					selectedBranch = localBranches.find((branch) => branch.refName === value);
 				}}
-				label="Target branch"
+				label={$t("Target branch")}
 				searchable
 			>
 				{#snippet itemSnippet({ item, highlighted })}
@@ -158,10 +159,11 @@
 			</Select>
 
 			<p class="text-12 text-body project-setup__field-caption">
-				Your main "production" branch, typically <code class="code-string">master</code> or
-				<code class="code-string">main</code>. Its configured upstream is used for pulling.
+				{$t('Your main "production" branch, typically')} <code class="code-string">master</code>
+				{$t("or")}
+				<code class="code-string">main</code>{$t(". Its configured upstream is used for pulling.")}
 				<br />
-				<Link href="https://docs.gitbutler.com/overview#target-branch">Learn more</Link>
+				<Link href="https://docs.gitbutler.com/overview#target-branch">{$t("Learn more")}</Link>
 			</p>
 		</div>
 
@@ -184,8 +186,9 @@
 				</Select>
 
 				<p class="text-12 text-body clr-text-2">
-					You have branches from multiple remotes. If you want to specify a remote for creating
-					branches that is different from the remote that your target branch is on, change it here.
+					{$t(
+						"You have branches from multiple remotes. If you want to specify a remote for creating branches that is different from the remote that your target branch is on, change it here.",
+					)}
 				</p>
 			</div>
 		{/if}
@@ -205,14 +208,14 @@
 							{@html gerritLogoSvg}
 						{/snippet}
 						{#snippet title()}
-							Enable Gerrit project
+							{$t("Enable Gerrit project")}
 						{/snippet}
 						{#snippet caption()}
-							It looks like this project might be a Gerrit project.
+							{$t("It looks like this project might be a Gerrit project.")}
 							<br />
-							Do you want to enable Gerrit mode?
+							{$t("Do you want to enable Gerrit mode?")}
 							<br />
-							You can adjust this later in the project settings if needed.
+							{$t("You can adjust this later in the project settings if needed.")}
 						{/snippet}
 						{#snippet actions()}
 							<Toggle
@@ -231,7 +234,7 @@
 
 	<label for="landDirectly" class="land-directly">
 		<Checkbox name="landDirectly" small bind:checked={$landDirectly} />
-		<span class="text-12 clr-text-2">Push to main / Skip pull requests mode</span>
+		<span class="text-12 clr-text-2">{$t("Push to main / Skip pull requests mode")}</span>
 	</label>
 
 	{#if targetError}
@@ -246,7 +249,9 @@
 	<div class="action-buttons">
 		<!-- Cancelling removes the project and its GitButler data, only right for one just added. -->
 		{#if !replacingTarget}
-			<Button kind="outline" disabled={loading} onclick={deleteProjectAndGoBack}>Cancel</Button>
+			<Button kind="outline" disabled={loading} onclick={deleteProjectAndGoBack}
+				>{$t("Cancel")}</Button
+			>
 		{/if}
 		<Button
 			style="pop"
@@ -257,7 +262,7 @@
 			testId={TestId.ProjectSetupPageTargetContinueButton}
 			id="set-base-branch"
 		>
-			{targetWasSet ? "Open project" : "Let's go"}
+			{targetWasSet ? $t("Open project") : $t("Let's go")}
 		</Button>
 	</div>
 

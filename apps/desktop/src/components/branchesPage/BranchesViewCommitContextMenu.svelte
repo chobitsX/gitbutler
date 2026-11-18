@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ContextMenuItem, ContextMenuSection, KebabButton, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		onCherryPick: () => void;
@@ -13,7 +14,7 @@
 	{#snippet contextMenu({ close })}
 		<ContextMenuSection>
 			<ContextMenuItem
-				label="Cherry-pick commit"
+				label={$t("Cherry-pick commit")}
 				icon="cherry-pick"
 				onclick={() => {
 					close();

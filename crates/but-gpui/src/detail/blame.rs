@@ -31,13 +31,19 @@ impl Detail {
         };
         let file = diff.files.iter().find(|f| f.file.path == path)?;
         let (label, lines) = match blamed {
-            Blamed::Line(line) => ("Show line's last commit", vec![line]),
+            Blamed::Line(line) => (
+                crate::i18n::t("detail-blame-show-line-s-last-commit"),
+                vec![line],
+            ),
             Blamed::Hunk(key) => {
                 let hunk = file.hunks().iter().find(|h| h.key == key)?;
                 let added = (hunk.lines.iter())
                     .filter(|line| line.kind == LineKind::Added)
                     .filter_map(|line| line.new);
-                ("Show hunk's last commit", added.collect::<Vec<u32>>())
+                (
+                    crate::i18n::t("detail-blame-show-hunk-s-last-commit"),
+                    added.collect::<Vec<u32>>(),
+                )
             }
         };
         if lines.is_empty() {
@@ -84,7 +90,11 @@ impl Detail {
                     Ok(paths) => paths,
                     Err(err) => {
                         return this.store.update(cx, |store, cx| {
-                            store.failed("Couldn't find the hunk's last commit", &err, cx)
+                            store.failed(
+                                crate::i18n::t("detail-blame-find-hunk-s-last-commit-error"),
+                                &err,
+                                cx,
+                            )
                         });
                     }
                 };

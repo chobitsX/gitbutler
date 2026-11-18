@@ -1,5 +1,6 @@
 //! Text for times, counts, paths and errors, as every surface words them.
 
+use crate::i18n::{Language, language};
 use gpui::SharedString;
 
 /// Seconds since the epoch.
@@ -19,21 +20,76 @@ pub fn just_now(seconds: i64) -> bool {
 /// A commit's title as shown, with a stand-in when its message is empty.
 pub fn commit_title(title: &str) -> SharedString {
     match title {
-        "" => "No message".into(),
+        "" => crate::i18n::t("ui-format-no-message").into(),
         title => title.to_owned().into(),
     }
 }
 
-/// "1 commit", "3 commits".
-pub fn plural(n: usize, word: &str) -> String {
-    match n {
-        1 => format!("1 {word}"),
-        // As English spells it: branches, not branchs.
-        n if ["s", "x", "ch", "sh"].iter().any(|end| word.ends_with(end)) => {
-            format!("{n} {word}es")
+/// The kind of quantity being displayed. Grammar lives in Fluent, not in Rust.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Count {
+    Branch,
+    Commit,
+    File,
+    Line,
+    ConflictedCommit,
+    ConflictedFile,
+    Fix,
+    Release,
+    Match,
+    Change,
+    MoreFile,
+    UnpushedCommit,
+    UncommittedFile,
+    UnmodifiedLine,
+    Part,
+    Comment,
+    Conflict,
+    LinkedWorktree,
+    Worktree,
+    Edit,
+    Check,
+    ChangedFile,
+    PullRequest,
+}
+
+impl Count {
+    fn message_id(self) -> &'static str {
+        match self {
+            Self::Branch => "count-branches",
+            Self::Commit => "count-commits",
+            Self::File => "count-files",
+            Self::Line => "count-lines",
+            Self::ConflictedCommit => "count-conflicted-commits",
+            Self::ConflictedFile => "count-conflicted-files",
+            Self::Fix => "count-fixes",
+            Self::Release => "count-releases",
+            Self::Match => "count-matches",
+            Self::Change => "count-changes",
+            Self::MoreFile => "count-more-files",
+            Self::UnpushedCommit => "count-unpushed-commits",
+            Self::UncommittedFile => "count-uncommitted-files",
+            Self::UnmodifiedLine => "count-unmodified-lines",
+            Self::Part => "count-parts",
+            Self::Comment => "count-comments",
+            Self::Conflict => "count-conflicts",
+            Self::LinkedWorktree => "count-linked-worktrees",
+            Self::Worktree => "count-worktrees",
+            Self::Edit => "count-edits",
+            Self::Check => "count-checks",
+            Self::ChangedFile => "count-changed-files",
+            Self::PullRequest => "count-pull-requests",
         }
-        n => format!("{n} {word}s"),
     }
+}
+
+/// Localized quantities use Fluent/CLDR plural rules and typed numeric arguments.
+pub fn plural(n: usize, kind: Count) -> String {
+    count_in(language(), n, kind)
+}
+
+fn count_in(language: Language, n: usize, kind: Count) -> String {
+    language.format(kind.message_id(), &[("count", n.into())])
 }
 
 /// `text` quoted in a menu item, cut to 40 characters.
@@ -112,30 +168,39 @@ pub fn duration(seconds: i64) -> String {
     }
 }
 
-/// `seconds` (since the epoch) as how long ago: "just now", "5m ago".
+/// A localized age. The quantity is numeric, so Fluent owns grammar and unit wording.
 pub fn ago(seconds: i64) -> String {
-    match relative_time(seconds).as_str() {
-        "now" => "just now".into(),
-        ago => format!("{ago} ago"),
+    let delta = (now() - seconds).max(0);
+    let language = language();
+    if delta < 60 {
+        return language.translate("time-just-now").to_owned();
     }
+    language.format(
+        "time-ago",
+        &[("duration", relative_duration(language, delta).into())],
+    )
 }
 
 pub fn relative_time(seconds: i64) -> String {
-    let delta = (now() - seconds).max(0);
-    match delta {
-        0..60 => "now".into(),
-        60..3600 => format!("{}m", delta / 60),
-        3600..86_400 => format!("{}h", delta / 3600),
-        86_400..2_592_000 => format!("{}d", delta / 86_400),
-        2_592_000..31_536_000 => format!("{}mo", delta / 2_592_000),
-        _ => format!("{}y", delta / 31_536_000),
-    }
+    relative_duration(language(), (now() - seconds).max(0))
+}
+
+fn relative_duration(language: Language, delta: i64) -> String {
+    let (count, id) = match delta {
+        0..60 => return language.translate("time-now").to_owned(),
+        60..3600 => (delta / 60, "time-minutes-short"),
+        3600..86_400 => (delta / 3600, "time-hours-short"),
+        86_400..2_592_000 => (delta / 86_400, "time-days-short"),
+        2_592_000..31_536_000 => (delta / 2_592_000, "time-months-short"),
+        _ => (delta / 31_536_000, "time-years-short"),
+    };
+    language.format(id, &[("count", count.into())])
 }
 
 /// `seconds` (since the epoch) as the time here, the way but.dev dates a commit:
 /// "16/10/2026, 21:04".
 pub fn local_time(seconds: i64) -> String {
-    local(seconds, "%d/%m/%Y, %H:%M")
+    local(seconds, crate::i18n::t("date-time-format"))
 }
 
 /// `seconds` (since the epoch) in `format`, at the time here then: a summer moment keeps
@@ -155,12 +220,31 @@ pub fn local_clock(seconds: i64) -> String {
 
 /// The day `seconds` (since the epoch) fall on here, as a short date: "21 Oct".
 pub fn local_date(seconds: i64) -> String {
-    local(seconds, "%-d %b")
+    local(seconds, crate::i18n::t("date-short-format"))
 }
 
 /// The same with its weekday: "Wed, 21 Oct".
 pub fn local_weekday(seconds: i64) -> String {
-    local(seconds, "%a, %-d %b")
+    use chrono::{Datelike as _, TimeZone as _, Weekday};
+    let Some(at) = chrono::Local.timestamp_opt(seconds, 0).single() else {
+        return seconds.to_string();
+    };
+    let id = match at.weekday() {
+        Weekday::Mon => "weekday-mon",
+        Weekday::Tue => "weekday-tue",
+        Weekday::Wed => "weekday-wed",
+        Weekday::Thu => "weekday-thu",
+        Weekday::Fri => "weekday-fri",
+        Weekday::Sat => "weekday-sat",
+        Weekday::Sun => "weekday-sun",
+    };
+    crate::i18n::tf(
+        "date-weekday-format",
+        &[
+            ("weekday", crate::i18n::t(id).to_owned().into()),
+            ("date", local_date(seconds).into()),
+        ],
+    )
 }
 
 /// The day `seconds` (since the epoch) fell on here, to tell one day's from another's.
@@ -173,16 +257,51 @@ pub fn local_day(seconds: i64) -> String {
 pub fn day_label(seconds: i64) -> String {
     let today = now();
     match local_day(seconds) {
-        day if day == local_day(today) => "Today".into(),
-        day if day == local_day(today - 86_400) => "Yesterday".into(),
+        day if day == local_day(today) => crate::i18n::t("date-today").into(),
+        day if day == local_day(today - 86_400) => crate::i18n::t("date-yesterday").into(),
         _ if local(seconds, "%Y") == local(today, "%Y") => local_weekday(seconds),
-        _ => local(seconds, "%a, %-d %b %Y"),
+        _ => local(seconds, crate::i18n::t("date-full-format")),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::error_summary;
+
+    #[test]
+    fn i18n_counts_and_relative_times_follow_the_selected_language() {
+        use crate::i18n::Language;
+        assert_eq!(
+            super::count_in(Language::English, 1, super::Count::Branch),
+            "\u{2068}1\u{2069} branch",
+            "English retains its existing singular wording"
+        );
+        assert_eq!(
+            super::count_in(Language::English, 2, super::Count::Branch),
+            "\u{2068}2\u{2069} branches",
+            "English retains its existing plural wording"
+        );
+        assert_eq!(
+            super::count_in(Language::SimplifiedChinese, 2, super::Count::Branch),
+            "\u{2068}2\u{2069} 个分支",
+            "Chinese uses the translated noun and classifier"
+        );
+        assert_eq!(
+            super::count_in(Language::SimplifiedChinese, 0, super::Count::Line),
+            "\u{2068}0\u{2069} 行",
+            "zero is kept and lines use their own classifier"
+        );
+        assert_eq!(
+            super::relative_duration(Language::English, 300),
+            "\u{2068}5\u{2069}m",
+            "English relative-time abbreviations are preserved"
+        );
+        assert_eq!(
+            super::relative_duration(Language::SimplifiedChinese, 300),
+            "\u{2068}5\u{2069} 分钟",
+            "Chinese relative time does not use an English unit"
+        );
+    }
 
     #[test]
     fn a_git_failure_shows_what_git_said_once() {

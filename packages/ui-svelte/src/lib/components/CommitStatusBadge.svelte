@@ -11,6 +11,7 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 
 	type Props = {
 		status: CommitStatusType;
@@ -64,17 +65,17 @@
 	<div class={statusClasses("text")}>
 		<span class="text-10 text-bold status-badge__text">
 			{#if status === "closed"}
-				Closed
+				{$t("Closed")}
 			{:else if status === "loading"}
-				Processing
+				{$t("Processing")}
 			{:else if status === "changes-requested"}
-				Changes requested
+				{$t("Changes requested")}
 			{:else if status === "approved"}
-				Approved
+				{$t("Approved")}
 			{:else if status === "in-discussion"}
-				In discussion
+				{$t("In discussion")}
 			{:else}
-				Unreviewed
+				{$t("Unreviewed")}
 			{/if}
 		</span>
 	</div>

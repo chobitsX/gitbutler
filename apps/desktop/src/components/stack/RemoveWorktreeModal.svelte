@@ -2,6 +2,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -24,7 +25,7 @@
 	bind:this={modal}
 	width="small"
 	type="warning"
-	title="Remove worktree"
+	title={$t("Remove worktree")}
 	onSubmit={async (close) => {
 		// A second submit while the first is pending would fail: the worktree is gone by then.
 		if (removing) return;
@@ -38,12 +39,13 @@
 	}}
 >
 	<p class="text-13 text-body">
-		Remove <span class="text-bold">{name}</span>? Its folder is deleted from disk, along with any
-		uncommitted changes in it. Its branch and commits are kept.
+		{$t("Remove")} <span class="text-bold">{name}</span>{$t(
+			"? Its folder is deleted from disk, along with any uncommitted changes in it. Its branch and commits are kept.",
+		)}
 	</p>
 
 	{#snippet controls(close)}
-		<Button kind="outline" onclick={close}>Cancel</Button>
-		<Button style="danger" type="submit" loading={removing}>Remove</Button>
+		<Button kind="outline" onclick={close}>{$t("Cancel")}</Button>
+		<Button style="danger" type="submit" loading={removing}>{$t("Remove")}</Button>
 	{/snippet}
 </Modal>

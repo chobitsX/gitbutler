@@ -13,6 +13,7 @@
 		TestId,
 		chipToasts,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { tick } from "svelte";
 	import type { CommitAbsorption, SingleHunk, TreeChange } from "@gitbutler/but-sdk";
 
@@ -41,7 +42,7 @@
 			},
 		});
 		if (!plan || plan.length === 0) {
-			chipToasts.error("No suitable commits found to absorb changes into.");
+			chipToasts.error($t("No suitable commits found to absorb changes into."));
 			return;
 		}
 		absorbPlan = plan;
@@ -68,9 +69,9 @@
 	onSubmit={async () => {
 		try {
 			await chipToasts.promise(absorb({ projectId, absorptionPlan: absorbPlan }), {
-				loading: "Absorbing changes",
-				success: "Changes absorbed successfully",
-				error: "Failed to absorb changes",
+				loading: $t("Absorbing changes"),
+				success: $t("Changes absorbed successfully"),
+				error: $t("Failed to absorb changes"),
 			});
 			modal?.close();
 		} catch (error) {
@@ -78,11 +79,11 @@
 		}
 	}}
 >
-	<ModalHeader sticky={!isScrollVisible}>Absorb Changes into Commits</ModalHeader>
+	<ModalHeader sticky={!isScrollVisible}>{$t("Absorb Changes into Commits")}</ModalHeader>
 	<ScrollableContainer onscrollTop={(visible) => (isScrollVisible = visible)}>
 		<div class="absorb-plan-content">
 			<p class="text-13 text-body clr-text-2">
-				The following changes will be absorbed into their respective commits:
+				{$t("The following changes will be absorbed into their respective commits:")}
 			</p>
 			<div class="commit-absorptions">
 				{#each absorbPlan as commitAbsorption}
@@ -91,9 +92,9 @@
 						{#if commitAbsorption.reason !== "default_stack"}
 							<div class="absorption__reason text-12 text-body clr-text-2">
 								{#if commitAbsorption.reason === "hunk_dependency"}
-									📍 Files depend on the commit due to overlapping hunks
+									{$t("📍 Files depend on the commit due to overlapping hunks")}
 								{:else if commitAbsorption.reason === "stack_assignment"}
-									🔖 Files assigned to this stack
+									{$t("🔖 Files assigned to this stack")}
 								{/if}
 							</div>
 						{/if}
@@ -136,7 +137,7 @@
 	</ScrollableContainer>
 
 	{#snippet controls(close)}
-		<Button kind="outline" onclick={close}>Cancel</Button>
+		<Button kind="outline" onclick={close}>{$t("Cancel")}</Button>
 		<Button
 			style="pop"
 			type="submit"
@@ -144,7 +145,7 @@
 			disabled={absorbPlan.length === 0 || absorbingChanges.current.isLoading}
 			testId={TestId.AbsorbModal_ActionButton}
 		>
-			Absorb changes
+			{$t("Absorb changes")}
 		</Button>
 	{/snippet}
 </Modal>

@@ -218,7 +218,7 @@ impl Detail {
 fn sent_words(notes: usize, waiting: Option<&str>) -> String {
     let done = match notes {
         0 => "Nothing to send".to_owned(),
-        notes => format!("Sent {}", plural(notes, "comment")),
+        notes => format!("Sent {}", plural(notes, crate::ui::Count::Comment)),
     };
     match waiting {
         Some(waiting) => format!("{done}, {waiting} is waiting on it"),

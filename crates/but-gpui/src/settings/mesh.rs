@@ -11,23 +11,29 @@ impl SettingsView {
     pub(super) fn mesh_row(&self, cx: &Context<Self>) -> Row {
         let mesh = &self.store.read(cx).mesh;
         let (description, control): (SharedString, Option<AnyElement>) = match &mesh.state {
-            MeshState::Unknown => ("Checking…".into(), None),
-            MeshState::Unavailable(why) => (why.clone().into(), None),
+            MeshState::Unknown => (crate::i18n::t("settings-mesh-checking").into(), None),
+            MeshState::Unavailable(why) => (
+                match why {
+                    crate::state::MeshUnavailable::NotInstalled => {
+                        crate::i18n::t("settings-mesh-not-installed").into()
+                    }
+                    crate::state::MeshUnavailable::Other(why) => why.clone().into(),
+                },
+                None,
+            ),
             MeshState::SignedOut if mesh.signing_in => (
-                "Approve this machine on the page that opened.".into(),
+                crate::i18n::t("settings-mesh-approve-machine-page-opened").into(),
                 Some(
-                    button("mesh-sign-in", "Signing in…")
+                    button("mesh-sign-in", crate::i18n::t("settings-mesh-signing"))
                         .small()
-                        .disabled_because(Some("Waiting for the browser"))
+                        .disabled_because(Some(crate::i18n::t("settings-mesh-waiting-browser")))
                         .into_any_element(),
                 ),
             ),
             MeshState::SignedOut => (
-                "Sign in to see unfinished work on your other machines beside each project, and \
-                 show them this one's."
-                    .into(),
+                crate::i18n::t("settings-mesh-mesh-row-sign-see-unfinished-work").into(),
                 Some(
-                    button("mesh-sign-in", "Sign in…")
+                    button("mesh-sign-in", crate::i18n::t("settings-mesh-sign"))
                         .small()
                         .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
                             this.store.update(cx, |store, cx| store.mesh_sign_in(cx))
@@ -45,25 +51,33 @@ impl SettingsView {
                 };
                 let machine = connection.machine.clone();
                 (
-                    format!(
-                        "Signed in as {} on {}. {reporting}",
-                        connection.login, connection.machine
+                    crate::i18n::tf(
+                        "settings-mesh-signed",
+                        &[
+                            ("login", (connection.login.to_string()).into()),
+                            ("machine", (connection.machine.to_string()).into()),
+                            ("reporting", (reporting.to_string()).into()),
+                        ],
                     )
                     .into(),
                     Some(
-                        button("mesh-sign-out", "Sign out")
+                        button("mesh-sign-out", crate::i18n::t("settings-mesh-sign-out"))
                             .small()
                             .style(ButtonStyle::Ghost)
                             .on_click(cx.listener(move |this, _: &ClickEvent, window, cx| {
                                 let store = this.store.clone();
-                                let message = format!("Take {machine} out of your mesh?");
+                                let message = crate::i18n::tf(
+                                    "settings-mesh-take-out-mesh",
+                                    &[("machine", (machine.to_string()).into())],
+                                );
                                 this.app.update_later(window, cx, move |app, window, cx| {
                                     app.confirm_then(
                                         None,
                                         message,
-                                        "Its daemon stops, and your other machines no longer \
-                                         see its work. Its repositories stay as they are.",
-                                        "Sign out",
+                                        crate::i18n::t(
+                                            "settings-mesh-mesh-row-daemon-stops-other-machines",
+                                        ),
+                                        crate::i18n::t("settings-mesh-sign-out"),
                                         window,
                                         cx,
                                         move |_, cx| {
@@ -78,7 +92,7 @@ impl SettingsView {
             }
         };
         Row::new(
-            "Mesh",
+            crate::i18n::t("settings-mesh-mesh-label"),
             description,
             control.unwrap_or_else(|| gpui::div().into_any_element()),
         )

@@ -88,7 +88,8 @@ impl MenuBarEditor {
         window: &mut Window,
         cx: &mut Context<MenuBarEditor>,
     ) -> MenuBarEditor {
-        let search = cx.new(|cx| TextInput::new("Find a command", false, cx));
+        let search =
+            cx.new(|cx| TextInput::localized("command-editor-menu-bar-find-command", false, cx));
         let subscriptions = Vec::from([
             cx.subscribe_in(&search, window, |this, search, event, _, cx| match event {
                 InputEvent::Changed => this.find(cx),
@@ -108,11 +109,20 @@ impl MenuBarEditor {
             warning: None,
             _subscriptions: subscriptions,
         };
-        this.commands
-            .sort_by_cached_key(|command| menus::title_case(&command.title).to_lowercase());
-        this.load(cx);
-        this.find(cx);
+        this.sort_and_load(cx);
         this
+    }
+
+    pub(super) fn set_commands(&mut self, commands: Vec<Command>, cx: &mut Context<Self>) {
+        self.commands = commands;
+        self.sort_and_load(cx);
+    }
+
+    fn sort_and_load(&mut self, cx: &mut Context<Self>) {
+        self.commands
+            .sort_by_cached_key(|command| menus::title_case(&command.title).to_lowercase());
+        self.load(cx);
+        self.find(cx);
     }
 
     /// Read the menus as the file says them now, with the keys each item shows.
@@ -201,7 +211,7 @@ impl MenuBarEditor {
             return;
         };
         let input = cx.new(|cx| {
-            let mut input = TextInput::new("Menu name", false, cx);
+            let mut input = TextInput::localized("command-editor-menu-bar-menu-name", false, cx);
             input.set_text(name.clone(), cx);
             input.select_all_text(cx);
             input
@@ -252,7 +262,7 @@ impl MenuBarEditor {
         let focused = self.search.read(cx).focus_handle(cx).is_focused(window);
         let divider = Dragged {
             item: BarItem::Divider,
-            title: "Divider".into(),
+            title: crate::i18n::t("command-editor-menu-bar-divider").into(),
             from: None,
         };
         let commands = list(
@@ -276,7 +286,7 @@ impl MenuBarEditor {
                     .cursor_grab()
                     .text_13()
                     .child(div().flex_1().h(ui::fixed(1.)).bg(theme.border_2))
-                    .child("Divider")
+                    .child(crate::i18n::t("command-editor-menu-bar-divider"))
                     .child(div().flex_1().h(ui::fixed(1.)).bg(theme.border_2))
                     .on_drag(divider, drag_preview),
             )
@@ -378,7 +388,7 @@ impl MenuBarEditor {
                     .justify_center()
                     .text_13()
                     .text_color(theme.text_2)
-                    .child("Drag commands here")
+                    .child(crate::i18n::t("command-editor-menu-bar-drag-commands-here"))
             });
         v_flex()
             .id(("menu", ix))
@@ -439,13 +449,18 @@ impl MenuBarEditor {
                 h_flex()
                     .id("name")
                     .role(Role::Button)
-                    .aria_label(format!("Rename {name}"))
+                    .aria_label(crate::i18n::tf(
+                        "command-editor-menu-bar-rename",
+                        &[("name", (name.to_string()).into())],
+                    ))
                     .min_w_0()
                     .gap(dp(6.))
                     .px(dp(4.))
                     .rounded(dp(theme.shape.control))
                     .hover(|el| el.bg(theme.hover))
-                    .tooltip(Tooltip::text("Rename"))
+                    .tooltip(Tooltip::text(crate::i18n::t(
+                        "command-editor-menu-bar-rename-2",
+                    )))
                     .on_click(
                         cx.listener(move |this, _, window, cx| this.start_renaming(ix, window, cx)),
                     )
@@ -469,7 +484,7 @@ impl MenuBarEditor {
                         icon_button("remove-menu", Icon::Cross)
                             .small()
                             .style(ButtonStyle::Ghost)
-                            .tooltip("Remove menu")
+                            .tooltip(crate::i18n::t("command-editor-menu-bar-remove-menu"))
                             .on_click(cx.listener(move |this, _, _, cx| {
                                 this.remove_menu(ix, &removed, cx)
                             })),
@@ -492,7 +507,7 @@ impl MenuBarEditor {
         let dragged = Dragged {
             item: item.clone(),
             title: match item {
-                BarItem::Divider => "Divider".into(),
+                BarItem::Divider => crate::i18n::t("command-editor-menu-bar-divider").into(),
                 BarItem::Action { .. } | BarItem::System(_) => shown.title.clone(),
             },
             from: Some(spot),
@@ -501,11 +516,16 @@ impl MenuBarEditor {
         let remove = div()
             .id("remove")
             .role(Role::Button)
-            .aria_label(format!("Remove {}", dragged.title))
+            .aria_label(crate::i18n::tf(
+                "command-editor-menu-bar-remove",
+                &[("title", (format!("{}", dragged.title)).into())],
+            ))
             .flex_none()
             .invisible()
             .group_hover("item", |el| el.visible())
-            .tooltip(Tooltip::text("Remove from the menu"))
+            .tooltip(Tooltip::text(crate::i18n::t(
+                "command-editor-menu-bar-remove-menu-2",
+            )))
             .on_click(cx.listener(move |this, _, _, cx| this.remove_item(spot, &removed, cx)))
             .child(icon_at(Icon::Cross, 12.).text_color(theme.text_1));
         let pop = theme.pop;
@@ -574,11 +594,14 @@ impl Render for MenuBarEditor {
             .map(|(ix, menu)| self.render_menu(ix, menu, &theme, cx).into_any_element())
             .collect();
         let (pop, last) = (theme.pop, self.menus.len());
-        let add = button("add-menu", "Add menu")
-            .icon(Icon::Plus)
-            .style(ButtonStyle::Outline)
-            .small()
-            .on_click(cx.listener(|this, _, window, cx| this.add_menu(window, cx)));
+        let add = button(
+            "add-menu",
+            crate::i18n::t("command-editor-menu-bar-add-menu"),
+        )
+        .icon(Icon::Plus)
+        .style(ButtonStyle::Outline)
+        .small()
+        .on_click(cx.listener(|this, _, window, cx| this.add_menu(window, cx)));
         h_flex()
             .flex_1()
             .min_h_0()
@@ -743,6 +766,7 @@ impl Render for DragPreview {
             .bg(theme.bg_1)
             .shadow_md()
             .font_family(theme.ui_font.clone())
+            .map(crate::ui::with_cjk_fallback)
             .text_13()
             .text_color(theme.text_1)
             .child(self.title.clone())

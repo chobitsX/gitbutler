@@ -41,6 +41,7 @@ mod dev;
 mod edits;
 mod fps;
 mod help;
+mod i18n;
 mod keymap;
 mod links;
 mod menu_bar;

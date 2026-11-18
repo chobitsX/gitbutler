@@ -1,6 +1,7 @@
 <script lang="ts">
 	import BranchIntegrationModalContent from "$components/branch/BranchIntegrationModalContent.svelte";
 	import { Modal, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		modalRef: Modal | undefined;
@@ -14,7 +15,7 @@
 
 <Modal
 	bind:this={modalRef}
-	title="Update local branch"
+	title={$t("Update local branch")}
 	noPadding
 	width={720}
 	testId={TestId.BranchIntegrationModal}

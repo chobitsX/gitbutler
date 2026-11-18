@@ -6,6 +6,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { Avatar, Icon, TestId } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import { slide } from "svelte/transition";
 	import type { Snippet } from "svelte";
@@ -118,7 +119,7 @@
 		bind:this={container}
 		role="button"
 		tabindex="0"
-		aria-label="Commit row"
+		aria-label={$t("Commit row")}
 		class="commit-row"
 		class:selected
 		class:active
@@ -184,7 +185,7 @@
 							role="button"
 							tabindex="0"
 							onclick={openGerritReview}
-							title="Open Gerrit review #{reviewId}"
+							title={$t("Open Gerrit review #{reviewId}", { reviewId: reviewId })}
 						>
 							<span class="text-11 text-semibold">{reviewId}</span>
 						</div>

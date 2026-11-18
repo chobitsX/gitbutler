@@ -34,6 +34,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { TestId } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import { get } from "svelte/store";
 	import { fly } from "svelte/transition";
@@ -178,7 +179,7 @@
 				{@const label =
 					handler instanceof AmendCommitWithChangeDzHandler ||
 					handler instanceof AmendCommitWithHunkDzHandler
-						? "Amend"
+						? $t("Amend")
 						: "Squash"}
 				<DropzoneOverlay {hovered} {activated} {label} />
 			{/snippet}

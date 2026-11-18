@@ -9,6 +9,7 @@
 		EmailTextbox,
 		Button,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { AuthorMissingModalState } from "$lib/state/uiState.svelte";
 
@@ -43,15 +44,16 @@
 	}
 </script>
 
-<ModalHeader type="warning">Set up your git author information</ModalHeader>
+<ModalHeader type="warning">{$t("Set up your git author information")}</ModalHeader>
 <div class="author-missing__content">
-	Your commits need author information to identify who made the changes. This information will be
-	saved to your global git configuration and used for all future commits.
+	{$t(
+		"Your commits need author information to identify who made the changes. This information will be saved to your global git configuration and used for all future commits.",
+	)}
 
 	<Textbox
 		disabled={settingInfo.current.isLoading}
-		placeholder="Your full name"
-		label="Name"
+		placeholder={$t("Your full name")}
+		label={$t("Name")}
 		testId={TestId.GlobalModal_AuthorMissing_NameInput}
 		bind:value={name}
 		autofocus
@@ -59,15 +61,17 @@
 
 	<EmailTextbox
 		disabled={settingInfo.current.isLoading}
-		placeholder="your.email@example.com"
-		label="Email address"
+		placeholder={$t("your.email@example.com")}
+		label={$t("Email address")}
 		testId={TestId.GlobalModal_AuthorMissing_EmailInput}
 		bind:value={email}
 		bind:this={emailTextbox}
 	/>
 </div>
 <ModalFooter>
-	<Button kind="outline" onclick={close} disabled={settingInfo.current.isLoading}>Cancel</Button>
+	<Button kind="outline" onclick={close} disabled={settingInfo.current.isLoading}
+		>{$t("Cancel")}</Button
+	>
 	<Button
 		testId={TestId.GlobalModal_AuthorMissing_ActionButton}
 		style="pop"
@@ -75,7 +79,7 @@
 		loading={settingInfo.current.isLoading}
 		disabled={!name || !email}
 	>
-		{settingInfo.current.isLoading ? "Saving..." : "Save & Continue"}
+		{settingInfo.current.isLoading ? $t("Saving...") : $t("Save & Continue")}
 	</Button>
 </ModalFooter>
 

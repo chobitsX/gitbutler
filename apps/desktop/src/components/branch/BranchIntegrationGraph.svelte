@@ -1,6 +1,7 @@
 <script lang="ts">
 	import BranchHeaderIcon from "$components/branch/BranchHeaderIcon.svelte";
 	import { Avatar, Badge, ScrollableContainer } from "@gitbutler/ui-svelte";
+	import { t, language } from "@gitbutler/ui-svelte/utils/i18n";
 	import { getTimeAgo } from "@gitbutler/ui-svelte/utils/timeAgo";
 	import type { BranchIconName } from "$lib/branches/branchIcon";
 	import type {
@@ -144,7 +145,7 @@
 					<div class="graph-content">
 						{#if row.content.subject === ""}
 							<div class="graph-subject text-13 text-semibold truncate clr-text-3">
-								No commit message
+								{$t("No commit message")}
 							</div>
 						{:else}
 							<div class="graph-subject text-13 text-semibold truncate">{row.content.subject}</div>
@@ -161,7 +162,7 @@
 								</div>
 							{/if}
 							{#if !isPreview && row.content.createdAt > 0}
-								<span>{getTimeAgo(row.content.createdAt)}</span>
+								<span>{getTimeAgo(row.content.createdAt, true, $language)}</span>
 							{/if}
 							<span>{row.content.commitId.slice(0, 7)}</span>
 							{#if row.content.changeId}
@@ -170,7 +171,7 @@
 							{/if}
 							{#if row.content.hasConflicts}
 								<span class="metadata-separator">•</span>
-								<Badge style="danger" kind="soft">Conflict</Badge>
+								<Badge style="danger" kind="soft">{$t("Conflict")}</Badge>
 							{/if}
 						</div>
 					</div>
@@ -234,9 +235,11 @@
 		{@render commitNode("integrated", row.showTopConnector, row.topConnectorKind)}
 		<div class="graph-content">
 			<div class="graph-subject truncate">
-				{showIntegratedLocalCommits ? "Hide" : "Show"}
-				{row.hiddenCount} integrated
-				{row.hiddenCount === 1 ? " commit" : " commits"}
+				{$t("{value} {hiddenCount} integrated {value2}", {
+					value: showIntegratedLocalCommits ? $t("Hide") : $t("Show"),
+					hiddenCount: row.hiddenCount,
+					value2: row.hiddenCount === 1 ? $t(" commit") : $t(" commits"),
+				})}
 			</div>
 		</div>
 	</button>

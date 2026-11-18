@@ -749,46 +749,95 @@ impl AppView {
     /// pick the one the app and its terminals draw in while they're `shade`. It opens on the one
     /// kept for it, and the window draws in whichever is selected, as `shade` would.
     pub fn pick_color_scheme(&mut self, shade: Shade, window: &mut Window, cx: &mut Context<Self>) {
-        let current = self.store.read(cx).prefs.scheme(shade).clone();
-        let named = but_tty::Ghostty::themes()
-            .into_iter()
-            .map(ColorScheme::Named);
-        let choices = ([ColorScheme::GitButler, ColorScheme::Ghostty].into_iter())
-            .chain(named)
-            .map(|scheme| {
-                let in_use = scheme == current;
-                let detail = match (&scheme, shade) {
-                    _ if in_use => Some("Current"),
-                    (ColorScheme::GitButler, Shade::Light) => Some("GitButler's light colours"),
-                    (ColorScheme::GitButler, Shade::Dark) => Some("GitButler's dark colours"),
-                    (ColorScheme::Ghostty, Shade::Light) => {
-                        Some("The light theme your Ghostty config sets")
-                    }
-                    (ColorScheme::Ghostty, Shade::Dark) => {
-                        Some("The dark theme your Ghostty config sets")
-                    }
-                    (ColorScheme::Named(_), _) => None,
-                };
-                let previews = scheme.clone();
-                let choice = Choice::new(scheme.label().to_owned(), move |app, window, cx| {
-                    app.previewed_scheme = None;
-                    (app.store).update(cx, |store, cx| {
-                        store.set_prefs(|prefs| prefs.set_scheme(shade, scheme), cx)
-                    });
-                    app.apply_appearance(window, cx);
+        let saved = self.store.read(cx).prefs.scheme(shade).clone();
+        let focus = window.focused(cx);
+        // As the font picker does: reading theme files must not hold up the UI thread.
+        cx.spawn_in(window, async move |this, cx| {
+            let (current, schemes) = cx
+                .background_spawn(async move {
+                    let ghostty = but_tty::Ghostty::load();
+                    let current = if saved.available_in(shade, &ghostty) {
+                        saved
+                    } else {
+                        ColorScheme::GitButler
+                    };
+                    let named = but_tty::Ghostty::themes()
+                        .into_iter()
+                        .map(ColorScheme::Named);
+                    let schemes: Vec<_> = [ColorScheme::GitButler, ColorScheme::Ghostty]
+                        .into_iter()
+                        .chain(named)
+                        .filter(|scheme| scheme.available_in(shade, &ghostty))
+                        .collect();
+                    (current, schemes)
                 })
-                .previews(shade, previews, in_use);
-                match detail {
-                    Some(detail) => choice.detail(detail),
-                    None => choice,
+                .await;
+            this.update_in(cx, |this, window, cx| {
+                // A cancelled dialog, another picker, or a changed system mode supersedes this read.
+                if window.focused(cx) != focus
+                    || this.palette.is_some()
+                    || this
+                        .store
+                        .read(cx)
+                        .prefs
+                        .appearance
+                        .shade(window.appearance())
+                        != shade
+                {
+                    return;
                 }
+                let choices = schemes
+                    .into_iter()
+                    .map(|scheme| {
+                        let in_use = scheme == current;
+                        let detail = match (&scheme, shade) {
+                            _ if in_use => Some(crate::i18n::t("theme-current")),
+                            (ColorScheme::GitButler, Shade::Light) => {
+                                Some(crate::i18n::t("theme-gitbutler-light"))
+                            }
+                            (ColorScheme::GitButler, Shade::Dark) => {
+                                Some(crate::i18n::t("theme-gitbutler-dark"))
+                            }
+                            (ColorScheme::Ghostty, Shade::Light) => {
+                                Some(crate::i18n::t("theme-ghostty-light"))
+                            }
+                            (ColorScheme::Ghostty, Shade::Dark) => {
+                                Some(crate::i18n::t("theme-ghostty-dark"))
+                            }
+                            (ColorScheme::Named(_), _) => None,
+                        };
+                        let previews = scheme.clone();
+                        let choice =
+                            Choice::new(scheme.label().to_owned(), move |app, window, cx| {
+                                app.previewed_scheme = None;
+                                (app.store).update(cx, |store, cx| {
+                                    store.set_prefs(|prefs| prefs.set_scheme(shade, scheme), cx)
+                                });
+                                app.apply_appearance(window, cx);
+                            })
+                            .previews(shade, previews, in_use);
+                        match detail {
+                            Some(detail) => choice.detail(detail),
+                            None => choice,
+                        }
+                    })
+                    .collect();
+                let prompt = match shade {
+                    Shade::Light => crate::i18n::t("theme-search-light"),
+                    Shade::Dark => crate::i18n::t("theme-search-dark"),
+                };
+                this.open_picker(
+                    None,
+                    prompt,
+                    crate::i18n::t("theme-use"),
+                    choices,
+                    window,
+                    cx,
+                );
             })
-            .collect();
-        let prompt = match shade {
-            Shade::Light => "Search light themes",
-            Shade::Dark => "Search dark themes",
-        };
-        self.open_picker(None, prompt, "Use", choices, window, cx);
+            .ok();
+        })
+        .detach();
     }
 
     pub fn pick_diff_font(&mut self, window: &mut Window, cx: &mut Context<Self>) {
@@ -921,9 +970,15 @@ impl AppView {
         };
         // It's on this window, which the graph's own window may have been asked from.
         crate::ui::activate(window);
-        self.confirm_then(None, message, &detail, "Quit", window, cx, |_, cx| {
-            cx.quit()
-        });
+        self.confirm_then(
+            None,
+            message,
+            &detail,
+            crate::i18n::t("app-quit"),
+            window,
+            cx,
+            |_, cx| cx.quit(),
+        );
         false
     }
 
@@ -967,7 +1022,10 @@ impl AppView {
     fn scale_ui(&mut self, step: fn(UiScale) -> UiScale, cx: &mut Context<Self>) {
         let scale = step(self.store.read(cx).prefs.ui_scale);
         self.set_ui_scale(scale, cx);
-        let message = format!("Interface at {}%", scale.percent());
+        let message = crate::i18n::tf(
+            "app-interface",
+            &[("percent", (format!("{}", scale.percent())).into())],
+        );
         snack(&self.store, message, cx);
     }
 
@@ -1082,7 +1140,7 @@ impl AppView {
                 }),
                 Ok(None) => snack(&app.store, "GitButler is up to date", cx),
                 Err(err) => app.store.update(cx, |store, cx| {
-                    store.failed("Couldn't check for updates", &err, cx)
+                    store.failed(crate::i18n::t("app-check-updates-error"), &err, cx)
                 }),
             })
             .ok();
@@ -1129,7 +1187,7 @@ impl AppView {
             if let Err(err) = installed {
                 store.update(cx, |store, cx| {
                     store.updating = None;
-                    store.failed("Couldn't update GitButler", &err, cx)
+                    store.failed(crate::i18n::t("app-update-gitbutler-error"), &err, cx)
                 });
                 return;
             }
@@ -1146,7 +1204,7 @@ impl AppView {
             {
                 store.update(cx, |store, cx| {
                     store.updating = None;
-                    store.failed("Couldn't restart GitButler", &err, cx)
+                    store.failed(crate::i18n::t("app-restart-gitbutler-error"), &err, cx)
                 });
                 return;
             }
@@ -1178,7 +1236,7 @@ impl AppView {
             PromptLevel::Info,
             &message,
             Some(&detail),
-            &[confirm, "Cancel"],
+            &[confirm, crate::i18n::t("common-cancel")],
             cx,
         );
         cx.spawn(async move |this, cx| {
@@ -2298,12 +2356,20 @@ impl AppView {
         cx: &mut Context<Self>,
     ) {
         let at = Some(Selection::Project(project.clone()));
-        let message = "Update and leave conflicts?".to_owned();
-        self.confirm_then(at, message, detail, "Update", window, cx, move |app, cx| {
-            app.store.update(cx, |store, cx| {
-                store.update_from_target(&project, scope, Some(found), cx)
-            })
-        });
+        let message = crate::i18n::t("app-update-leave-conflicts").to_owned();
+        self.confirm_then(
+            at,
+            message,
+            detail,
+            crate::i18n::t("app-update"),
+            window,
+            cx,
+            move |app, cx| {
+                app.store.update(cx, |store, cx| {
+                    store.update_from_target(&project, scope, Some(found), cx)
+                })
+            },
+        );
     }
 
     fn toggle_navigator(
@@ -4274,8 +4340,16 @@ impl AppView {
         };
         let zoomed = self.zoomed() == Some(tile);
         let (icon, label, style) = match zoomed {
-            true => (Icon::FullscreenExit, "Zoom out", ButtonStyle::Pop),
-            false => (Icon::FullscreenEnter, "Zoom", ButtonStyle::Ghost),
+            true => (
+                Icon::FullscreenExit,
+                crate::i18n::t("app-zoom-out"),
+                ButtonStyle::Pop,
+            ),
+            false => (
+                Icon::FullscreenEnter,
+                crate::i18n::t("app-zoom"),
+                ButtonStyle::Ghost,
+            ),
         };
         let (this, target) = (cx.entity().downgrade(), tile.clone());
         let zoom = icon_button(SharedString::from(format!("zoom-{tile:?}")), icon)
@@ -4422,11 +4496,14 @@ impl AppView {
                     let name = path
                         .file_name()
                         .map(|name| name.to_string_lossy().into_owned());
-                    let message = format!("Saved and copied {}", name.unwrap_or_default());
+                    let message = crate::i18n::tf(
+                        "app-saved-copied",
+                        &[("item", (name.unwrap_or_default()).into())],
+                    );
                     clipboard::copy_image(&store, &image, message, cx);
                 }
                 Err(err) => store.update(cx, |store, cx| {
-                    store.failed("Couldn't take a screenshot", &err, cx)
+                    store.failed(crate::i18n::t("app-take-screenshot-error"), &err, cx)
                 }),
             })
         })
@@ -5834,6 +5911,7 @@ impl Render for AppView {
             .bg(theme.bg_1)
             .text_color(theme.text_1)
             .font_family(theme.ui_font)
+            .map(crate::ui::with_cjk_fallback)
             // Only a font the user picks has ligatures (`liga`), so this leaves ours as they are.
             .when(!ligatures, |el| {
                 el.font_features(FontFeatures(std::sync::Arc::new(vec![("liga".into(), 0)])))
@@ -5973,16 +6051,14 @@ pub(crate) fn place_traffic_lights(away: bool, window: &Window, cx: &App) {
     window.set_traffic_light_position(point(left, top));
 }
 
-/// The theme the appearance setting and the system call for, or, while a scheme is
-/// `previewed`, that scheme in its shade.
+/// The theme the appearance setting and the system call for. A preview applies only while
+/// its mode is still current, as the system may change appearance while the picker is open.
 fn theme_for(store: &Store, previewed: Option<&(Shade, ColorScheme)>, window: &Window) -> Theme {
     let prefs = &store.prefs;
-    let (shade, scheme) = match previewed {
-        Some((shade, scheme)) => (*shade, scheme),
-        None => {
-            let shade = prefs.appearance.shade(window.appearance());
-            (shade, prefs.scheme(shade))
-        }
+    let shade = prefs.appearance.shade(window.appearance());
+    let scheme = match previewed {
+        Some((preview_shade, scheme)) if *preview_shade == shade => scheme,
+        _ => prefs.scheme(shade),
     };
     let ghostty = but_tty::Ghostty::load();
     let digit = |family: &str| crate::ui::digit_advance(family, window.text_system());

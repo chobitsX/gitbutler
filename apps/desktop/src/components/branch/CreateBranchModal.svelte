@@ -22,6 +22,7 @@
 		SelectItem,
 		TestId,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 
 	type Props = {
@@ -153,7 +154,7 @@
 	<div class="content-wrap">
 		<BranchNameTextbox
 			bind:this={branchNameInput}
-			label="New branch"
+			label={$t("New branch")}
 			id={ElementId.NewBranchNameInput}
 			value={createRefName}
 			autofocus
@@ -161,7 +162,7 @@
 			onvalidationchange={(isValid) => (isBranchNameValid = isValid)}
 		/>
 
-		<div class="options-wrap" role="radiogroup" aria-label="Branch type selection">
+		<div class="options-wrap" role="radiogroup" aria-label={$t("Branch type selection")}>
 			<!-- Option 1 -->
 			<label for="new-stack" class="radio-label" class:radio-selected={createRefType === "stack"}>
 				<div class="radio-btn">
@@ -174,9 +175,9 @@
 				</div>
 
 				<div class="radio-content">
-					<h3 class="text-14 text-bold text-body radio-title">Independent branch</h3>
+					<h3 class="text-14 text-bold text-body radio-title">{$t("Independent branch")}</h3>
 					<p class="text-12 text-body radio-caption">
-						Create an independent branch<br />in a new stack.
+						{$t("Create an independent branch")}<br />{$t("in a new stack.")}
 					</p>
 
 					<div class="radio-illustration">
@@ -206,12 +207,12 @@
 				</div>
 
 				<div class="radio-content">
-					<h3 class="text-14 text-bold text-body radio-title">Dependent branch</h3>
+					<h3 class="text-14 text-bold text-body radio-title">{$t("Dependent branch")}</h3>
 					<p class="text-12 text-body radio-caption">
 						{#if allStacks.length === 0}
-							Create a branch that depends<br />on another stack (none available).
+							{$t("Create a branch that depends")}<br />{$t("on another stack (none available).")}
 						{:else}
-							Create a branch that depends<br />on a selected stack.
+							{$t("Create a branch that depends")}<br />{$t("on a selected stack.")}
 						{/if}
 					</p>
 
@@ -235,9 +236,9 @@
 				</div>
 
 				<div class="radio-content">
-					<h3 class="text-14 text-bold text-body radio-title">Worktree</h3>
+					<h3 class="text-14 text-bold text-body radio-title">{$t("Worktree")}</h3>
 					<p class="text-12 text-body radio-caption">
-						Create a branch checked out<br />in its own folder.
+						{$t("Create a branch checked out")}<br />{$t("in its own folder.")}
 					</p>
 
 					<div class="radio-illustration">
@@ -251,9 +252,9 @@
 			<Select
 				options={stackOptions}
 				value={selectedStackId}
-				label="Add to stack"
+				label={$t("Add to stack")}
 				disabled={stackOptions.length <= 1}
-				placeholder="Select a stack..."
+				placeholder={$t("Select a stack...")}
 				onselect={(value) => (selectedStackId = value)}
 			>
 				{#snippet itemSnippet({ item, highlighted })}
@@ -269,9 +270,9 @@
 
 			<p>
 				{#if createRefType === "stack"}
-					The new branch will be applied in parallel with other stacks in the workspace.
+					{$t("The new branch will be applied in parallel with other stacks in the workspace.")}
 					<br />
-					Adjust branch placement and preferences in
+					{$t("Adjust branch placement and preferences in")}
 					<button
 						type="button"
 						class="settings-link underline-dotted"
@@ -280,17 +281,18 @@
 							openGeneralSettings("lanes-and-branches");
 						}}
 					>
-						Settings → Lanes & branches
+						{$t("Settings → Lanes & branches")}
 					</button>
 				{:else if createRefType === "worktree"}
-					The new branch starts at the target and is checked out in a linked worktree,
+					{$t("The new branch starts at the target and is checked out in a linked worktree,")}
 					<br />
-					under ~/.gitbutler-worktrees. It shows as its own lane.
+					{$t("under ~/.gitbutler-worktrees. It shows as its own lane.")}
 				{:else}
-					Creates a branch that depends on a selected stack.
+					{$t("Creates a branch that depends on a selected stack.")}
 					<br />
-					A stack's top branches also have a
-					<i class="create-dependent-icon"><Icon name="stack-plus" /></i> icon to create dependent branches.
+					{$t("A stack's top branches also have a")}
+					<i class="create-dependent-icon"><Icon name="stack-plus" /></i>
+					{$t("icon to create dependent branches.")}
 				{/if}
 			</p>
 		</div>
@@ -299,14 +301,14 @@
 	{#snippet controls(close)}
 		<div class="footer">
 			<span class="text-12 text-body footer-text"
-				>See more: <Link
-					href="https://docs.gitbutler.com/features/branch-management/stacked-branches"
-					>Stacked vs. Independent</Link
+				>{$t("See more:")}
+				<Link href="https://docs.gitbutler.com/features/branch-management/stacked-branches"
+					>{$t("Stacked vs. Independent")}</Link
 				></span
 			>
 
 			<div class="footer__controls">
-				<Button kind="outline" type="reset" onclick={close}>Cancel</Button>
+				<Button kind="outline" type="reset" onclick={close}>{$t("Cancel")}</Button>
 				<Button
 					style="pop"
 					type="submit"
@@ -315,7 +317,7 @@
 					loading={isAddingNew}
 					testId={TestId.ConfirmSubmit}
 				>
-					Create branch
+					{$t("Create branch")}
 				</Button>
 			</div>
 		</div>

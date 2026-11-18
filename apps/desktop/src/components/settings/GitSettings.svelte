@@ -3,6 +3,7 @@
 	import { SETTINGS_SERVICE } from "$lib/settings/appSettings";
 	import { inject } from "@gitbutler/core/context";
 	import { CardGroup, Link, Select, SelectItem, Toggle } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { onMount } from "svelte";
 
 	const gitConfig = inject(GIT_CONFIG_SERVICE);
@@ -12,13 +13,13 @@
 	let annotateCommits = $state(true);
 	let fetchFrequency = $state<number>(-1);
 
-	const fetchFrequencyOptions = [
-		{ label: "1 minute", value: "1", minutes: 1 },
-		{ label: "5 minutes", value: "5", minutes: 5 },
-		{ label: "10 minutes", value: "10", minutes: 10 },
-		{ label: "15 minutes", value: "15", minutes: 15 },
-		{ label: "None", value: "none", minutes: -1 },
-	] as const;
+	const fetchFrequencyOptions = $derived([
+		{ label: $t("1 minute"), value: "1", minutes: 1 },
+		{ label: $t("5 minutes"), value: "5", minutes: 5 },
+		{ label: $t("10 minutes"), value: "10", minutes: 10 },
+		{ label: $t("15 minutes"), value: "15", minutes: 15 },
+		{ label: $t("None"), value: "none", minutes: -1 },
+	] as const);
 
 	function toggleCommitterSigning() {
 		annotateCommits = !annotateCommits;
@@ -50,15 +51,16 @@
 
 <CardGroup.Item standalone labelFor="committerSigning">
 	{#snippet title()}
-		Credit GitButler as the committer
+		{$t("Credit GitButler as the committer")}
 	{/snippet}
 	{#snippet caption()}
-		By default, everything in the GitButler client is free to use. You can opt in to crediting us as
-		the committer in your virtual branch commits to help spread the word.
+		{$t(
+			"By default, everything in the GitButler client is free to use. You can opt in to crediting us as the committer in your virtual branch commits to help spread the word.",
+		)}
 		<Link
 			href="https://github.com/gitbutlerapp/gitbutler-docs/blob/d81a23779302c55f8b20c75bf7842082815b4702/content/docs/features/virtual-branches/committer-mark.mdx"
 		>
-			Learn more
+			{$t("Learn more")}
 		</Link>
 	{/snippet}
 	{#snippet actions()}
@@ -68,7 +70,7 @@
 
 <CardGroup.Item standalone labelFor="fetchFrequency" alignment="center">
 	{#snippet title()}
-		Auto-fetch frequency
+		{$t("Auto-fetch frequency")}
 	{/snippet}
 	{#snippet actions()}
 		<Select

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { InfoMessage } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	// Number of events received.
 	let count = $state(0);
@@ -17,10 +18,10 @@
 	<div class="reload-warning">
 		<InfoMessage style="warning">
 			{#snippet title()}
-				Full reload pending
+				{$t("Full reload pending")}
 			{/snippet}
 			{#snippet content()}
-				Detected {count} events that require reloading this page.
+				{$t("Detected {count} events that require reloading this page.", { count: count })}
 			{/snippet}
 		</InfoMessage>
 	</div>

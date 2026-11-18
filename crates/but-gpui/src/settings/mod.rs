@@ -121,15 +121,15 @@ impl Page {
 
     fn title(&self) -> &'static str {
         match self {
-            Page::App(AppPage::General) => "General",
-            Page::App(AppPage::Appearance) => "Appearance",
-            Page::App(AppPage::Keyboard) => "Keyboard",
+            Page::App(AppPage::General) => crate::i18n::t("settings-general"),
+            Page::App(AppPage::Appearance) => crate::i18n::t("settings-appearance"),
+            Page::App(AppPage::Keyboard) => crate::i18n::t("settings-keyboard"),
             Page::App(AppPage::Ai) => "AI",
             Page::App(AppPage::Git) | Page::Project(_, ProjectPage::Git) => "Git",
-            Page::App(AppPage::Integrations) => "Integrations",
-            Page::App(AppPage::Experimental) => "Experimental",
-            Page::App(AppPage::Developer) => "Developer",
-            Page::Project(_, ProjectPage::Project) => "Project",
+            Page::App(AppPage::Integrations) => crate::i18n::t("settings-integrations"),
+            Page::App(AppPage::Experimental) => crate::i18n::t("settings-experimental"),
+            Page::App(AppPage::Developer) => crate::i18n::t("settings-developer"),
+            Page::Project(_, ProjectPage::Project) => crate::i18n::t("settings-project"),
         }
     }
 
@@ -323,17 +323,17 @@ impl SettingsView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let search = cx.new(|cx| TextInput::new("Search settings", false, cx));
-        let name = cx.new(|cx| TextInput::new("Project name", false, cx));
+        let search = cx.new(|cx| TextInput::localized("settings-search-settings", false, cx));
+        let name = cx.new(|cx| TextInput::localized("settings-project-name", false, cx));
         let command = store.read(cx).prefs.terminal_command.clone();
         let terminal_command = cx.new(|cx| {
-            let mut input = TextInput::new("Command", false, cx);
+            let mut input = TextInput::localized("settings-command", false, cx);
             input.load(command, cx);
             input
         });
         let accent = store.read(cx).prefs.accent_color.clone();
         let accent_color = cx.new(|cx| {
-            let mut input = TextInput::new("A colour, as #3b82f6", false, cx);
+            let mut input = TextInput::localized("settings-colour-3b82f6", false, cx);
             input.load(accent, cx);
             input
         });
@@ -544,6 +544,29 @@ impl SettingsView {
             .into_any_element()
     }
 
+    fn language_row(&self, cx: &Context<Self>) -> Row {
+        use crate::i18n::Language;
+
+        let language = self.store.read(cx).prefs.language;
+        let control = self.choice(
+            "interface-language",
+            language.label(),
+            Language::ALL.map(|language| (language, language.label().to_owned())),
+            |this, language, _, cx| {
+                this.store.update(cx, |store, cx| {
+                    store.set_prefs(|prefs| prefs.language = language, cx);
+                });
+            },
+            cx,
+        );
+        Row::new(
+            crate::i18n::t("settings-language-label"),
+            crate::i18n::t("settings-language-description"),
+            control,
+        )
+        .with_keywords("language English Chinese 中文 语言")
+    }
+
     /// Where files and the project open.
     fn program_rows(&self, cx: &Context<Self>) -> Vec<Row> {
         let prefs = &self.store.read(cx).prefs;
@@ -551,8 +574,16 @@ impl SettingsView {
             id.and_then(|id| programs.iter().find(|(p, _)| p == id))
                 .map_or_else(|| unset.to_owned(), |(_, name)| name.clone())
         };
-        let editor = name_of(&self.editors, prefs.editor.as_ref(), "Ask the first time");
-        let terminal = name_of(&self.terminals, prefs.terminal.as_ref(), "Terminal");
+        let editor = name_of(
+            &self.editors,
+            prefs.editor.as_ref(),
+            crate::i18n::t("settings-ask-first-time"),
+        );
+        let terminal = name_of(
+            &self.terminals,
+            prefs.terminal.as_ref(),
+            crate::i18n::t("settings-terminal"),
+        );
         let editor = self.choice(
             "editor",
             editor,
@@ -576,13 +607,13 @@ impl SettingsView {
         );
         vec![
             Row::new(
-                "Editor",
-                "Where \"Open in editor\" opens files, at the line you're on.",
+                crate::i18n::t("settings-editor-label"),
+                crate::i18n::t("settings-editor-description"),
                 editor,
             ),
             Row::new(
-                "Terminal",
-                "Where \"Open in terminal\" opens the project.",
+                crate::i18n::t("settings-terminal-label"),
+                crate::i18n::t("settings-terminal-description"),
                 terminal,
             ),
         ]
@@ -595,8 +626,14 @@ impl SettingsView {
         let runs = segmented(
             "terminal-runs",
             [
-                (TerminalRuns::LoginShell, "Login shell"),
-                (TerminalRuns::Command, "Custom command"),
+                (
+                    TerminalRuns::LoginShell,
+                    crate::i18n::t("settings-login-shell"),
+                ),
+                (
+                    TerminalRuns::Command,
+                    crate::i18n::t("settings-custom-command"),
+                ),
             ],
             prefs.terminal_runs,
             move |runs, _, cx| {
@@ -607,9 +644,8 @@ impl SettingsView {
             Theme::get(cx),
         );
         let row = Row::new(
-            "New terminals run",
-            "What terminals opened here start. A command runs through your shell, and its \
-             terminal closes when it exits.",
+            crate::i18n::t("settings-new-terminals-run-label"),
+            crate::i18n::t("settings-new-terminals-run-description"),
             runs,
         )
         .with_keywords("shell command");
@@ -623,7 +659,7 @@ impl SettingsView {
     /// Whether closing a terminal asks first.
     fn terminal_close_row(&self, cx: &Context<Self>) -> Row {
         Row::new(
-            "Confirm closing terminals",
+            crate::i18n::t("settings-confirm-closing-terminals-label"),
             "",
             self.pref_switch(
                 "confirm-terminal-close",
@@ -637,9 +673,8 @@ impl SettingsView {
 
     fn screen_reader_row(&self, cx: &Context<Self>) -> Row {
         Row::new(
-            "Screen reader support",
-            "Lets VoiceOver and other screen readers read the app. Takes effect when the app next \
-             starts. On a Mac with a Touch Bar, closing a window with this on can crash the app.",
+            crate::i18n::t("settings-screen-reader-support-label"),
+            crate::i18n::t("settings-screen-reader-support-description"),
             self.pref_switch(
                 "screen-reader",
                 self.store.read(cx).prefs.screen_reader,
@@ -691,10 +726,10 @@ impl SettingsView {
         let accent = segmented(
             "accent",
             [
-                (Accent::Teal, "Teal"),
-                (Accent::Blue, "Blue"),
-                (Accent::Purple, "Purple"),
-                (Accent::Custom, "Custom"),
+                (Accent::Teal, crate::i18n::t("settings-teal")),
+                (Accent::Blue, crate::i18n::t("settings-blue")),
+                (Accent::Purple, crate::i18n::t("settings-purple")),
+                (Accent::Custom, crate::i18n::t("settings-custom")),
             ],
             prefs.accent,
             {
@@ -709,10 +744,10 @@ impl SettingsView {
         let ground = segmented(
             "ground",
             [
-                (Ground::Gray, "Gray"),
-                (Ground::Slate, "Slate"),
-                (Ground::Sage, "Sage"),
-                (Ground::Sand, "Sand"),
+                (Ground::Gray, crate::i18n::t("settings-gray")),
+                (Ground::Slate, crate::i18n::t("settings-slate")),
+                (Ground::Sage, crate::i18n::t("settings-sage")),
+                (Ground::Sand, crate::i18n::t("settings-sand")),
             ],
             prefs.ground,
             {
@@ -727,9 +762,9 @@ impl SettingsView {
         let corners = segmented(
             "corners",
             [
-                (Corners::Sharp, "Sharp"),
-                (Corners::Soft, "Soft"),
-                (Corners::Round, "Round"),
+                (Corners::Sharp, crate::i18n::t("settings-sharp")),
+                (Corners::Soft, crate::i18n::t("settings-soft")),
+                (Corners::Round, crate::i18n::t("settings-round")),
             ],
             prefs.corners,
             {
@@ -744,9 +779,9 @@ impl SettingsView {
         let density = segmented(
             "density",
             [
-                (Density::Compact, "Compact"),
-                (Density::Balanced, "Balanced"),
-                (Density::Spacious, "Spacious"),
+                (Density::Compact, crate::i18n::t("settings-compact")),
+                (Density::Balanced, crate::i18n::t("settings-balanced")),
+                (Density::Spacious, crate::i18n::t("settings-spacious")),
             ],
             prefs.density,
             move |density, window, cx| {
@@ -756,12 +791,9 @@ impl SettingsView {
             theme,
         );
         let mut accent = Row::new(
-            "Accent",
+            crate::i18n::t("settings-accent-label"),
             match own_colours {
-                true => {
-                    "The colour of primary buttons, ticks and what's picked out. Custom takes any \
-                     colour, set so text on it still reads."
-                }
+                true => crate::i18n::t("settings-accent-description"),
                 false => colours_note,
             },
             accent,
@@ -773,30 +805,30 @@ impl SettingsView {
         }
         vec![
             Row::new(
-                "Preset",
-                "Corners and density together. Changing either makes the look your own.",
+                crate::i18n::t("settings-preset-label"),
+                crate::i18n::t("settings-preset-description"),
                 preset,
             )
             .with_keywords("style theme look"),
             accent,
             Row::new(
-                "Ground",
+                crate::i18n::t("settings-ground-label"),
                 match own_colours {
-                    true => "The gray everything sits on: neutral, or a touch cool, green or warm.",
+                    true => crate::i18n::t("settings-ground-description"),
                     false => colours_note,
                 },
                 ground,
             )
             .with_keywords("background gray grey neutral tint theme"),
             Row::new(
-                "Corners",
-                "How round buttons, cards and popovers are.",
+                crate::i18n::t("settings-corners-label"),
+                crate::i18n::t("settings-corners-description"),
                 corners,
             )
             .with_keywords("radius rounded"),
             Row::new(
-                "Density",
-                "How tall buttons and controls are, and the room beside their labels.",
+                crate::i18n::t("settings-density-label"),
+                crate::i18n::t("settings-density-description"),
                 density,
             )
             .with_keywords("compact spacious size height"),
@@ -846,9 +878,9 @@ impl SettingsView {
         let appearance = segmented(
             "appearance",
             [
-                (Appearance::System, "System"),
-                (Appearance::Light, "Light"),
-                (Appearance::Dark, "Dark"),
+                (Appearance::System, crate::i18n::t("settings-system")),
+                (Appearance::Light, crate::i18n::t("settings-light")),
+                (Appearance::Dark, crate::i18n::t("settings-dark")),
             ],
             prefs.appearance,
             move |choice, window, cx| {
@@ -865,9 +897,9 @@ impl SettingsView {
         let code = segmented(
             "code",
             [
-                (CodeSize::Small, "Small"),
-                (CodeSize::Medium, "Medium"),
-                (CodeSize::Large, "Large"),
+                (CodeSize::Small, crate::i18n::t("settings-small")),
+                (CodeSize::Medium, crate::i18n::t("settings-medium")),
+                (CodeSize::Large, crate::i18n::t("settings-large")),
             ],
             prefs.code_size,
             move |size, _, cx| {
@@ -876,37 +908,37 @@ impl SettingsView {
             theme,
         );
         let appearance = Row::new(
-            "Appearance",
-            "Match the system's light or dark mode, or always use one theme.",
+            crate::i18n::t("settings-appearance-label"),
+            crate::i18n::t("settings-appearance-description"),
             appearance,
         );
-        let scheme_select = |shade: Shade| {
-            let (id, name) = match shade {
-                Shade::Light => ("light-scheme", "Light"),
-                Shade::Dark => ("dark-scheme", "Dark"),
-            };
-            let app = self.app.clone();
-            let label = prefs.scheme(shade).label().to_owned();
-            let scheme = select(id, label.clone(), theme)
-                .aria_label(format!("{name} theme {label}"))
-                .on_click(move |_, window, cx| {
-                    app.update_later(window, cx, move |app, window, cx| {
-                        app.pick_color_scheme(shade, window, cx)
-                    })
-                });
-            h_flex()
-                .gap(dp(8.))
-                .child(div().text_13().text_color(theme.text_2).child(name))
-                .child(scheme)
+        let shade = theme.shade();
+        let name = match shade {
+            Shade::Light => crate::i18n::t("settings-light"),
+            Shade::Dark => crate::i18n::t("settings-dark"),
         };
+        // An incompatible scheme saved by an older version draws as GitButler's.
+        let scheme = if theme.own_colours() {
+            &crate::theme::ColorScheme::GitButler
+        } else {
+            prefs.scheme(shade)
+        };
+        let label = scheme.label().to_owned();
+        let app = self.app.clone();
+        let scheme = select("color-scheme", label.clone(), theme)
+            .aria_label(crate::i18n::tf(
+                "settings-theme",
+                &[("name", name.into()), ("label", label.into())],
+            ))
+            .on_click(move |_, window, cx| {
+                app.update_later(window, cx, move |app, window, cx| {
+                    app.pick_color_scheme(shade, window, cx)
+                })
+            });
         let schemes = Row::new(
-            "Theme",
-            "The colours the app and its terminals use in light and in dark mode.",
-            v_flex()
-                .items_end()
-                .gap(dp(8.))
-                .child(scheme_select(Shade::Light))
-                .child(scheme_select(Shade::Dark)),
+            crate::i18n::t("settings-theme-label"),
+            crate::i18n::t("settings-theme-description"),
+            scheme,
         )
         .with_keywords("colour color scheme ghostty light dark");
         let percent = |scale: UiScale| format!("{}%", scale.percent());
@@ -920,10 +952,8 @@ impl SettingsView {
             cx,
         );
         let size = Row::new(
-            "Interface size",
-            crate::ui::keys_text(
-                "How large everything draws, as a browser zooms. ⌘+ and ⌘− step it, ⌘0 puts it back.",
-            ),
+            crate::i18n::t("settings-interface-size-label"),
+            crate::ui::keys_text(crate::i18n::t("settings-interface-size-description")),
             size,
         );
         let app = self.app.clone();
@@ -936,11 +966,19 @@ impl SettingsView {
         let navigator_place = self.navigator_place_row(cx);
         let app = self.app.clone();
         let mut diff = vec![
-            Row::new("Code size", "How large code shows in diffs.", code),
-            Row::new("Font", "The font of code in diffs.", diff_font),
             Row::new(
-                "Font ligatures",
-                "Code joins pairs of characters like != and == into one symbol, if the font has them.",
+                crate::i18n::t("settings-code-size-label"),
+                crate::i18n::t("settings-code-size-description"),
+                code,
+            ),
+            Row::new(
+                crate::i18n::t("settings-font-label"),
+                crate::i18n::t("settings-font-description"),
+                diff_font,
+            ),
+            Row::new(
+                crate::i18n::t("settings-font-ligatures-label"),
+                crate::i18n::t("settings-font-ligatures-description"),
                 self.pref_switch("ligatures", prefs.ligatures, |p| p.ligatures ^= true, cx)
                     .on_click(move |_, window, cx| {
                         app.update_later(window, cx, |app, window, cx| {
@@ -949,31 +987,35 @@ impl SettingsView {
                     }),
             ),
             Row::new(
-                "Wrap long lines",
-                crate::ui::keys_text(&format!(
-                    "Diff lines wider than the pane continue on the next row.{}",
-                    keys_in_diff(&crate::detail::ToggleWrap, "turns it on and off", cx)
+                crate::i18n::t("settings-wrap-long-lines-label"),
+                crate::ui::keys_text(&crate::i18n::tf(
+                    "settings-wrap-long-lines-description",
+                    &[(
+                        "cx",
+                        (keys_in_diff(&crate::detail::ToggleWrap, "turns it on and off", cx))
+                            .into(),
+                    )],
                 )),
                 switch("wrap", prefs.wrap, theme).on_click(cx.listener(|this, _, _, cx| {
                     this.detail.update(cx, |detail, cx| detail.toggle_wrap(cx));
                 })),
             ),
             Row::new(
-                "Side by side",
-                crate::ui::keys_text(&format!(
-                    "Diffs show the old lines beside the new ones.{}",
-                    keys_in_diff(&crate::detail::ToggleSplit, "switches", cx)
+                crate::i18n::t("settings-side-side-label"),
+                crate::ui::keys_text(&crate::i18n::tf(
+                    "settings-side-side-description",
+                    &[(
+                        "cx",
+                        (keys_in_diff(&crate::detail::ToggleSplit, "switches", cx)).into(),
+                    )],
                 )),
                 switch("split", prefs.split, theme).on_click(cx.listener(|this, _, _, cx| {
                     this.detail.update(cx, |detail, cx| detail.toggle_split(cx));
                 })),
             ),
             Row::new(
-                "Semantic context",
-                "Each hunk's box names the function or type it changes, and a short one shows \
-                 whole around it. deltoids reads it from the code with tree-sitter, for Rust, \
-                 TypeScript, JavaScript, Python, Go and 15 other languages, though not Svelte. \
-                 Off, diffs skip reading it, and load a little faster.",
+                crate::i18n::t("settings-semantic-context-label"),
+                crate::i18n::t("settings-semantic-context-description"),
                 switch("semantic", !prefs.no_semantic_context, theme).on_click(cx.listener(
                     |this, _, _, cx| {
                         this.detail.update(cx, |detail, cx| {
@@ -995,9 +1037,9 @@ impl SettingsView {
             let scope = segmented(
                 "scope",
                 [
-                    (ScopeLines::Short, "20 lines"),
-                    (ScopeLines::Medium, "50 lines"),
-                    (ScopeLines::Long, "200 lines"),
+                    (ScopeLines::Short, crate::i18n::t("settings-20-lines")),
+                    (ScopeLines::Medium, crate::i18n::t("settings-50-lines")),
+                    (ScopeLines::Long, crate::i18n::t("settings-200-lines")),
                 ],
                 prefs.whole_scopes,
                 move |lines, _, cx| {
@@ -1008,19 +1050,15 @@ impl SettingsView {
                 theme,
             );
             diff.push(Row::new(
-                "Whole scopes up to",
-                "The most unchanged lines a function or type may add around its hunks to show \
-                 whole. A longer one keeps three lines of context.",
+                crate::i18n::t("settings-whole-scopes-up-label"),
+                crate::i18n::t("settings-whole-scopes-up-description"),
                 scope,
             ));
         }
         let navigator = vec![
             Row::new(
-                "Show branches' commits",
-                crate::ui::keys_text(
-                    "Branches in the navigator start with their commits listed. Off, each starts \
-                     folded to one row, which ↩ or its chevron opens.",
-                ),
+                crate::i18n::t("settings-show-branches-commits-label"),
+                crate::ui::keys_text(crate::i18n::t("settings-show-branches-commits-description")),
                 self.pref_switch(
                     "branches-open",
                     !prefs.branches_start_folded,
@@ -1029,9 +1067,8 @@ impl SettingsView {
                 ),
             ),
             Row::new(
-                "Show all of a branch's commits",
-                "An open branch in the navigator lists every commit it has. Off, it lists the \
-                 first eight, then how many more, which a click lists too.",
+                crate::i18n::t("settings-show-all-branch-s-commits-label"),
+                crate::i18n::t("settings-show-all-branch-s-commits-description"),
                 self.pref_switch(
                     "all-branch-commits",
                     prefs.all_branch_commits,
@@ -1040,9 +1077,8 @@ impl SettingsView {
                 ),
             ),
             Row::new(
-                "Open branches on click",
-                "Clicking a branch in the navigator lists its commits too, and folds the ones the \
-                 last click listed. Off, a click only selects it.",
+                crate::i18n::t("settings-open-branches-click-label"),
+                crate::i18n::t("settings-open-branches-click-description"),
                 self.pref_switch(
                     "branch-click-opens",
                     prefs.click_opens_branch,
@@ -1051,9 +1087,8 @@ impl SettingsView {
                 ),
             ),
             Row::new(
-                "Worktrees go inactive after",
-                "A linked worktree with nothing uncommitted moves under Inactive worktrees once \
-                 it's gone this long without a commit or checkout.",
+                crate::i18n::t("settings-worktrees-go-inactive-after-label"),
+                crate::i18n::t("settings-worktrees-go-inactive-after-description"),
                 self.choice(
                     "inactive-after",
                     prefs.inactive_after.label(),
@@ -1068,9 +1103,8 @@ impl SettingsView {
             .with_keywords("stale"),
         ];
         let folder_counts = Row::new(
-            "Show folders' line counts",
-            "Folders in a file tree always show the lines their files add and remove. Off, they \
-             show them only under the pointer.",
+            crate::i18n::t("settings-show-folders-line-counts-label"),
+            crate::i18n::t("settings-show-folders-line-counts-description"),
             self.pref_switch(
                 "folder-line-counts",
                 prefs.folder_line_counts,
@@ -1079,11 +1113,8 @@ impl SettingsView {
             ),
         );
         let folder_stops = Row::new(
-            "Step through folders",
-            crate::ui::keys_text(
-                "↑ and ↓, or j and k, stop on a file tree's folders too, showing what changed in \
-                 each, and the fold keys fold and unfold them. Off, they go from file to file.",
-            ),
+            crate::i18n::t("settings-step-through-folders-label"),
+            crate::ui::keys_text(crate::i18n::t("settings-step-through-folders-description")),
             self.pref_switch(
                 "folder-stops",
                 prefs.folder_stops,
@@ -1106,8 +1137,8 @@ impl SettingsView {
             cx,
         );
         let terminal_text = Row::new(
-            "Text size",
-            "How large text shows in terminals opened here. Their colours follow the colour scheme.",
+            crate::i18n::t("settings-text-size-label"),
+            crate::i18n::t("settings-text-size-description"),
             terminal_text,
         );
         let app = self.app.clone();
@@ -1119,8 +1150,8 @@ impl SettingsView {
                 })
             });
         let terminal_font = Row::new(
-            "Font",
-            "The font of terminals opened here. As Ghostty's follows your Ghostty config.",
+            crate::i18n::t("settings-font-label"),
+            crate::i18n::t("settings-font-description-2"),
             terminal_font,
         );
         vec![
@@ -1135,10 +1166,16 @@ impl SettingsView {
                     terminal_overview,
                 ],
             ),
-            Card::new(Some("Navigator"), navigator),
-            Card::new(Some("File list"), vec![folder_counts, folder_stops]),
-            Card::new(Some("Diff"), diff),
-            Card::new(Some("Terminal"), vec![terminal_font, terminal_text]),
+            Card::new(Some(crate::i18n::t("settings-navigator")), navigator),
+            Card::new(
+                Some(crate::i18n::t("settings-file-list")),
+                vec![folder_counts, folder_stops],
+            ),
+            Card::new(Some(crate::i18n::t("settings-diff")), diff),
+            Card::new(
+                Some(crate::i18n::t("settings-terminal")),
+                vec![terminal_font, terminal_text],
+            ),
         ]
     }
 
@@ -1160,18 +1197,16 @@ impl SettingsView {
             cx,
         );
         Row::new(
-            "Fetch automatically",
-            "Keeps the target and each branch's remote current, for every expanded project. \
-             GitButler's other apps share this.",
+            crate::i18n::t("settings-fetch-automatically-label"),
+            crate::i18n::t("settings-fetch-automatically-description"),
             control,
         )
     }
 
     fn merged_worktrees_row(&self, cx: &Context<Self>) -> Row {
         Row::new(
-            "Merged worktrees",
-            "When an update finds a linked worktree's branch merged, archive the worktree or \
-             delete its folder, closing its terminals. One with uncommitted files is left alone.",
+            crate::i18n::t("settings-merged-worktrees-label"),
+            crate::i18n::t("settings-merged-worktrees-description"),
             self.choice(
                 "merged-worktrees",
                 self.store.read(cx).prefs.merged_worktrees.label(),
@@ -1189,9 +1224,8 @@ impl SettingsView {
 
     fn composer_row(&self, cx: &Context<Self>) -> Row {
         Row::new(
-            "Start commits with nothing checked",
-            "The commit box opens with every file unchecked, and you check the ones that go \
-             in. Off, they all start checked.",
+            crate::i18n::t("settings-start-commits-nothing-checked-label"),
+            crate::i18n::t("settings-start-commits-nothing-checked-description"),
             self.pref_switch(
                 "composer-starts-unchecked",
                 self.store.read(cx).prefs.composer_starts_unchecked,
@@ -1246,10 +1280,8 @@ impl SettingsView {
             ),
         );
         Some(Row::new(
-            "Open this app at start",
-            "GitButler opens this app rather than its web app when it starts, as \
-             featureFlags.gpui in its settings.json says. Starting it with --gpui opens this app \
-             either way.",
+            crate::i18n::t("settings-open-app-start-label"),
+            crate::i18n::t("settings-open-app-start-description"),
             start,
         ))
     }
@@ -1276,10 +1308,8 @@ impl SettingsView {
             );
         });
         Row::new(
-            "Briefs",
-            "Show the brief about a branch on a tab of its page. Every few minutes, open projects \
-             ask GitButler's server about their newest branches, by the repository's address and \
-             the branches' names and commits.",
+            crate::i18n::t("settings-briefs-label"),
+            crate::i18n::t("settings-briefs-description"),
             switch("briefs", on, Theme::get(cx)).on_click(flip),
         )
     }
@@ -1306,9 +1336,8 @@ impl SettingsView {
             );
         });
         Row::new(
-            "Single file diff",
-            "The diff shows only the file selected in the file list, filling the pane, with \
-             its changed lines marked beside the scrollbar. The file list stays beside it.",
+            crate::i18n::t("settings-single-file-diff-label"),
+            crate::i18n::t("settings-single-file-diff-description"),
             switch("single-file-diff", on, Theme::get(cx)).on_click(flip),
         )
         .with_keywords("all-in-one one file at a time per screen")
@@ -1324,11 +1353,20 @@ impl SettingsView {
             })
         };
         Row::new(
-            "Navigator position",
-            "Across the top, each project is a tab, and pointing at one shows what's in it.",
+            crate::i18n::t("settings-navigator-position-label"),
+            crate::i18n::t("settings-navigator-position-description"),
             segmented(
                 "navigator-place",
-                [(NavigatorPlace::Side, "Side"), (NavigatorPlace::Top, "Top")],
+                [
+                    (
+                        NavigatorPlace::Side,
+                        crate::i18n::t("settings-navigator-position-description-2"),
+                    ),
+                    (
+                        NavigatorPlace::Top,
+                        crate::i18n::t("settings-navigator-position-description-3"),
+                    ),
+                ],
                 place,
                 pick,
                 Theme::get(cx),
@@ -1341,8 +1379,8 @@ impl SettingsView {
     fn terminal_overview_row(&self, cx: &Context<Self>) -> Row {
         let shown = !self.store.read(cx).prefs.hide_terminal_overview;
         Row::new(
-            "Show terminal overview",
-            "Every terminal open, on every project, under the navigator.",
+            crate::i18n::t("settings-show-terminal-overview-label"),
+            crate::i18n::t("settings-show-terminal-overview-description"),
             self.pref_switch(
                 "terminal-overview",
                 shown,
@@ -1357,8 +1395,8 @@ impl SettingsView {
     fn status_bar_row(&self, cx: &Context<Self>) -> Row {
         let shown = !self.store.read(cx).prefs.hide_status_bar;
         Row::new(
-            "Show status bar",
-            "The bar along the window's bottom, with what's under way and the keys for it.",
+            crate::i18n::t("settings-show-status-bar-label"),
+            crate::i18n::t("settings-show-status-bar-description"),
             self.pref_switch("status-bar", shown, |p| p.hide_status_bar ^= true, cx),
         )
         .with_keywords("minimal compact footer hide")
@@ -1369,9 +1407,8 @@ impl SettingsView {
         let prefs = &self.store.read(cx).prefs;
         [
             Row::new(
-                "Commit messages in the diff",
-                "Commit and branch pages list their messages above the files in place of \
-                 their headers, and uncommitted changes go without theirs.",
+                crate::i18n::t("settings-commit-messages-diff-label"),
+                crate::i18n::t("settings-commit-messages-diff-description"),
                 self.pref_switch(
                     "messages-in-diff",
                     prefs.messages_in_diff,
@@ -1381,9 +1418,8 @@ impl SettingsView {
             )
             .with_keywords("minimal compact header"),
             Row::new(
-                "Show full commit messages",
-                "Commit pages start with the whole message open under its title. Off, they show \
-                 the title, and the button beside it opens the rest.",
+                crate::i18n::t("settings-show-full-commit-messages-label"),
+                crate::i18n::t("settings-show-full-commit-messages-description"),
                 self.pref_switch(
                     "full-messages",
                     prefs.full_messages,
@@ -1393,9 +1429,8 @@ impl SettingsView {
             )
             .with_keywords("body description expand"),
             Row::new(
-                "Show diff controls",
-                "The bar over the diff, and the line counts and buttons in file headers. Off, \
-                 keys and menus still have them.",
+                crate::i18n::t("settings-show-diff-controls-label"),
+                crate::i18n::t("settings-show-diff-controls-description"),
                 self.pref_switch(
                     "diff-controls",
                     !prefs.hide_diff_controls,
@@ -1410,12 +1445,8 @@ impl SettingsView {
     fn fps_row(&self, cx: &Context<Self>) -> Row {
         let on = self.store.read(cx).prefs.show_fps;
         Row::new(
-            "Show FPS",
-            "The frames drawn in the last second, in the window's top right corner. When a \
-             frame of the last three seconds was much slower, its pace shows beside them in \
-             amber, and a graph before them shows how long each frame of those seconds took. \
-             While it shows, the window draws every frame it can, so a slow view brings \
-             them down.",
+            crate::i18n::t("settings-show-fps-label"),
+            crate::i18n::t("settings-show-fps-description"),
             self.pref_switch("show-fps", on, |p| p.show_fps ^= true, cx),
         )
         .with_keywords("frames per second performance")
@@ -1424,9 +1455,8 @@ impl SettingsView {
     fn menu_bar_row(&self, cx: &Context<Self>) -> Row {
         let on = self.store.read(cx).prefs.menu_bar_everywhere;
         Row::new(
-            "Draw the menu bar",
-            "The menu bar the app draws on Windows and Linux, a button in the window's top left \
-             corner that opens the menus, drawn here too, to try it.",
+            crate::i18n::t("settings-draw-menu-bar-label"),
+            crate::i18n::t("settings-draw-menu-bar-description"),
             self.pref_switch(
                 "menu-bar-everywhere",
                 on,
@@ -1613,7 +1643,11 @@ impl SettingsView {
             Page::App(AppPage::General) => vec![
                 Card::new(
                     None,
-                    vec![self.gitbutler_row(window, cx), self.mesh_row(cx)],
+                    vec![
+                        self.language_row(cx),
+                        self.gitbutler_row(window, cx),
+                        self.mesh_row(cx),
+                    ],
                 ),
                 Card::new(None, self.program_rows(cx)),
                 Card::new(
@@ -1626,17 +1660,29 @@ impl SettingsView {
                 ),
                 // Only once it's been looked for, which only macOS does.
                 Card::new(None, self.cli_row(cx).into_iter().collect()),
-                Card::new(Some("Accessibility"), vec![self.screen_reader_row(cx)]),
+                Card::new(
+                    Some(crate::i18n::t("settings-accessibility")),
+                    vec![self.screen_reader_row(cx)],
+                ),
                 // Last, out of the way, as the desktop app keeps it on a page of its own.
-                Card::new(Some("Metrics"), self.metrics_rows(cx)),
+                Card::new(
+                    Some(crate::i18n::t("settings-metrics")),
+                    self.metrics_rows(cx),
+                ),
             ],
             Page::App(AppPage::Appearance) => self.appearance_cards(cx),
             Page::App(AppPage::Keyboard) => self.keyboard_cards(cx),
             Page::App(AppPage::Ai) => vec![Card::new(None, self.ai_rows(window, cx))],
             Page::App(AppPage::Git) => vec![
                 Card::new(None, vec![self.fetch_row(cx)]),
-                Card::new(Some("Commits"), vec![self.composer_row(cx)]),
-                Card::new(Some("Worktrees"), vec![self.merged_worktrees_row(cx)]),
+                Card::new(
+                    Some(crate::i18n::t("settings-commits")),
+                    vec![self.composer_row(cx)],
+                ),
+                Card::new(
+                    Some(crate::i18n::t("settings-worktrees")),
+                    vec![self.merged_worktrees_row(cx)],
+                ),
             ],
             Page::App(AppPage::Integrations) => self.integration_cards(window, cx),
             Page::App(AppPage::Experimental) => {
@@ -1653,8 +1699,14 @@ impl SettingsView {
             Page::App(AppPage::Developer) => vec![
                 Card::new(None, vec![self.fps_row(cx), self.menu_bar_row(cx)]),
                 // Here while it's worked out; other builds draw the default look (`theme_for`).
-                Card::new(Some("Look"), self.look_rows(window, cx)),
-                Card::new(Some("Tile dragging"), self.tile_drag_rows(cx)),
+                Card::new(
+                    Some(crate::i18n::t("settings-look")),
+                    self.look_rows(window, cx),
+                ),
+                Card::new(
+                    Some(crate::i18n::t("settings-tile-dragging")),
+                    self.tile_drag_rows(cx),
+                ),
             ],
             Page::Project(project, page) => self.project_cards(project, *page, window, cx),
         };
@@ -2047,7 +2099,7 @@ impl Render for SettingsView {
                 .px(dp(12.))
                 .border_t_1()
                 .border_color(theme.border_3)
-                .child(heading("Projects"))
+                .child(heading(crate::i18n::t("settings-projects-heading")))
                 .children(entries(&listed.watched))
                 .children(above)
                 .children(entries(&kept))
@@ -2070,7 +2122,7 @@ impl Render for SettingsView {
                     .text_16()
                     .semibold()
                     .text_color(theme.text_1)
-                    .child("Settings"),
+                    .child(crate::i18n::t("settings-settings")),
             )
             .child(
                 field(&self.search, search_focused, &theme)
@@ -2199,8 +2251,8 @@ impl AppView {
         let answer = window.prompt(
             gpui::PromptLevel::Info,
             &format!("{why}?"),
-            Some("AI isn't set up yet. What's typed in this form is lost."),
-            &[confirm, "Cancel"],
+            Some(crate::i18n::t("settings-ai-isn-t-set-up-yet")),
+            &[confirm, crate::i18n::t("common-cancel")],
             cx,
         );
         cx.spawn_in(window, async move |this, cx| {
@@ -2308,7 +2360,7 @@ fn field_with_save(
             el.child(
                 button(
                     SharedString::from(format!("save-{}", input.entity_id())),
-                    "Save",
+                    crate::i18n::t("common-save"),
                 )
                 .small()
                 .style(ButtonStyle::Gray)
@@ -2327,9 +2379,12 @@ fn read_failed(
     retry: fn(&mut SettingsView, &mut Context<SettingsView>),
     cx: &Context<SettingsView>,
 ) -> Row {
-    let again = button(SharedString::from(format!("retry-{page:?}")), "Try again")
-        .small()
-        .on_click(cx.listener(move |this, _, _, cx| retry(this, cx)));
+    let again = button(
+        SharedString::from(format!("retry-{page:?}")),
+        crate::i18n::t("settings-try-again"),
+    )
+    .small()
+    .on_click(cx.listener(move |this, _, _, cx| retry(this, cx)));
     Row::new(title, error_summary(err), again)
 }
 

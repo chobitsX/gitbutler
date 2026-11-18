@@ -13,6 +13,7 @@
 	import AppScrollableContainer from "$components/shared/AppScrollableContainer.svelte";
 	import { Icon, type IconName } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { type Snippet } from "svelte";
 
 	type PageId = T["id"];
@@ -61,7 +62,7 @@
 						<div class="settings-sidebar__links-item__icon">
 							<Icon name={page.icon} />
 						</div>
-						<span>{page.label}</span>
+						<span>{$t(page.label)}</span>
 					</button>
 				{/each}
 			</div>

@@ -5,6 +5,7 @@
 	import { REJECTTION_REASONS } from "$lib/stacks/stackService.svelte";
 	import { type RejectionReason } from "$lib/state/uiState.svelte";
 	import { Icon, ModalHeader, TestId, Tooltip } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { CommitFailedModalState } from "$lib/state/uiState.svelte";
 
@@ -53,7 +54,9 @@
 		closeButton
 		{oncloseclick}
 		closeButtonTestId={TestId.GlobalModalActionButton}
-		>{data.newCommitId ? "Some changes were not committed" : "Failed to create commit"}</ModalHeader
+		>{data.newCommitId
+			? $t("Some changes were not committed")
+			: $t("Failed to create commit")}</ModalHeader
 	>
 	<AppScrollableContainer
 		onscrollTop={(visible) => {
@@ -63,13 +66,14 @@
 		<div class="commit-failed__content">
 			<div class="text-13 commit-failed__description">
 				{#if data.newCommitId}
-					Commit <i class="commit-failed__text-icon"><Icon name="commit" /></i>
-					<Tooltip text={data.commitTitle ? data.commitTitle : "No commit title provided"}
+					{$t("Commit")} <i class="commit-failed__text-icon"><Icon name="commit" /></i>
+					<Tooltip text={data.commitTitle ? data.commitTitle : $t("No commit title provided")}
 						><span class="h-dotted-underline text-semibold">{data.newCommitId.substring(0, 7)}</span
 						></Tooltip
-					> was created, but some changes weren't fully committed:
+					>
+					{$t("was created, but some changes weren't fully committed:")}
 				{:else}
-					Commit could not be created because of the following reasons:
+					{$t("Commit could not be created because of the following reasons:")}
 				{/if}
 			</div>
 
@@ -78,7 +82,7 @@
 					<hr class="commit-failed__reasons-divider" />
 
 					<p class="text-13">
-						Cause: <span class="text-bold">{reasonReadable}</span>
+						{$t("Cause:")} <span class="text-bold">{$t(reasonReadable)}</span>
 					</p>
 
 					<div class="commit-failed__reason-file-list">

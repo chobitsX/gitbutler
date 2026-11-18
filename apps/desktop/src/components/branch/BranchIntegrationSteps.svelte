@@ -9,6 +9,7 @@
 		updateIntegrationStepDraftMessage,
 	} from "$lib/upstream/branchIntegrationEditor";
 	import { Button } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		stepDrafts: IntegrationStepDraft[];
@@ -48,7 +49,7 @@
 		onclick={() => (stepDrafts = [])}
 		icon="bin"
 	>
-		Clear steps
+		{$t("Clear steps")}
 	</Button>
 
 	<Button
@@ -59,14 +60,14 @@
 		disabled={commitOptions.length === 0}
 		onclick={() => (stepDrafts = [...stepDrafts, createDefaultIntegrationStepDraft(commitOptions)])}
 	>
-		Add step
+		{$t("Add step")}
 	</Button>
 </div>
 
 <div class="branch-integration__steps">
 	{#if stepDrafts.length === 0}
 		<div class="branch-integration__empty">
-			No integration steps yet. Add a step to build the plan.
+			{$t("No integration steps yet. Add a step to build the plan.")}
 		</div>
 	{:else}
 		{#each stepDrafts as step, index (step.id)}
@@ -77,7 +78,7 @@
 				data-branch-integration-step-index={index}
 			>
 				<div class="branch-integration__step-toolbar">
-					<span class="text-11 clr-text-2">Step {index + 1}</span>
+					<span class="text-11 clr-text-2">{$t("Step {value}", { value: index + 1 })}</span>
 					<div class="branch-integration__step-actions">
 						<Button
 							kind="outline"
@@ -93,14 +94,16 @@
 							disabled={index === stepDrafts.length - 1}
 							onclick={() => moveStep(step.id, 1)}
 						/>
-						<Button kind="outline" size="tag" onclick={() => deleteStep(step.id)}>Delete</Button>
+						<Button kind="outline" size="tag" onclick={() => deleteStep(step.id)}
+							>{$t("Delete")}</Button
+						>
 					</div>
 				</div>
 
 				<div class="branch-integration__step-fields">
 					<label class="branch-integration__field">
 						<select
-							aria-label="Integration step type"
+							aria-label={$t("Integration step type")}
 							value={step.kind}
 							onchange={(event) =>
 								(stepDrafts = stepDrafts.map((candidate) =>
@@ -113,9 +116,9 @@
 										: candidate,
 								))}
 						>
-							<option value="pick">Pick</option>
-							<option value="merge">Merge</option>
-							<option value="squash">Squash</option>
+							<option value="pick">{$t("Pick")}</option>
+							<option value="merge">{$t("Merge")}</option>
+							<option value="squash">{$t("Squash")}</option>
 						</select>
 					</label>
 
@@ -123,7 +126,7 @@
 						{#each step.commitIds as commitId, commitIndex}
 							<label class="branch-integration__field">
 								<select
-									aria-label={`Squash commit ${commitIndex + 1}`}
+									aria-label={$t("Squash commit {value0}", { value0: commitIndex + 1 })}
 									value={commitId}
 									onchange={(event) =>
 										(stepDrafts = stepDrafts.map((candidate) =>
@@ -146,7 +149,7 @@
 						{/each}
 						<label class="branch-integration__field branch-integration__field--full">
 							<textarea
-								aria-label="Squash commit message"
+								aria-label={$t("Squash commit message")}
 								rows="3"
 								value={step.message}
 								oninput={(event) =>
@@ -163,7 +166,7 @@
 					{:else}
 						<label class="branch-integration__field branch-integration__field--full">
 							<select
-								aria-label="Integration commit"
+								aria-label={$t("Integration commit")}
 								value={step.commitId}
 								onchange={(event) =>
 									(stepDrafts = stepDrafts.map((candidate) =>

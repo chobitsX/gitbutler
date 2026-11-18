@@ -78,11 +78,17 @@ impl AppView {
         let (state, state_keys): (AnyElement, Vec<(SharedString, &str)>) = if self.swapping() {
             let state = h_flex()
                 .gap(dp(6.))
-                .child(div().text_color(theme.pop).child("Swapping tiles"))
-                .child("press a tile's letter");
+                .child(
+                    div()
+                        .text_color(theme.pop)
+                        .child(crate::i18n::t("status-bar-swapping-tiles")),
+                )
+                .child(crate::i18n::t("status-bar-press-tile-s-letter"));
             (state.into_any_element(), vec![("esc".into(), "cancel")])
         } else if self.arranging() {
-            let state = div().text_color(theme.pop).child("Arranging tiles");
+            let state = div()
+                .text_color(theme.pop)
+                .child(crate::i18n::t("status-bar-arranging-tiles"));
             let keys = [("hjkl".into(), "move tile")]
                 .into_iter()
                 .chain(shortcut(&FinishArranging, cx).map(|keys| (keys, "done")))
@@ -102,11 +108,10 @@ impl AppView {
             // asking to save first.
             let state = h_flex()
                 .gap(dp(6.))
-                .child(
-                    div()
-                        .text_color(theme.text_1)
-                        .child(format!("Editing {file}")),
-                )
+                .child(div().text_color(theme.text_1).child(crate::i18n::tf(
+                    "status-bar-editing",
+                    &[("file", (file).into())],
+                )))
                 .child(div().text_color(theme.text_3).child("·"))
                 .child(
                     div()
@@ -114,8 +119,14 @@ impl AppView {
                         .child(says),
                 );
             let mut keys = vec![
-                (crate::ui::keys_text("⌘S").into(), "save"),
-                (crate::ui::keys_text("⌘Z").into(), "undo"),
+                (
+                    crate::ui::keys_text(crate::i18n::t("status-bar-s")).into(),
+                    "save",
+                ),
+                (
+                    crate::ui::keys_text(crate::i18n::t("status-bar-z")).into(),
+                    "undo",
+                ),
             ];
             // How the edit ends: Esc takes the caret out of the line, then closes the file.
             if detail.has_caret() {
@@ -213,7 +224,7 @@ impl AppView {
             // Only the navigator's highlight shows them otherwise.
             (
                 store.picked.len(),
-                "commit",
+                crate::ui::Count::Commit,
                 Some(match picks_conflicted {
                     true => "drag them together, or right-click to squash or discard them",
                     false => {
@@ -223,21 +234,20 @@ impl AppView {
             ),
             (
                 detail.picked_line_count(),
-                "line",
+                crate::ui::Count::Line,
                 Some("drag a grip or right-click to move the selection"),
             ),
-            (detail.picked_files(), "file", None),
+            (detail.picked_files(), crate::ui::Count::File, None),
         ]
         .into_iter()
         .find(|(n, ..)| *n > 0)
         {
             let selected = h_flex()
                 .gap(dp(6.))
-                .child(
-                    div()
-                        .text_color(theme.pop)
-                        .child(format!("{} selected", crate::ui::plural(n, what))),
-                )
+                .child(div().text_color(theme.pop).child(crate::i18n::tf(
+                    "status-bar-selected",
+                    &[("what", (crate::ui::plural(n, what)).into())],
+                )))
                 .children(how);
             (selected.into_any_element(), vec![("esc".into(), "cancel")])
         } else if let Some(place) = (detail.is_focused(window, cx)
@@ -342,7 +352,7 @@ impl AppView {
                     let behind = (store.workspace(project))
                         .and_then(|ws| ws.target.as_ref())
                         .is_some_and(|target| target.needs_update());
-                    [(&Fetch as &dyn Action, "fetch")]
+                    [(&Fetch as &dyn Action, crate::i18n::t("status-fetch"))]
                         .into_iter()
                         .chain(behind.then_some((&UpdateFromTarget as &dyn Action, "update")))
                         .collect()
@@ -434,13 +444,18 @@ impl AppView {
                 Some(hint(&keys, label, &theme))
             }))
             .child(
-                clickable("open-commands", "Commands", theme.hover, &theme)
-                    // A keymap can leave the palette without a key, as the TUI's does so far.
-                    .child(match shortcut(&CommandPalette, cx) {
-                        Some(keys) => hint(&keys, "Commands", &theme),
-                        None => div().child("Commands"),
-                    })
-                    .on_click(|_, window, cx| window.dispatch_action(Box::new(CommandPalette), cx)),
+                clickable(
+                    "open-commands",
+                    crate::i18n::t("status-bar-commands"),
+                    theme.hover,
+                    &theme,
+                )
+                // A keymap can leave the palette without a key, as the TUI's does so far.
+                .child(match shortcut(&CommandPalette, cx) {
+                    Some(keys) => hint(&keys, crate::i18n::t("status-bar-commands"), &theme),
+                    None => div().child(crate::i18n::t("status-bar-commands")),
+                })
+                .on_click(|_, window, cx| window.dispatch_action(Box::new(CommandPalette), cx)),
             )
             .children((cx.has_global::<Rebuild>()).then(|| self.build_button(cx)))
     }
@@ -628,7 +643,7 @@ fn needs(
         .filter(elsewhere)
         .collect();
     if let Some(first) = commits.first() {
-        let text = plural(commits.len(), "conflicted commit");
+        let text = plural(commits.len(), crate::ui::Count::ConflictedCommit);
         needs.push((Need::ConflictedCommits, text, first.clone()));
     }
     let count = |files: &[FileChange]| files.iter().filter(|file| file.conflicted).count();
@@ -643,7 +658,10 @@ fn needs(
     .filter(|(n, to)| *n > 0 && elsewhere(to))
     .collect();
     if let Some((_, first)) = files.first() {
-        let text = plural(files.iter().map(|(n, _)| n).sum(), "conflicted file");
+        let text = plural(
+            files.iter().map(|(n, _)| n).sum(),
+            crate::ui::Count::ConflictedFile,
+        );
         needs.push((Need::ConflictedFiles, text, first.clone()));
     }
     let failed: Vec<(&Branch, Selection)> = (workspace.branches_in(&Checkout::Main))
@@ -776,12 +794,12 @@ mod tests {
             [
                 (
                     Need::ConflictedCommits,
-                    "1 conflicted commit".to_owned(),
+                    "\u{2068}1\u{2069} conflicted commit".to_owned(),
                     Selection::Commit(project.clone(), id(2))
                 ),
                 (
                     Need::ConflictedFiles,
-                    "3 conflicted files".to_owned(),
+                    "\u{2068}3\u{2069} conflicted files".to_owned(),
                     Selection::Uncommitted(project.clone(), Checkout::Main)
                 ),
                 (
@@ -797,7 +815,7 @@ mod tests {
             needs(&project, &ws, Some(&main))[1],
             (
                 Need::ConflictedFiles,
-                "2 conflicted files".to_owned(),
+                "\u{2068}2\u{2069} conflicted files".to_owned(),
                 Selection::Uncommitted(project.clone(), Checkout::Linked("agent-x".into()))
             ),
             "Main worktree's page shows its own conflicts, and the linked worktree's still count"

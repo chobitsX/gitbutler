@@ -3,6 +3,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, CardGroup, InfoMessage, Select, SelectItem } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const { projectId }: { projectId: string } = $props();
 
@@ -52,7 +53,7 @@
 {#if remoteBranchesQuery.result.isLoading || localBranchesQuery.result.isLoading}
 	<InfoMessage filled outlined={false} icon="info">
 		{#snippet content()}
-			Loading branches...
+			{$t("Loading branches...")}
 		{/snippet}
 	</InfoMessage>
 {:else if remoteBranchesQuery.result.isSuccess && localBranchesQuery.result.isSuccess}
@@ -62,12 +63,12 @@
 		<CardGroup>
 			<CardGroup.Item>
 				{#snippet title()}
-					Remote configuration
+					{$t("Remote configuration")}
 				{/snippet}
 				{#snippet caption()}
-					Lets you choose where to push code and set the target branch for contributions. The target
-					branch is a local branch like 'master' or 'main'. Its configured upstream is used for
-					pulling. The publication remote is used for pushing feature branches.
+					{$t(
+						"Lets you choose where to push code and set the target branch for contributions. The target branch is a local branch like 'master' or 'main'. Its configured upstream is used for pulling. The publication remote is used for pushing feature branches.",
+					)}
 				{/snippet}
 
 				<Select
@@ -78,7 +79,7 @@
 						selectedBranch = value;
 					}}
 					disabled={targetChangeDisabled}
-					label="Current target branch"
+					label={$t("Current target branch")}
 					searchable
 				>
 					{#snippet itemSnippet({ item, highlighted })}
@@ -97,7 +98,7 @@
 							selectedRemote = value;
 						}}
 						disabled={targetChangeDisabled}
-						label="Create branches on remote"
+						label={$t("Create branches on remote")}
 					>
 						{#snippet itemSnippet({ item, highlighted })}
 							<SelectItem selected={item.value === selectedRemote} {highlighted}>
@@ -110,8 +111,15 @@
 				{#if targetChangeDisabled}
 					<InfoMessage filled outlined={false} icon="info">
 						{#snippet content()}
-							You have {stackCount === 1 ? "1 active branch" : `${stackCount} active branches`} in your
-							workspace. Please clear the workspace before switching the base branch.
+							{$t(
+								"You have {value} in your workspace. Please clear the workspace before switching the base branch.",
+								{
+									value:
+										stackCount === 1
+											? $t("1 active branch")
+											: $t("{value0} active branches", { value0: stackCount }),
+								},
+							)}
 						{/snippet}
 					</InfoMessage>
 				{:else}
@@ -125,7 +133,7 @@
 								selectedRemote === (baseBranch?.pushRemoteName ?? undefined)) ||
 							targetChangeDisabled}
 					>
-						{switching ? "Updating target..." : "Update configuration"}
+						{switching ? $t("Updating target...") : $t("Update configuration")}
 					</Button>
 				{/if}
 			</CardGroup.Item>
@@ -134,7 +142,7 @@
 {:else if remoteBranchesQuery.result.isError || localBranchesQuery.result.isError}
 	<InfoMessage filled outlined={true} style="danger">
 		{#snippet title()}
-			We got an error trying to list your branches
+			{$t("We got an error trying to list your branches")}
 		{/snippet}
 	</InfoMessage>
 {/if}

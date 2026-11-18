@@ -64,10 +64,10 @@ impl ReviewView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let title = cx.new(|cx| TextInput::new("Title", false, cx));
+        let title = cx.new(|cx| TextInput::localized("pr-title", false, cx));
         let body_scroll = ScrollHandle::new();
         let body = cx.new(|cx| {
-            TextInput::new("What it changes, and why", true, cx).scrolled_by(body_scroll.clone())
+            TextInput::localized("pr-changes-why", true, cx).scrolled_by(body_scroll.clone())
         });
         for input in [&title, &body] {
             cx.subscribe_in(input, window, |this, _, event, _, cx| match event {
@@ -129,7 +129,7 @@ impl ReviewView {
                     }
                     Err(err) => {
                         this.store.update(cx, |store, cx| {
-                            store.failed("Can't open a pull request", &err, cx)
+                            store.failed(crate::i18n::t("pr-t-open-pull-request"), &err, cx)
                         });
                         // Gone before the reload that would close the form landed.
                         if reviews::branch_left(&err) {
@@ -287,7 +287,12 @@ impl Render for ReviewView {
                         )),
                         &theme,
                     ))
-                    .child(div().text_15().semibold().child("Create a pull request"))
+                    .child(
+                        div()
+                            .text_15()
+                            .semibold()
+                            .child(crate::i18n::t("pr-create-pull-request")),
+                    )
                     .child(
                         div()
                             .font_family(theme.mono_font.clone())
@@ -302,7 +307,7 @@ impl Render for ReviewView {
                     .px(dp(20.))
                     .pb(dp(16.))
                     .gap(dp(6.))
-                    .child(label("Title"))
+                    .child(label(crate::i18n::t("pr-title")))
                     .child(text_box(&self.title, false).capture_action(cx.listener(
                         |this, _: &Newline, window, cx| {
                             window.focus(&this.body.focus_handle(cx), cx);
@@ -312,20 +317,24 @@ impl Render for ReviewView {
                     .child(div().h(dp(6.)))
                     .child(
                         h_flex()
-                            .child(div().flex_1().child(label("Description")))
+                            .child(
+                                div()
+                                    .flex_1()
+                                    .child(label(crate::i18n::t("pr-description"))),
+                            )
                             .child(
                                 button(
                                     "pr-write",
                                     if self.writing.is_some() {
-                                        "Writing…"
+                                        crate::i18n::t("pr-writing")
                                     } else {
-                                        "Write with AI"
+                                        crate::i18n::t("pr-write-ai")
                                     },
                                 )
                                 .small()
                                 .style(ButtonStyle::Ghost)
                                 .disabled_because(self.writing.is_some().then_some("Writing…"))
-                                .tooltip("Write the title and description from the commits")
+                                .tooltip(crate::i18n::t("pr-write-title-description-commits"))
                                 .on_click(cx.listener(|this, _, _, cx| this.write_with_ai(cx))),
                             ),
                     )
@@ -343,7 +352,7 @@ impl Render for ReviewView {
                             )))
                             .child(
                                 v_flex()
-                                    .child(div().text_13().child("Draft"))
+                                    .child(div().text_13().child(crate::i18n::t("pr-draft")))
                                     .child(muted("Not ready for review yet", &theme)),
                             ),
                     )
@@ -359,14 +368,18 @@ impl Render for ReviewView {
                                             cx.notify();
                                         })),
                                 )
-                                .child(v_flex().child(div().text_13().child("Auto-merge")).child(
-                                    muted(
-                                        no_auto_merge.unwrap_or(
-                                            "Merges once its required checks and reviews pass",
-                                        ),
-                                        &theme,
-                                    ),
-                                )),
+                                .child(
+                                    v_flex()
+                                        .child(
+                                            div().text_13().child(crate::i18n::t("pr-auto-merge")),
+                                        )
+                                        .child(muted(
+                                            no_auto_merge.unwrap_or(
+                                                "Merges once its required checks and reviews pass",
+                                            ),
+                                            &theme,
+                                        )),
+                                ),
                         )
                     }),
             )
@@ -379,9 +392,11 @@ impl Render for ReviewView {
                     .py(dp(12.))
                     .border_t_1()
                     .border_color(theme.border_3)
-                    .child(faint(crate::ui::keys_text("⌘↩ to create"), &theme).flex_1())
                     .child(
-                        button("pr-cancel", "Cancel")
+                        faint(crate::ui::keys_text(crate::i18n::t("pr-create")), &theme).flex_1(),
+                    )
+                    .child(
+                        button("pr-cancel", crate::i18n::t("common-cancel"))
                             .style(ButtonStyle::Ghost)
                             .on_click(cx.listener(|_, _, _, cx| cx.emit(DismissEvent))),
                     )
@@ -389,9 +404,9 @@ impl Render for ReviewView {
                         button("pr-submit", confirm)
                             .style(ButtonStyle::Gray)
                             .disabled_because(if self.writing.is_some() {
-                                Some("Wait for the AI to finish writing")
+                                Some(crate::i18n::t("pr-wait-ai-finish-writing"))
                             } else if empty_title {
-                                Some("Give it a title first")
+                                Some(crate::i18n::t("pr-give-title-first"))
                             } else {
                                 None
                             })
@@ -565,10 +580,10 @@ impl AppView {
         }
         let (label, done) = match on {
             true => (
-                "Enable auto-merge",
+                crate::i18n::t("pr-enable-auto-merge"),
                 "Auto-merge is on: it merges once its required checks and reviews pass",
             ),
-            false => ("Disable auto-merge", "Auto-merge is off"),
+            false => (crate::i18n::t("pr-disable-auto-merge"), "Auto-merge is off"),
         };
         let method = self.store.read(cx).picked_merge_method(&project);
         self.store.update(cx, |store, cx| {
@@ -605,10 +620,14 @@ impl AppView {
             return;
         };
         let (from, label, done) = match draft {
-            true => (ReviewState::Open, "Convert to draft", "Converted to draft"),
+            true => (
+                ReviewState::Open,
+                crate::i18n::t("pr-convert-draft"),
+                "Converted to draft",
+            ),
             false => (
                 ReviewState::Draft,
-                "Ready for review",
+                crate::i18n::t("pr-ready-review"),
                 "Marked ready for review",
             ),
         };
@@ -669,11 +688,13 @@ impl Offer {
     /// What it's called, merging by `method`, as GitHub's merge button says it.
     pub fn label(self, method: Option<MergeMethod>) -> &'static str {
         match (self, method) {
-            (Offer::Merge, Some(MergeMethod::Squash)) => "Squash and merge",
-            (Offer::Merge, Some(MergeMethod::Rebase)) => "Rebase and merge",
-            (Offer::Merge, Some(MergeMethod::Merge) | None) => "Merge pull request",
-            (Offer::EnableAutoMerge, _) => "Enable auto-merge",
-            (Offer::DisableAutoMerge, _) => "Disable auto-merge",
+            (Offer::Merge, Some(MergeMethod::Squash)) => crate::i18n::t("pr-squash-merge"),
+            (Offer::Merge, Some(MergeMethod::Rebase)) => crate::i18n::t("pr-rebase-merge"),
+            (Offer::Merge, Some(MergeMethod::Merge) | None) => {
+                crate::i18n::t("pr-merge-pull-request")
+            }
+            (Offer::EnableAutoMerge, _) => crate::i18n::t("pr-enable-auto-merge"),
+            (Offer::DisableAutoMerge, _) => crate::i18n::t("pr-disable-auto-merge"),
         }
     }
 

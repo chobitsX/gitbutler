@@ -98,23 +98,18 @@ impl Workspace {
         }
     }
 
-    pub fn push_label(&self, ref_name: &super::FullName) -> &'static str {
-        match self.needs_force(ref_name) {
-            true => "Force push",
-            false => "Push",
-        }
-    }
-
     /// What pushing `ref_name` does, in a tooltip: how many of its commits it sends, whether it
     /// forces, and whether it takes its parents along.
     pub fn push_tooltip(&self, ref_name: &super::FullName) -> String {
         let n = (self.pushed_with(ref_name).next()).map_or(0, Branch::unpushed_commits);
-        let parents = match self.parents_to_push(ref_name).next() {
-            Some(_) => " with parents",
-            None => "",
+        let parents = self.parents_to_push(ref_name).next().is_some();
+        let id = match (self.needs_force(ref_name), parents) {
+            (false, false) => "push-tooltip",
+            (true, false) => "push-force-tooltip",
+            (false, true) => "push-parents-tooltip",
+            (true, true) => "push-force-parents-tooltip",
         };
-        let commits = crate::ui::plural(n, "commit");
-        format!("{} {commits}{parents}", self.push_label(ref_name))
+        crate::i18n::tf(id, &[("count", n.into())])
     }
 
     /// Whether `ref_name` can pull the commits only its remote has: it has some, it's the top
@@ -247,7 +242,8 @@ middle with wt new, middle pushed, bottom pushed: nothing to push
         .concat();
         // The bottom branch has no parents, and a parent counts only with something to send.
         snapbox::assert_data_eq!(
-            says,
+            // Compare visible copy; argument-isolation behavior is covered by the i18n tests.
+            says.replace(['\u{2068}', '\u{2069}'], ""),
             snapbox::str![[r#"
 both new: a Push 1 commit with parents, b Push 1 commit
 b pushed: a Push 1 commit, b Push 0 commits

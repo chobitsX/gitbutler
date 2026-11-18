@@ -2,6 +2,7 @@
 	import { PROMPT_SERVICE } from "$lib/prompt/promptService";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const promptService = inject(PROMPT_SERVICE);
 	const [prompt, error] = promptService.reactToPrompt({ timeoutMs: 30000 });
@@ -55,7 +56,7 @@
 <Modal
 	bind:this={modal}
 	width="small"
-	title="Git needs input"
+	title={$t("Git needs input")}
 	onClickOutside={cancel}
 	onSubmit={submit}
 >
@@ -70,9 +71,11 @@
 
 	{#snippet controls()}
 		<Button kind="outline" type="reset" disabled={loading} onclick={handleCancelButton}
-			>Cancel</Button
+			>{$t("Cancel")}</Button
 		>
-		<Button style="pop" type="submit" grow disabled={!!$error || loading} {loading}>Submit</Button>
+		<Button style="pop" type="submit" grow disabled={!!$error || loading} {loading}
+			>{$t("Submit")}</Button
+		>
 	{/snippet}
 </Modal>
 

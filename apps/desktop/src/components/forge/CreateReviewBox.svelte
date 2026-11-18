@@ -9,6 +9,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 	import { TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Segment } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -85,7 +86,9 @@
 		onExitFloatingModeClick={() => {
 			uiState.global.useFloatingBox.set(false);
 		}}
-		title={pr ? `Edit ${reviewUnit} #${pr.number}` : `Create ${reviewUnit}`}
+		title={pr
+			? $t("Edit {value0} #{value1}", { value0: reviewUnit, value1: pr.number })
+			: $t("Create {value0}", { value0: reviewUnit })}
 	>
 		{@render editor()}
 	</FloatingCommitBox>

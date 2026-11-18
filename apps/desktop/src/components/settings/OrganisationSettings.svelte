@@ -10,6 +10,7 @@
 	import { organizationTable } from "@gitbutler/shared/organizations/organizationsSlice";
 	import { APP_STATE } from "@gitbutler/shared/redux/store.svelte";
 	import { Button, CardGroup } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const organizationService = inject(ORGANIZATION_SERVICE);
 	const appState = inject(APP_STATE);
@@ -29,7 +30,7 @@
 <CreateOrganizationModal bind:this={createOrganizationModal} />
 
 <JoinOrganizationModal />
-<Button onclick={() => createOrganizationModal?.show()}>Create an Organizaton</Button>
+<Button onclick={() => createOrganizationModal?.show()}>{$t("Create an Organizaton")}</Button>
 
 <CardGroup>
 	{#each organizations as loadableOrganization}

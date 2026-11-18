@@ -335,13 +335,19 @@ pub fn bind(store: &Entity<Store>, set_menus: impl Fn(&mut App) + 'static, cx: &
         set_menus: set_menus.clone(),
     });
     let mut bound = store.read(cx).prefs.keymap;
+    let mut language = store.read(cx).prefs.language;
     bind_keys(bound, cx);
     set_menus(cx);
     cx.observe(store, move |store, cx| {
         let keymap = store.read(cx).prefs.keymap;
-        if keymap != bound {
+        let current_language = store.read(cx).prefs.language;
+        let keys_changed = keymap != bound;
+        if keys_changed {
             bound = keymap;
             bind_keys(keymap, cx);
+        }
+        if keys_changed || current_language != language {
+            language = current_language;
             set_menus(cx);
             // Views draw the keys they show, and the cached ones draw again only on a refresh.
             cx.refresh_windows();

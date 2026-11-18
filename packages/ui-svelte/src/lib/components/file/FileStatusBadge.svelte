@@ -2,6 +2,7 @@
 	import Badge from "$components/Badge.svelte";
 	import Icon from "$components/Icon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
+	import { t } from "$lib/utils/i18n";
 	import type { FileStatus } from "$components/file/types";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
@@ -21,11 +22,11 @@
 			case "addition":
 				return "Added";
 			case "modification":
-				return "Modified";
+				return $t("Modified");
 			case "deletion":
-				return "Deleted";
+				return $t("Deleted");
 			case "rename":
-				return "Renamed";
+				return $t("Renamed");
 			default:
 				return status;
 		}

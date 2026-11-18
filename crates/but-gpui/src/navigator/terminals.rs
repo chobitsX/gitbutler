@@ -442,28 +442,47 @@ impl TerminalOverview {
         };
         vec![
             MenuItem::keyed(
-                "Rename terminal",
+                crate::i18n::t("navigator-terminals-rename-terminal"),
                 &RenameTerminal,
                 cx,
                 move |app, window, cx| {
                     (app.terminals.clone()).update(cx, |this, cx| this.rename(id, window, cx))
                 },
             ),
-            MenuItem::new("Show in navigator", move |app, window, cx| {
-                app.show_terminal(id, false, window, cx);
-                app.focus_navigator(&FocusNavigator, window, cx)
-            }),
-            MenuItem::keyed("Close terminal", &Discard, cx, move |app, window, cx| {
-                let project = (app.store.read(cx).terminals.all())
-                    .find(|t| t.id == id)
-                    .map(|t| t.project.clone());
-                if let Some(project) = project {
-                    app.close_terminal(project, id, window, cx)
-                }
-            })
+            MenuItem::new(
+                crate::i18n::t("navigator-terminals-show-navigator"),
+                move |app, window, cx| {
+                    app.show_terminal(id, false, window, cx);
+                    app.focus_navigator(&FocusNavigator, window, cx)
+                },
+            ),
+            MenuItem::keyed(
+                crate::i18n::t("navigator-terminals-close-terminal"),
+                &Discard,
+                cx,
+                move |app, window, cx| {
+                    let project = (app.store.read(cx).terminals.all())
+                        .find(|t| t.id == id)
+                        .map(|t| t.project.clone());
+                    if let Some(project) = project {
+                        app.close_terminal(project, id, window, cx)
+                    }
+                },
+            )
             .danger(),
-            MenuItem::keyed("Split right", &SplitRight, cx, split(Axis::Across)).separated(),
-            MenuItem::keyed("Split below", &SplitBelow, cx, split(Axis::Down)),
+            MenuItem::keyed(
+                crate::i18n::t("navigator-terminals-split-right"),
+                &SplitRight,
+                cx,
+                split(Axis::Across),
+            )
+            .separated(),
+            MenuItem::keyed(
+                crate::i18n::t("navigator-terminals-split-below"),
+                &SplitBelow,
+                cx,
+                split(Axis::Down),
+            ),
         ]
     }
 
@@ -592,7 +611,10 @@ impl TerminalOverview {
                 format!("project-{project}"),
                 project_name(self.store.read(cx), project),
             ),
-            Group::NeedsYou => ("needs-you".to_owned(), "Needs you".to_owned()),
+            Group::NeedsYou => (
+                "needs-you".to_owned(),
+                crate::i18n::t("navigator-terminals-needs").to_owned(),
+            ),
         };
         let folding = group.clone();
         let toggle = move |this: &mut Self, _: &mut Window, cx: &mut Context<Self>| {
@@ -767,7 +789,7 @@ impl TerminalOverview {
         let folded_away = self.folded_away(cx);
         card_bar(
             "overview-bar",
-            "Terminals",
+            crate::i18n::t("navigator-terminals-terminals"),
             Some(count.to_string()),
             open,
             false,
@@ -779,7 +801,7 @@ impl TerminalOverview {
         .child(
             icon_button("overview-grouping", Icon::Mixer)
                 .small()
-                .tooltip("Group terminals")
+                .tooltip(crate::i18n::t("navigator-terminals-group-terminals"))
                 .on_click(cx.listener(|this, event: &ClickEvent, _, cx| {
                     let items = |this: &mut Self, cx: &mut Context<Self>| this.grouping_items(cx);
                     (this.app).open_menu(&cx.weak_entity(), event.position(), items, cx)
@@ -788,7 +810,7 @@ impl TerminalOverview {
         .child(
             icon_button("overview-new-terminal", Icon::Plus)
                 .small()
-                .tooltip("New terminal…")
+                .tooltip(crate::i18n::t("navigator-terminals-new-terminal"))
                 .on_click(move |_, window, cx| {
                     app.update_later(window, cx, |app, window, cx| {
                         app.new_terminal_in(window, cx)
@@ -854,7 +876,7 @@ impl Render for TerminalOverview {
         v_flex()
             .id("terminal-overview")
             .role(Role::List)
-            .aria_label("Terminals")
+            .aria_label(crate::i18n::t("navigator-terminals-terminals"))
             .aria_expanded(!folded_away)
             .key_context("TerminalOverview")
             .track_focus(&self.focus)

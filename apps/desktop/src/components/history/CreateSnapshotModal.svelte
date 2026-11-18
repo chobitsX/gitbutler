@@ -8,6 +8,7 @@
 	import { HISTORY_SERVICE } from "$lib/history/history";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, ElementId, Modal, TestId, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	const { projectId }: CreateSnapshotModalProps = $props();
 
@@ -40,13 +41,13 @@
 <Modal
 	testId={TestId.CreateSnapshotModal}
 	width="small"
-	title="Create snapshot"
+	title={$t("Create snapshot")}
 	type="info"
 	bind:this={modal}
 	onSubmit={createSnapshot}
 >
 	<Textbox
-		placeholder="Snapshot description (optional)"
+		placeholder={$t("Snapshot description (optional)")}
 		id={ElementId.SnapshotDescriptionInput}
 		bind:value={message}
 		autofocus
@@ -54,14 +55,14 @@
 	/>
 
 	{#snippet controls(close)}
-		<Button kind="outline" type="reset" onclick={close}>Cancel</Button>
+		<Button kind="outline" type="reset" onclick={close}>{$t("Cancel")}</Button>
 		<Button
 			testId={TestId.CreateSnapshotModal_ActionButton}
 			style="pop"
 			type="submit"
 			loading={isCreating}
 		>
-			Create snapshot
+			{$t("Create snapshot")}
 		</Button>
 	{/snippet}
 </Modal>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Icon from "$components/Icon.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 	import { untrack } from "svelte";
 	import { fly, fade } from "svelte/transition";
 	import type { ChipToastType, ChipToastButtonConfig } from "$components/chipToast/chipToastTypes";
@@ -49,7 +50,7 @@
 		<div class="chip-toast__icon" style:--icon-toast-color={icon.color}>
 			<Icon name={icon.name} />
 		</div>
-		<span class="chip-toast__message">{message}</span>
+		<span class="chip-toast__message">{$t(message)}</span>
 	</div>
 
 	{#if customButton || showDismiss}
@@ -60,7 +61,7 @@
 					class="chip-toast__button chip-toast__button--primary"
 					onclick={customButton.action}
 				>
-					{customButton.label}
+					{$t(customButton.label)}
 				</button>
 			{/if}
 			{#if showDismiss}
@@ -69,7 +70,7 @@
 					class="chip-toast__button chip-toast__button--secondary"
 					onclick={handleDismiss}
 				>
-					Dismiss
+					{$t("Dismiss")}
 				</button>
 			{/if}
 		</div>

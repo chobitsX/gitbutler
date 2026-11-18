@@ -376,12 +376,15 @@ impl Detail {
             || state != review.state)
             .then_some("Waiting for the forge");
         if state == ReviewState::Draft {
-            let ready = button("ready-for-review", "Ready for review")
-                .small()
-                .style(ButtonStyle::Pop)
-                .disabled_because(waiting)
-                .dispatch(&MarkReadyForReview)
-                .tooltip("Take it out of draft on the forge");
+            let ready = button(
+                "ready-for-review",
+                crate::i18n::t("detail-pull-request-ready-review"),
+            )
+            .small()
+            .style(ButtonStyle::Pop)
+            .disabled_because(waiting)
+            .dispatch(&MarkReadyForReview)
+            .tooltip(crate::i18n::t("detail-pull-request-take-out-draft-forge"));
             return crate::pr::has_drafts(store, project)
                 .then(|| side_section("Merge", Some(ready.into_any_element()), theme));
         }
@@ -409,7 +412,7 @@ impl Detail {
             .style(ButtonStyle::Pop)
             .disabled_because(merge_why)
             .dispatch(Offer::Merge.action())
-            .tooltip("Merge it now on the forge");
+            .tooltip(crate::i18n::t("detail-pull-request-merge-now-forge"));
         let merge_button = match method {
             Some(method) => {
                 let project = project.clone();
@@ -731,7 +734,10 @@ impl Detail {
     /// and the description in its place, on the forges the app can edit them on.
     fn head(&self, project: &ProjectId, review: &Review, theme: &Theme, cx: &Context<Self>) -> Div {
         let title = match review.title.as_str() {
-            "" => format!("Pull request #{}", review.number),
+            "" => crate::i18n::tf(
+                "detail-pull-request-pull-request",
+                &[("number", (format!("{}", review.number)).into())],
+            ),
             title => title.to_owned(),
         };
         let forge = (self.store.read(cx).workspace(project)).and_then(|ws| ws.forge);
@@ -799,8 +805,11 @@ impl Detail {
             .on_click(ask);
         let age = stale.then(|| {
             div().text_color(theme.warn).child(match synced {
-                Some(at) => format!("{} old", relative_time(at)),
-                None => "Out of date".to_owned(),
+                Some(at) => crate::i18n::tf(
+                    "detail-pull-request-old",
+                    &[("at", (relative_time(at)).into())],
+                ),
+                None => crate::i18n::t("detail-pull-request-out-date").to_owned(),
             })
         });
         Some(h_flex().gap(dp(6.)).children(age).child(button))
@@ -876,12 +885,19 @@ impl Detail {
             return Some(
                 // As the status row is: the heading, and opposite it what there is.
                 section().child(
-                    heading().justify_between().child("Checks").child(
-                        h_flex()
-                            .gap(dp(8.))
-                            .child(div().text_color(theme.text_3).child("None"))
-                            .child(fresh),
-                    ),
+                    heading()
+                        .justify_between()
+                        .child(crate::i18n::t("detail-pull-request-checks"))
+                        .child(
+                            h_flex()
+                                .gap(dp(8.))
+                                .child(
+                                    div()
+                                        .text_color(theme.text_3)
+                                        .child(crate::i18n::t("common-none")),
+                                )
+                                .child(fresh),
+                        ),
                 ),
             );
         }
@@ -965,7 +981,7 @@ impl Detail {
                 heading()
                     .ml(dp(-4.))
                     .child(fold::chevron("fold", open, theme.text_3))
-                    .child("Checks")
+                    .child(crate::i18n::t("detail-pull-request-checks"))
                     .children(fresh),
             )
             .child(bar)
@@ -999,7 +1015,7 @@ impl Detail {
             div()
                 .id("review-source")
                 .role(Role::Button)
-                .aria_label("Copy branch name")
+                .aria_label(crate::i18n::t("detail-pull-request-copy-branch-name"))
                 .min_w_0()
                 .truncate()
                 .text_color(theme.text_1)
@@ -1007,7 +1023,9 @@ impl Detail {
                 .border_dashed()
                 .border_color(theme.text_3)
                 .hover(|el| el.text_color(theme.text_2))
-                .tooltip(Tooltip::text("Copy branch name"))
+                .tooltip(Tooltip::text(crate::i18n::t(
+                    "detail-pull-request-copy-branch-name",
+                )))
                 .child(name.clone())
                 .on_click(move |_, _, cx| clipboard::copy(&store, name.clone(), cx))
         });
@@ -1093,7 +1111,7 @@ fn auto_merge_switch(on: bool, why_not: Option<SharedString>, theme: &Theme) -> 
     let el = h_flex()
         .id("auto-merge")
         .role(Role::Switch)
-        .aria_label("Auto-merge")
+        .aria_label(crate::i18n::t("detail-pull-request-auto-merge"))
         .aria_toggled(if on { Toggled::True } else { Toggled::False })
         .flex_none()
         .h(dp(20.))
@@ -1123,7 +1141,7 @@ fn auto_merge_switch(on: bool, why_not: Option<SharedString>, theme: &Theme) -> 
                         )
                 }),
         )
-        .child("Auto-merge")
+        .child(crate::i18n::t("detail-pull-request-auto-merge"))
         .tooltip(move |window, cx| {
             let key = enabled.then(|| shortcut(offer.action(), cx)).flatten();
             Tooltip::keyed(tip.clone(), key)(window, cx)
@@ -1163,7 +1181,10 @@ fn byline(review: &Review, theme: &Theme) -> Option<Div> {
     let updated = updated.map(|at| {
         div()
             .id("review-updated")
-            .child(format!("updated {}", ago(at)))
+            .child(crate::i18n::tf(
+                "detail-pull-request-updated",
+                &[("at", (ago(at)).into())],
+            ))
             .tooltip(Tooltip::text(local_time(at)))
             .into_any_element()
     });
@@ -1196,7 +1217,7 @@ fn description(review: &Review, select: markdown::Select, theme: &Theme) -> Div 
         return div()
             .text_14()
             .text_color(theme.text_3)
-            .child("No description");
+            .child(crate::i18n::t("detail-pull-request-no-description"));
     }
     div()
         .mx(dp(-12.))
@@ -1287,7 +1308,10 @@ fn status_section(review: &Review, state: ReviewState, forge: &str, theme: &Them
         h_flex()
             .id("open-review")
             .role(Role::Link)
-            .aria_label(format!("Open on {forge}"))
+            .aria_label(crate::i18n::tf(
+                "detail-pull-request-open",
+                &[("forge", (forge.to_string()).into())],
+            ))
             .gap(dp(2.))
             .text_12()
             .text_color(theme.text_2)
@@ -1332,7 +1356,9 @@ fn reviewers_section(review: &Review, github: bool, theme: &Theme) -> Option<Div
                     div()
                         .id(("awaiting", ix))
                         .child(icon(Icon::Clock).text_color(theme.text_3))
-                        .tooltip(Tooltip::text("Awaiting review")),
+                        .tooltip(Tooltip::text(crate::i18n::t(
+                            "detail-pull-request-awaiting-review",
+                        ))),
                 )
             })
     });
@@ -1449,7 +1475,10 @@ fn check_row(ix: usize, run: &CheckRun, theme: &Theme) -> Stateful<Div> {
             // The arrow says where a click goes.
             el.hover(move |el| el.bg(hover))
                 .role(Role::Link)
-                .aria_label(format!("Open the log of {}", run.name))
+                .aria_label(crate::i18n::tf(
+                    "detail-pull-request-open-log",
+                    &[("name", (run.name.to_string()).into())],
+                ))
                 .on_click(move |_, _, cx| cx.open_url(&url))
         })
 }

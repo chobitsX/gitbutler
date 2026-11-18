@@ -7,6 +7,7 @@
 	import { inject } from "@gitbutler/core/context";
 
 	import { Badge, TestId, type MessageStyle, type IconName } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { ComponentColorType } from "@gitbutler/ui-svelte/utils/colorTypes";
 
 	type Props = {
@@ -84,9 +85,9 @@
 			return {
 				style: "gray",
 				icon: undefined,
-				text: "No PR checks",
-				reducedText: "No checks",
-				tooltip: "Checks for forked repos only available on the web.",
+				text: $t("No PR checks"),
+				reducedText: $t("No checks"),
+				tooltip: $t("Checks for forked repos only available on the web."),
 			};
 		}
 
@@ -98,11 +99,11 @@
 			return {
 				style: "danger",
 				icon: "warning",
-				text: "Failed to load checks",
+				text: $t("Failed to load checks"),
 				reducedText: "Error",
 				tooltip: classified.terminal
 					? classified.message
-					: "Failed to load checks. Click to retry.",
+					: $t("Failed to load checks. Click to retry."),
 			};
 		}
 
@@ -113,9 +114,9 @@
 				return {
 					style: "warning",
 					icon: "eye",
-					text: "Needs review",
-					reducedText: "Needs review",
-					tooltip: "Checks passed but the PR still needs approval.",
+					text: $t("Needs review"),
+					reducedText: $t("Needs review"),
+					tooltip: $t("Checks passed but the PR still needs approval."),
 				};
 			}
 
@@ -124,9 +125,11 @@
 				return {
 					style: "warning",
 					icon: "warning",
-					text: "Action required",
-					reducedText: "Action",
-					tooltip: checksList ? `Action required: ${checksList}` : "Action required.",
+					text: $t("Action required"),
+					reducedText: $t("Action"),
+					tooltip: checksList
+						? $t("Action required: {value0}", { value0: checksList })
+						: $t("Action required."),
 				};
 			}
 
@@ -137,7 +140,7 @@
 					icon: "warning",
 					text: "Has conflicts",
 					reducedText: "Conflicts",
-					tooltip: "The PR has merge conflicts that need to be resolved.",
+					tooltip: $t("The PR has merge conflicts that need to be resolved."),
 				};
 			}
 
@@ -146,34 +149,38 @@
 			const icon = checks.completed ? (checks.success ? "tick" : "danger") : "spinner";
 			const text = checks.completed
 				? checks.success
-					? "Checks passed"
-					: "Checks failed"
-				: "Checks running";
+					? $t("Checks passed")
+					: $t("Checks failed")
+				: $t("Checks running");
 
 			const tooltip =
 				checks.completed && !checks.success
 					? `Checks failed: ${checks.failedChecks.join(", ")}`
 					: undefined;
 
-			const reducedText = checks.completed ? (checks.success ? "Passed" : "Failed") : "Running";
+			const reducedText = checks.completed
+				? checks.success
+					? $t("Passed")
+					: $t("Failed")
+				: $t("Running");
 			return { style, icon, text, reducedText, tooltip };
 		}
 		if (loading) {
 			return {
 				style: "gray",
 				icon: "spinner",
-				text: "Loading checks",
-				reducedText: "Checks",
-				tooltip: "Waiting for checks to start…",
+				text: $t("Loading checks"),
+				reducedText: $t("Checks"),
+				tooltip: $t("Waiting for checks to start…"),
 			};
 		}
 
 		return {
 			style: "gray",
 			icon: undefined,
-			text: "No checks configured",
-			reducedText: "No checks",
-			tooltip: "No CI checks are configured.",
+			text: $t("No checks configured"),
+			reducedText: $t("No checks"),
+			tooltip: $t("No CI checks are configured."),
 		};
 	});
 

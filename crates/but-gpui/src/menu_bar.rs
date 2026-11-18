@@ -202,7 +202,7 @@ impl AppView {
             div()
                 .id(("menu-bar-name", ix))
                 .role(Role::MenuItem)
-                .aria_label(menu.name.clone())
+                .aria_label(menu.localized_name())
                 .flex()
                 .items_center()
                 .h(dp(BUTTON))
@@ -228,7 +228,7 @@ impl AppView {
                         this.open_bar_menu(ix, window, cx);
                     }
                 }))
-                .child(menu.name)
+                .child(menu.localized_name())
         });
         let drawn = self.menu_bar_names.clone();
         let row = h_flex()

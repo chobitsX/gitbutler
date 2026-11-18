@@ -1,10 +1,14 @@
+use std::collections::BTreeMap;
+
 #[cfg(target_os = "macos")]
 use anyhow::Context as _;
 #[cfg(target_os = "macos")]
 use tauri::menu::AboutMetadata;
 use tauri::{
     AppHandle, Emitter, EventTarget, Runtime, WebviewWindow,
-    menu::{Menu, MenuEvent, MenuItemBuilder, PredefinedMenuItem, Submenu, SubmenuBuilder},
+    menu::{
+        Menu, MenuEvent, MenuItemBuilder, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder,
+    },
 };
 
 static SHORTCUT_EVENT: &str = "menu://shortcut";
@@ -49,7 +53,7 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             .build()?
     };
 
-    let file_menu = &SubmenuBuilder::new(handle, "File")
+    let file_menu = &SubmenuBuilder::with_id(handle, "menu/file", "File")
         .items(&[
             &MenuItemBuilder::with_id("file/add-local-repo", "Add Local Repository…")
                 .accelerator("CmdOrCtrl+O")
@@ -78,7 +82,7 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
     }
 
     #[cfg(not(target_os = "linux"))]
-    let edit_menu = &Submenu::new(handle, "Edit", true)?;
+    let edit_menu = &Submenu::with_id(handle, "menu/edit", "Edit", true)?;
 
     #[cfg(not(target_os = "linux"))]
     {
@@ -89,7 +93,7 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         ])?;
     }
 
-    let view_menu = &Submenu::new(handle, "View", true)?;
+    let view_menu = &Submenu::with_id(handle, "menu/view", "View", true)?;
 
     #[cfg(target_os = "macos")]
     view_menu.append(&PredefinedMenuItem::fullscreen(handle, None)?)?;
@@ -123,7 +127,7 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             .build(handle)?,
     ])?;
 
-    let mut project_menu_builder = SubmenuBuilder::new(handle, "Project")
+    let mut project_menu_builder = SubmenuBuilder::with_id(handle, "menu/project", "Project")
         .item(
             &MenuItemBuilder::with_id("project/history", "Operations History")
                 .accelerator("CmdOrCtrl+Shift+H")
@@ -157,7 +161,7 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         .build()?;
 
     #[cfg(target_os = "macos")]
-    let window_menu = &SubmenuBuilder::new(handle, "Window")
+    let window_menu = &SubmenuBuilder::with_id(handle, "menu/window", "Window")
         .items(&[
             &PredefinedMenuItem::minimize(handle, None)?,
             &PredefinedMenuItem::maximize(handle, None)?,
@@ -166,7 +170,7 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
         ])
         .build()?;
 
-    let help_menu = SubmenuBuilder::new(handle, "Help")
+    let help_menu = SubmenuBuilder::with_id(handle, "menu/help", "Help")
         .text("help/documentation", "Documentation")
         .text("help/debugging-guide", "Debugging Guide")
         .text("help/github", "Source Code")
@@ -209,6 +213,51 @@ pub fn build<R: Runtime>(handle: &AppHandle<R>) -> tauri::Result<Menu<R>> {
             &help_menu,
         ],
     )
+}
+
+/// Updates application-owned labels without rebuilding menus or their accelerators.
+/// Standard OS menu items retain their native behavior and system-provided labels.
+#[tauri::command]
+pub fn set_menu_labels(handle: AppHandle, labels: BTreeMap<String, String>) -> Result<(), String> {
+    fn update<R: Runtime>(
+        items: Vec<MenuItemKind<R>>,
+        labels: &BTreeMap<String, String>,
+    ) -> tauri::Result<()> {
+        for item in items {
+            let label = labels.get(item.id().as_ref());
+            match item {
+                MenuItemKind::Submenu(item) => {
+                    if let Some(label) = label {
+                        item.set_text(label)?;
+                    }
+                    update(item.items()?, labels)?;
+                }
+                MenuItemKind::MenuItem(item) => {
+                    if let Some(label) = label {
+                        item.set_text(label)?;
+                    }
+                }
+                MenuItemKind::Check(item) => {
+                    if let Some(label) = label {
+                        item.set_text(label)?;
+                    }
+                }
+                MenuItemKind::Icon(item) => {
+                    if let Some(label) = label {
+                        item.set_text(label)?;
+                    }
+                }
+                MenuItemKind::Predefined(_) => {}
+            }
+        }
+        Ok(())
+    }
+
+    if let Some(menu) = handle.menu() {
+        update(menu.items().map_err(|error| error.to_string())?, &labels)
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
 }
 
 pub fn handle_event(webview: &WebviewWindow, event: &MenuEvent) {

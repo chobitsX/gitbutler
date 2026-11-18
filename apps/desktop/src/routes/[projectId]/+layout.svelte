@@ -33,6 +33,7 @@
 	import { debounce } from "$lib/utils/debounce";
 	import { worktreeChangesTag } from "$lib/worktree/worktreeEndpoints";
 	import { inject } from "@gitbutler/core/context";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { mergeUnlisten } from "@gitbutler/ui-svelte/utils/mergeUnlisten";
 	import { onDestroy, untrack, type Snippet } from "svelte";
 	import type { LayoutData } from "./$types";
@@ -305,18 +306,18 @@
 
 			if (!info.is_exclusive) {
 				showInfo(
-					"Just FYI, this project is already open in another window",
+					$t("Just FYI, this project is already open in another window"),
 					"There might be some unexpected behavior if you open it in multiple windows",
 				);
 			}
 
 			if (info.db_error) {
-				showError("The database was corrupted", info.db_error);
+				showError($t("The database was corrupted"), info.db_error);
 			}
 
 			if (info.headsup && localStorage.getItem(dontShowAgainKey) !== "1") {
-				showWarning("Important PSA", info.headsup, {
-					label: "Don't show again",
+				showWarning($t("Important PSA"), info.headsup, {
+					label: $t("Don't show again"),
 					onClick: (dismiss) => {
 						localStorage.setItem(dontShowAgainKey, "1");
 						dismiss();
@@ -325,7 +326,7 @@
 			}
 		} catch (error: unknown) {
 			posthog.captureOnboarding(OnboardingEvent.SetProjectActiveFailed, error);
-			showError("Failed to set the project active", error);
+			showError($t("Failed to set the project active"), error);
 		}
 	}
 

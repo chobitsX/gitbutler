@@ -19,6 +19,7 @@
 
 	import { Badge, FileListItem, TestId } from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import { untrack, type Snippet } from "svelte";
 	import type { DropzoneHandler } from "$lib/dragging/handler";
@@ -110,9 +111,9 @@
 		if (handler instanceof UncommitDzHandler || worktree) {
 			return "Uncommit";
 		} else if (mode === "assigned") {
-			return "Assign";
+			return $t("Assign");
 		} else {
-			return "Unassign";
+			return $t("Unassign");
 		}
 	}
 </script>

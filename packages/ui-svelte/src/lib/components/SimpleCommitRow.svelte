@@ -22,6 +22,7 @@
 	import Icon from "$components/Icon.svelte";
 	import SimpleCommitRowSkeleton from "$components/SimpleCommitRowSkeleton.svelte";
 	import { getTimeAndAuthor } from "$lib/utils/getTimeAndAuthor";
+	import { t } from "$lib/utils/i18n";
 
 	const {
 		title,
@@ -78,7 +79,7 @@
 				{#if url && onOpen}
 					<span class="details-divider">•</span>
 					<button type="button" class="details-btn link-btn" onclick={() => onOpen(url)}>
-						<span>Open</span>
+						<span>{$t("Open")}</span>
 						<Icon name="arrow-up-righ" />
 					</button>
 				{/if}

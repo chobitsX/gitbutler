@@ -28,6 +28,27 @@ pub struct BarMenu {
     pub items: Vec<BarItem>,
 }
 
+impl BarMenu {
+    /// Stock headings have message IDs; user-authored menu names stay literal.
+    pub fn localized_name(&self) -> SharedString {
+        const STOCK: &[&str] = &[
+            "menu-gitbutler",
+            "menu-file",
+            "menu-edit",
+            "menu-repository",
+            "menu-remote",
+            "menu-go",
+            "menu-view",
+            "menu-window",
+            "menu-help",
+        ];
+        STOCK
+            .iter()
+            .find(|id| crate::i18n::english(id) == self.name)
+            .map_or_else(|| self.name.clone().into(), |id| crate::i18n::t(id).into())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(from = "ItemText", into = "ItemText")]
 pub enum BarItem {
@@ -51,16 +72,48 @@ impl BarItem {
     pub fn title(&self) -> String {
         match self {
             BarItem::Divider => String::new(),
-            BarItem::Action {
-                title: Some(title), ..
-            } => title.clone(),
-            BarItem::Action {
-                action,
-                title: None,
-            } => title_case(&title_of(action)),
-            BarItem::System(System::Services) => "Services".to_owned(),
+            BarItem::Action { action, title } => {
+                if let Some(command) = crate::commands::COMMANDS
+                    .iter()
+                    .find(|c| c.name() == action)
+                {
+                    // The old editable menu format stores English stock titles. Only those
+                    // defaults are localized; a custom override remains exactly as written.
+                    match title {
+                        Some(custom) if custom != command.source_menu_title() => custom.clone(),
+                        _ => command.menu_title().to_owned(),
+                    }
+                } else if let Some(id) = native_title_id(action) {
+                    match title {
+                        Some(custom) if custom != crate::i18n::english(id) => custom.clone(),
+                        _ => crate::i18n::t(id).to_owned(),
+                    }
+                } else {
+                    title
+                        .clone()
+                        .unwrap_or_else(|| title_case(&title_of(action)))
+                }
+            }
+            BarItem::System(System::Services) => crate::i18n::t("menu-services").to_owned(),
         }
     }
+}
+
+/// Native menu actions deliberately absent from the command palette.
+fn native_title_id(action: &str) -> Option<&'static str> {
+    Some(match action {
+        "app::Hide" => "menu-hide",
+        "app::HideOthers" => "menu-hide-others",
+        "app::ShowAll" => "menu-show-all",
+        "app::Minimize" => "menu-minimize",
+        "app::Zoom" => "menu-zoom",
+        "app::CommandPalette" => "menu-command-palette",
+        "text_input::Cut" => "menu-cut",
+        "text_input::Copy" => "menu-copy",
+        "text_input::Paste" => "menu-paste",
+        "text_input::SelectAll" => "menu-select-all",
+        _ => return None,
+    })
 }
 
 /// A menu macOS fills itself.
@@ -152,7 +205,7 @@ pub fn built(menus: &[BarMenu], cx: &App) -> Vec<Menu> {
                     Some(MenuItem::os_submenu(item.title(), SystemMenuType::Services))
                 }
             });
-            Menu::new(menu.name.clone()).items(items)
+            Menu::new(menu.localized_name()).items(items)
         })
         .collect()
 }
@@ -244,6 +297,42 @@ fn capitalised(word: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn i18n_stock_menus_have_message_ids_and_custom_titles_stay_literal() {
+        let menus = super::parse(include_str!("../../assets/keymaps/menus.json"))
+            .expect("valid stock menus");
+        for menu in menus {
+            for item in menu.items {
+                if let super::BarItem::Action { action, .. } = item {
+                    assert!(
+                        crate::commands::COMMANDS.iter().any(|c| c.name() == action)
+                            || super::native_title_id(&action).is_some(),
+                        "{action} has native menu copy"
+                    );
+                }
+            }
+        }
+        let title = "Settings / General";
+        let custom = super::BarItem::Action {
+            action: "settings::OpenSettings".into(),
+            title: Some(title.into()),
+        };
+        assert_eq!(
+            custom.title(),
+            title,
+            "user-authored overrides remain literal"
+        );
+        let menu = super::BarMenu {
+            name: "My menu".into(),
+            items: Vec::new(),
+        };
+        assert_eq!(
+            menu.localized_name().as_ref(),
+            "My menu",
+            "a custom menu name is not a translation key"
+        );
+    }
+
     use std::collections::HashSet;
 
     use super::{BarItem, BarMenu, System, parse, title_case, written};

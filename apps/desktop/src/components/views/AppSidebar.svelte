@@ -21,6 +21,7 @@
 		TestId,
 	} from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import { slide } from "svelte/transition";
 
@@ -47,7 +48,7 @@
 				width={34}
 				hotkey="⌘1"
 				class={["btn-square", isWorkspacePath() && "btn-active"]}
-				tooltip="Workspace"
+				tooltip={$t("Workspace")}
 				{disabled}
 			>
 				{#snippet custom()}
@@ -85,7 +86,7 @@
 				width={34}
 				class={["btn-square", isBranchesPath() && "btn-active"]}
 				hotkey="⌘2"
-				tooltip="Branches"
+				tooltip={$t("Branches")}
 				{disabled}
 			>
 				{#snippet custom()}
@@ -150,7 +151,7 @@
 				width={34}
 				class={["btn-square", isHistoryPath() && "btn-active"]}
 				hotkey="⌘3"
-				tooltip="Operations history"
+				tooltip={$t("Operations history")}
 				{disabled}
 			>
 				{#snippet custom()}
@@ -196,7 +197,7 @@
 					class="btn-square"
 					tooltipPosition="top"
 					tooltipAlign="start"
-					tooltip="Project settings"
+					tooltip={$t("Project settings")}
 				>
 					{#snippet custom()}
 						<svg
@@ -226,7 +227,7 @@
 			<Button
 				icon="mail"
 				kind="ghost"
-				tooltip="Share feedback"
+				tooltip={$t("Share feedback")}
 				tooltipPosition="top"
 				tooltipAlign="start"
 				width={34}
@@ -251,7 +252,7 @@
 	>
 		<ContextMenuSection>
 			<ContextMenuItem
-				label="Global settings"
+				label={$t("Global settings")}
 				onclick={() => {
 					openGeneralSettings();
 					contextMenuOpen = false;
@@ -259,23 +260,23 @@
 				keyboardShortcut="⌘,"
 			/>
 		</ContextMenuSection>
-		<ContextMenuSection title="Theme (⌘T)">
+		<ContextMenuSection title={$t("Theme (⌘T)")}>
 			<ContextMenuItem
-				label="Dark"
+				label={$t("Dark")}
 				onclick={async () => {
 					uiState.global.theme.set("dark");
 					contextMenuOpen = false;
 				}}
 			/>
 			<ContextMenuItem
-				label="Light"
+				label={$t("Light")}
 				onclick={async () => {
 					uiState.global.theme.set("light");
 					contextMenuOpen = false;
 				}}
 			/>
 			<ContextMenuItem
-				label="System"
+				label={$t("System")}
 				onclick={async () => {
 					uiState.global.theme.set("system");
 					contextMenuOpen = false;

@@ -23,6 +23,7 @@
 		chipToasts,
 		TestId,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import type { SelectionId } from "$lib/selection/key";
 	import type { TreeChange } from "@gitbutler/but-sdk";
@@ -183,7 +184,7 @@
 			{#if isConflictedFileItem(item)}
 				<ContextMenuSection>
 					<ContextMenuItem
-						label="Mark as Resolved"
+						label={$t("Mark as Resolved")}
 						icon="tick"
 						onclick={() => {
 							menuOpen = false;
@@ -197,7 +198,7 @@
 					{@const changes = item.changes}
 					{#if selectionId.type === "worktree"}
 						<ContextMenuItem
-							label="Discard changes…"
+							label={$t("Discard changes…")}
 							testId={TestId.FileListItemContextMenu_DiscardChanges}
 							icon="bin"
 							onclick={() => {
@@ -208,7 +209,7 @@
 					{/if}
 					{#if inMainCheckout}
 						<ContextMenuItem
-							label="Stash into branch…"
+							label={$t("Stash into branch…")}
 							icon="branch-bottom-up-arrow"
 							onclick={() => {
 								stashModal.show(item);
@@ -216,7 +217,7 @@
 							}}
 						/>
 						<ContextMenuItem
-							label="Absorb changes"
+							label={$t("Absorb changes")}
 							icon="commit-absorb"
 							testId={TestId.FileListItemContextMenu_Absorb}
 							onclick={() => {
@@ -229,7 +230,7 @@
 					{#if selectionId.type === "commit" && laneId && !editMode}
 						{@const commitId = selectionId.commitId}
 						<ContextMenuItem
-							label="Uncommit changes"
+							label={$t("Uncommit changes")}
 							icon="commit-undo"
 							onclick={async () => uncommitChanges(laneId, commitId, changes)}
 						/>
@@ -239,11 +240,11 @@
 
 			{#if itemPath}
 				<ContextMenuSection>
-					<ContextMenuItemSubmenu label="Copy path" icon="copy">
+					<ContextMenuItemSubmenu label={$t("Copy path")} icon="copy">
 						{#snippet submenu(_sub)}
 							<ContextMenuSection>
 								<ContextMenuItem
-									label="Copy path"
+									label={$t("Copy path")}
 									onclick={async () => {
 										menuOpen = false;
 										await clipboardService.write(await absolutePath(itemPath), {
@@ -253,7 +254,7 @@
 									}}
 								/>
 								<ContextMenuItem
-									label="Copy relative path"
+									label={$t("Copy relative path")}
 									onclick={async () => {
 										menuOpen = false;
 										await clipboardService.write(itemPath, {
@@ -274,7 +275,9 @@
 						? [item.path]
 						: item.changes.map((change) => change.path)}
 					<ContextMenuItem
-						label="Open in {defaultCodeEditor.current.displayName}"
+						label={$t("Open in {displayName}", {
+							displayName: defaultCodeEditor.current.displayName,
+						})}
 						icon="open-in-ide"
 						disabled={deletion}
 						onclick={async () => {
@@ -288,7 +291,7 @@
 									urlService.openExternalUrl(path);
 								}
 							} catch {
-								chipToasts.error("Failed to open in editor");
+								chipToasts.error($t("Failed to open in editor"));
 								console.error("Failed to open in editor");
 							}
 						}}
@@ -307,7 +310,7 @@
 			</ContextMenuSection>
 		{:else}
 			<ContextMenuSection>
-				<p class="text-13">'Woops! Malformed data :(</p>
+				<p class="text-13">{$t("'Woops! Malformed data :(")}</p>
 			</ContextMenuSection>
 		{/if}
 	</ContextMenu>

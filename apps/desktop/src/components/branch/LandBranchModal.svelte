@@ -3,6 +3,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { AsyncButton, Button, Modal, chipToasts } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -56,37 +57,48 @@
 				wholeStack,
 			});
 			if (result.landed.type === "alreadyIntegrated") {
-				chipToasts.success(`${landedLabel} is already integrated into ${targetLabel}`);
+				chipToasts.success(
+					$t("{value0} is already integrated into {value1}", {
+						value0: landedLabel,
+						value1: targetLabel,
+					}),
+				);
 			} else {
-				chipToasts.success(`Landed ${landedLabel} into ${targetLabel}`);
+				chipToasts.success(
+					$t("Landed {value0} into {value1}", { value0: landedLabel, value1: targetLabel }),
+				);
 			}
 			if (result.reconcileSkipped) {
-				chipToasts.warning("Other branches were left un-reconciled. Run `but pull` to finish.");
+				chipToasts.warning($t("Other branches were left un-reconciled. Run `but pull` to finish."));
 			}
 			return true;
 		} catch (error) {
-			showError("Failed to land branch", error);
+			showError($t("Failed to land branch"), error);
 			return false;
 		}
 	}
 </script>
 
-<Modal bind:this={modalEl} width="small" title={wholeStack ? "Land stack" : "Land branch"}>
+<Modal bind:this={modalEl} width="small" title={wholeStack ? $t("Land stack") : $t("Land branch")}>
 	<p>
 		{#if wholeStack}
-			This lands <strong>{branchName}</strong> and everything below it in its stack{lowerListLabel}
-			directly onto {targetLabel}. It cannot be undone.
+			{$t("This lands")} <strong>{branchName}</strong>
+			{$t(
+				"and everything below it in its stack{lowerListLabel} directly onto {targetLabel}. It cannot be undone.",
+				{ lowerListLabel: lowerListLabel, targetLabel: targetLabel },
+			)}
 		{:else}
-			This lands <strong>{branchName}</strong> directly onto {targetLabel}. It cannot be undone.
+			{$t("This lands")} <strong>{branchName}</strong>
+			{$t("directly onto {targetLabel}. It cannot be undone.", { targetLabel: targetLabel })}
 		{/if}
 	</p>
 	{#snippet controls(close)}
-		<Button kind="outline" type="reset" onclick={close}>Cancel</Button>
+		<Button kind="outline" type="reset" onclick={close}>{$t("Cancel")}</Button>
 		<AsyncButton
 			style="pop"
 			action={async () => {
 				if (await land()) close();
-			}}>Land</AsyncButton
+			}}>{$t("Land")}</AsyncButton
 		>
 	{/snippet}
 </Modal>

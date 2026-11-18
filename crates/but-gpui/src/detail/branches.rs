@@ -229,10 +229,10 @@ impl Recency {
 
     fn label(self) -> &'static str {
         match self {
-            Recency::Any => "Any time",
-            Recency::Today => "Today",
-            Recency::Week => "Last 7 days",
-            Recency::Month => "Last 30 days",
+            Recency::Any => crate::i18n::t("detail-branches-any-time"),
+            Recency::Today => crate::i18n::t("detail-branches-today"),
+            Recency::Week => crate::i18n::t("detail-branches-last-7-days"),
+            Recency::Month => crate::i18n::t("detail-branches-last-30-days"),
         }
     }
 
@@ -1059,12 +1059,17 @@ impl Detail {
             items.push(MenuItem::command(&EditDescription, cx));
             let (detail, project, ref_name) =
                 (cx.entity().downgrade(), project.clone(), ref_name.clone());
-            let delete = MenuItem::keyed("Delete branch", &Discard, cx, move |_, window, cx| {
-                (detail.update(cx, |detail, cx| {
-                    detail.delete_other_branch(&project, &ref_name, window, cx)
-                }))
-                .ok();
-            });
+            let delete = MenuItem::keyed(
+                crate::i18n::t("detail-branches-delete-branch"),
+                &Discard,
+                cx,
+                move |_, window, cx| {
+                    (detail.update(cx, |detail, cx| {
+                        detail.delete_other_branch(&project, &ref_name, window, cx)
+                    }))
+                    .ok();
+                },
+            );
             items.push(delete.found_by(BRANCH_ALIASES).danger().separated());
         }
         items
@@ -1199,7 +1204,10 @@ impl Detail {
                         store.snack_undoable(format!("Applied {name}"), cx)
                     }
                     ApplyOutcome::Conflicts(stacks) => store.error(
-                        format!("{name} wasn't applied"),
+                        crate::i18n::tf(
+                            "detail-branches-wasn-t-applied",
+                            &[("name", (name).into())],
+                        ),
                         format!("It conflicts with {}", stacks.join(", ")),
                         cx,
                     ),
@@ -1212,7 +1220,15 @@ impl Detail {
             Some(why) => self.app.update_later(window, cx, move |app, window, cx| {
                 let run =
                     move |app: &mut AppView, cx: &mut Context<AppView>| app.store.update(cx, apply);
-                app.confirm_then(Some(at), title, &why, "Apply", window, cx, run)
+                app.confirm_then(
+                    Some(at),
+                    title,
+                    &why,
+                    crate::i18n::t("common-apply"),
+                    window,
+                    cx,
+                    run,
+                )
             }),
         }
     }
@@ -1236,10 +1252,12 @@ impl Detail {
         self.app.update_later(window, cx, move |app, window, cx| {
             app.confirm_then(
                 Some(Selection::Project(project.clone())),
-                format!("Delete branch {name}?"),
-                "Its commits go too, unless a remote has them. Undo can't bring back a branch \
-                 outside the workspace.",
-                "Delete",
+                crate::i18n::tf(
+                    "detail-branches-delete-branch-2",
+                    &[("name", (name.to_string()).into())],
+                ),
+                crate::i18n::t("detail-branches-delete-other-branch-commits-go-too-unless"),
+                crate::i18n::t("common-delete"),
                 window,
                 cx,
                 move |app, cx| {
@@ -1298,10 +1316,13 @@ impl Detail {
         let Some(branch) = self.listed_branch(project, ref_name).filter(|b| b.local) else {
             return;
         };
-        let title = format!("Describe {}", branch.name);
+        let title = crate::i18n::tf(
+            "detail-branches-describe",
+            &[("name", (branch.name.to_string()).into())],
+        );
         let current = branch.description.clone().unwrap_or_default();
         let input = cx.new(|cx| {
-            let mut input = TextInput::new("What this branch is for", true, cx);
+            let mut input = TextInput::localized("detail-branches-branch", true, cx);
             input.load(current, cx);
             input.select_all_text(cx);
             input
@@ -1316,10 +1337,9 @@ impl Detail {
             app.open_prompt(
                 Some(place),
                 &title,
-                Some(crate::ui::keys_text(
-                    "Git keeps it as the branch's description, where git branch \
-                     --edit-description does. Leave it empty to remove it. ⌘↩ saves it.",
-                )),
+                Some(crate::ui::keys_text(crate::i18n::t(
+                    "detail-branches-edit-branch-description-git-keeps-branch-s",
+                ))),
                 "Save",
                 input,
                 None,
@@ -1372,7 +1392,7 @@ impl Detail {
             return loading_state("Loading branches…", theme, cx);
         };
         if let Some(err) = &branches.failed {
-            let title = "Couldn't list the branches".to_owned();
+            let title = crate::i18n::t("detail-branches-list-branches-error").to_owned();
             return list_empty(Illustration::Papers, title, error_summary(err), theme, cx);
         }
         if branches.comparing {
@@ -1455,7 +1475,7 @@ impl Detail {
                                 .text_color(ink(theme.text_2))
                                 .child(step)
                                 .child(small_icon(Icon::Stack).text_color(ink(theme.text_3)))
-                                .child(div().flex_none().child(format!("Stack of {count}")))
+                                .child(div().flex_none().child(crate::i18n::tf("detail-branches-stack", &[("count", (format!("{count}")).into())])))
                                 .when(*folded, |el| {
                                     el.child(
                                         div()
@@ -1607,7 +1627,7 @@ impl Detail {
                                     .id(("other-branch-brief", ix))
                                     .flex_none()
                                     .child(small_icon(Icon::Docs).text_color(ink(theme.text_3)))
-                                    .tooltip(Tooltip::text("Read the brief"))
+                                    .tooltip(Tooltip::text(crate::i18n::t("detail-branches-read-brief")))
                                     .on_click(cx.listener(move |this, _, _, cx| {
                                         cx.stop_propagation();
                                         this.brief.first = true;
@@ -1836,7 +1856,7 @@ impl Detail {
                 .small()
                 .icon(Icon::Cross)
                 .style(ButtonStyle::Gray)
-                .tooltip("Stop filtering by this")
+                .tooltip(crate::i18n::t("detail-branches-stop-filtering"))
         };
         let status = (STATUSES.iter())
             .find(|(status, _)| *status == prefs.branches_status)
@@ -1984,7 +2004,7 @@ impl Detail {
             let this = this.clone();
             let n = self.kept_in(branches, &branches.list, Some(Facet::Brief), cx);
             items.push(
-                MenuItem::new("With a brief", move |_, _, cx| {
+                MenuItem::new(crate::i18n::t("detail-branches-brief"), move |_, _, cx| {
                     let project = project.clone();
                     this.update(cx, |detail, cx| detail.filter_with_brief(project, cx));
                 })
@@ -2126,7 +2146,13 @@ impl Detail {
             .filter(|b| b.stack == branch.stack)
             .collect();
         let (glyph, title) = match &branch.review {
-            _ if branches.stack => (Icon::Stack, format!("Stack of {}", stack.len())),
+            _ if branches.stack => (
+                Icon::Stack,
+                crate::i18n::tf(
+                    "detail-branches-stack-2",
+                    &[("count", (format!("{}", stack.len())).into())],
+                ),
+            ),
             Some(review) if !review.title.is_empty() => (
                 review::state_glyph(review.state, theme).0,
                 review.title.clone(),
@@ -2169,12 +2195,12 @@ impl Detail {
                 (_, true) => (stack.iter().map(|b| b.own_commits).sum::<Option<usize>>())
                     .map_or_else(
                         || "commits uncounted".to_owned(),
-                        |own| plural(own, "commit"),
+                        |own| plural(own, crate::ui::Count::Commit),
                     ),
                 // The history read ends before where it forked, as in a shallow clone.
                 (_, false) => (branch.own_commits).map_or_else(
                     || "commits uncounted".to_owned(),
-                    |own| plural(own, "commit"),
+                    |own| plural(own, crate::ui::Count::Commit),
                 ),
             }
         };

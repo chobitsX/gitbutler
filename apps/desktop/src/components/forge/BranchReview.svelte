@@ -8,6 +8,7 @@
 	import { getStackContext } from "$lib/stacks/stackController.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, Modal } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Segment } from "@gitbutler/but-sdk";
 	import type { Snippet } from "svelte";
 
@@ -51,7 +52,7 @@
 	const forgeInfoQuery = $derived(forgeInfoService.get(projectId));
 	const forgeInfo = $derived(forgeInfoQuery.response);
 	const reviewUnit = $derived(forgeInfo?.unit.abbr);
-	const reviewUnitName = $derived(forgeInfo?.unit.name ?? "Pull request");
+	const reviewUnitName = $derived($t(forgeInfo?.unit.name ?? "Pull request"));
 
 	const canPublishPR = $derived(!!canPublishReviewPlugin?.imports.canPublishPR);
 
@@ -72,25 +73,29 @@
 	<Modal
 		width="small"
 		type="warning"
-		title="Create {reviewUnitName}"
+		title={$t("Create {reviewUnitName}", { reviewUnitName: reviewUnitName })}
 		bind:this={confirmCreatePrModal}
 		onSubmit={() => {
 			modal?.show();
 		}}
 	>
 		<p class="text-13 text-body helper-text">
-			It's strongly recommended to create {reviewUnitName.toLowerCase()}s starting with the branch
-			at the base of the stack.
+			{$t(
+				"It's strongly recommended to create {value}s starting with the branch at the base of the stack.",
+				{ value: reviewUnitName.toLowerCase() },
+			)}
 			<br />
-			Do you still want to create this {reviewUnitName.toLowerCase()}?
+			{$t("Do you still want to create this {value}?", { value: reviewUnitName.toLowerCase() })}
 		</p>
 		{#snippet controls(close)}
-			<Button kind="outline" onclick={close}>Cancel</Button>
-			<Button style="warning" type="submit">Create {reviewUnitName}</Button>
+			<Button kind="outline" onclick={close}>{$t("Cancel")}</Button>
+			<Button style="warning" type="submit"
+				>{$t("Create {reviewUnitName}", { reviewUnitName: reviewUnitName })}</Button
+			>
 		{/snippet}
 	</Modal>
 
-	<Modal bind:this={modal} title="Submit changes for review">
+	<Modal bind:this={modal} title={$t("Submit changes for review")}>
 		<ReviewCreation
 			bind:this={reviewCreation}
 			{projectId}

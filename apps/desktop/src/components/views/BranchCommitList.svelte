@@ -37,6 +37,7 @@
 	import { TestId } from "@gitbutler/ui-svelte";
 	import { DRAG_STATE_SERVICE } from "@gitbutler/ui-svelte/drag/dragStateService.svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t, language } from "@gitbutler/ui-svelte/utils/i18n";
 	import { getTimeAgo } from "@gitbutler/ui-svelte/utils/timeAgo";
 	import { isDefined } from "@gitbutler/ui-svelte/utils/typeguards";
 	import type { Segment } from "@gitbutler/but-sdk";
@@ -361,7 +362,7 @@
 						{@const label =
 							handler instanceof AmendCommitWithChangeDzHandler ||
 							handler instanceof AmendCommitWithHunkDzHandler
-								? "Amend"
+								? $t("Amend")
 								: "Squash"}
 						<DropzoneOverlay {hovered} {activated} {label} />
 					{/snippet}
@@ -371,7 +372,7 @@
 							disabled: false,
 							label: commit.message.split("\n")[0],
 							sha: commit.id.slice(0, 7),
-							date: getTimeAgo(commitCommittedAt(commit)),
+							date: getTimeAgo(commitCommittedAt(commit), true, $language),
 							authorImgUrl: undefined,
 							commitType: commit.state.type,
 							data:
@@ -455,7 +456,7 @@
 										{@const firstConflictedCommitId = findEarliestConflict(commits)?.id}
 
 										<ChangedFilesPanel
-											title="Changed files"
+											title={$t("Changed files")}
 											{projectId}
 											{stackId}
 											visibleRange={controller.visibleRange}

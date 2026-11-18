@@ -5,6 +5,7 @@
 	import { getColorFromPushStatus } from "$lib/stacks/stack";
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -36,7 +37,7 @@
 <ReduxResult result={stackQuery.result} {projectId} {stackId} {onerror}>
 	{#snippet children(stack, { stackId, projectId })}
 		{#if stack === null}
-			<p>Stack not found.</p>
+			<p>{$t("Stack not found.")}</p>
 		{:else}
 			{#each stack.segments as segment, idx}
 				{@const branchName = segment.refName?.displayName}

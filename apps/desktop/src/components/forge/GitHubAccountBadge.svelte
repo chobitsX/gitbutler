@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Badge } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { GithubAccountIdentifier } from "@gitbutler/but-sdk";
 
 	type Props = {
@@ -29,7 +30,7 @@
 			case "enterprise":
 				return "GitHub Enterprise";
 			case "patUsername":
-				return "Personal Access Token";
+				return $t("Personal Access Token");
 		}
 	}
 </script>

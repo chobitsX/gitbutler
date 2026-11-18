@@ -115,8 +115,8 @@ impl Image {
     /// What stands in its place where it isn't drawn.
     fn words(&self) -> String {
         match self.alt.trim() {
-            "" => "Image".to_owned(),
-            alt => format!("Image: {alt}"),
+            "" => crate::i18n::t("ui-markdown-image").to_owned(),
+            alt => crate::i18n::tf("ui-markdown-image-2", &[("alt", (alt.to_string()).into())]),
         }
     }
 }
@@ -1031,6 +1031,7 @@ impl gpui::Render for Peek {
                     .text_11()
                     .text_color(theme.text_2)
                     .font_family(theme.ui_font.clone())
+                    .map(crate::ui::with_cjk_fallback)
                     .child(self.path.clone()),
             )
             .child(diff::excerpt_flat(&self.lines, theme))
@@ -1606,7 +1607,7 @@ mod tests {
     fn images_off_github_show_their_words() {
         let blocks = parse("![a chart](https://example.com/c.png) ![](data:image/png;base64,AAAA)");
         assert_eq!(
-            blocks[0].text, "Image: a chart Image",
+            blocks[0].text, "Image: \u{2068}a chart\u{2069} Image",
             "an image's words stand in for it"
         );
         assert_eq!(
@@ -1638,9 +1639,9 @@ mod tests {
                 .collect::<Vec<_>>(),
             [
                 "See:",
-                "Image: Before Image",
+                "Image: \u{2068}Before\u{2069} Image",
                 "then",
-                "Image: after",
+                "Image: \u{2068}after\u{2069}",
                 "Image"
             ],
             "text before and after images stands apart, and they keep their words as text"
@@ -1690,9 +1691,9 @@ mod tests {
             linked,
             [
                 ("zz View", vec![("View", "https://x.io")]),
-                ("Image: p", vec![]),
+                ("Image: \u{2068}p\u{2069}", vec![]),
                 ("more", vec![("more", "https://x.io")]),
-                ("Image: q", vec![]),
+                ("Image: \u{2068}q\u{2069}", vec![]),
                 ("after", vec![("after", "https://y.io")]),
             ],
             "the words on either side of an image still link where the link goes, all of them, \
@@ -1707,7 +1708,7 @@ mod tests {
             (blocks.iter())
                 .map(|block| (block.depth, block.text.as_str()))
                 .collect::<Vec<_>>(),
-            [(0, "Image: shot"), (0, "done")],
+            [(0, "Image: \u{2068}shot\u{2069}"), (0, "done")],
             "no marker beside nothing, and the image steps in no further than its item"
         );
     }
@@ -1726,7 +1727,10 @@ mod tests {
             blocks
                 .last()
                 .map(|block| (&block.kind, block.text.as_str())),
-            Some((&Kind::Paragraph, format!("Image: {MAX_IMAGES}").as_str())),
+            Some((
+                &Kind::Paragraph,
+                format!("Image: \u{2068}{MAX_IMAGES}\u{2069}").as_str()
+            )),
             "the rest show their words"
         );
     }
@@ -1751,7 +1755,7 @@ mod tests {
                 (1, 2, false, "After"),
                 (2, 0, false, "Hover"),
                 (2, 1, true, "Image"),
-                (2, 2, true, "Image: after"),
+                (2, 2, true, "Image: \u{2068}after\u{2069}"),
             ],
             "each cell in its column, an empty one leaving its place, so a before and after \
              sit side by side under their headings"

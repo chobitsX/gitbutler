@@ -312,7 +312,11 @@ impl Store {
                         );
                         store.add_terminal(project, checkout, terminal, then, cx);
                     }
-                    Err(err) => store.failed("Couldn't open a terminal", &err, cx),
+                    Err(err) => store.failed(
+                        crate::i18n::t("state-terminals-open-terminal-error"),
+                        &err,
+                        cx,
+                    ),
                 }
             })
             .ok();

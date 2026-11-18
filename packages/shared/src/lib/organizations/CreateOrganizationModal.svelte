@@ -3,6 +3,7 @@
 	import { inject } from "@gitbutler/core/context";
 
 	import { Button, Modal, Textarea, Textbox } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { slugify } from "@gitbutler/ui-svelte/utils/string";
 
 	const organizationService = inject(ORGANIZATION_SERVICE);
@@ -44,25 +45,26 @@
 
 <Modal bind:this={modal} onClose={onModalClose}>
 	<div class="form-container">
-		<h2>Create a new Organization</h2>
+		<h2>{$t("Create a new Organization")}</h2>
 		<p>
-			Organizations are a way to group projects and collaborate with your team. You can create as
-			many organizations as you want.
+			{$t(
+				"Organizations are a way to group projects and collaborate with your team. You can create as many organizations as you want.",
+			)}
 		</p>
-		<Textbox bind:value={name} label="Name" required={submitAttempted}></Textbox>
-		<Textbox bind:value={slug} label="Slug" required={submitAttempted}></Textbox>
+		<Textbox bind:value={name} label={$t("Name")} required={submitAttempted}></Textbox>
+		<Textbox bind:value={slug} label={$t("Slug")} required={submitAttempted}></Textbox>
 		{#if slug !== sluggifiedSlug}
-			<p>Slug will be save as: {sluggifiedSlug}</p>
+			<p>{$t("Slug will be save as: {sluggifiedSlug}", { sluggifiedSlug: sluggifiedSlug })}</p>
 		{/if}
 
-		<Textarea bind:value={description} label="Description"></Textarea>
+		<Textarea bind:value={description} label={$t("Description")}></Textarea>
 	</div>
 
 	{#snippet controls(close)}
 		<Button
 			disabled={!requiredFieldsFilled}
 			loading={modalCreationState === "loading"}
-			onclick={() => create(close)}>Create</Button
+			onclick={() => create(close)}>{$t("Create")}</Button
 		>
 	{/snippet}
 </Modal>

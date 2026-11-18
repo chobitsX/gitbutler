@@ -282,8 +282,8 @@ pub(super) fn card_bar(
 /// What the projects not watched go by: all of them, `alone`, with none watched.
 pub(super) fn drawer_title(alone: bool) -> &'static str {
     match alone {
-        true => "All projects",
-        false => "More projects",
+        true => crate::i18n::t("navigator-all-projects"),
+        false => crate::i18n::t("navigator-more-projects"),
     }
 }
 
@@ -416,13 +416,23 @@ impl<'a> RowStyle<'a> {
     /// How many of a row's commits aren't pushed, when any aren't, quiet: only a branch's own
     /// count pushes, in blue (see `Navigator::push_count`).
     fn unpushed(&self, n: usize) -> Option<Stateful<Div>> {
-        meta_count(Icon::ArrowUp, n, self.muted(), plural(n, "unpushed commit"))
+        meta_count(
+            Icon::ArrowUp,
+            n,
+            self.muted(),
+            plural(n, crate::ui::Count::UnpushedCommit),
+        )
     }
 
     /// How many files are uncommitted, when any are.
     fn files(&self, n: usize) -> Option<Stateful<Div>> {
         let color = self.meta(self.theme.warn);
-        meta_count(Icon::File, n, color, plural(n, "uncommitted file"))
+        meta_count(
+            Icon::File,
+            n,
+            color,
+            plural(n, crate::ui::Count::UncommittedFile),
+        )
     }
 
     /// What a mark on the row that can be pressed draws under the pointer.
@@ -693,7 +703,7 @@ impl Navigator {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let filter = cx.new(|cx| TextInput::new("Filter projects…", false, cx));
+        let filter = cx.new(|cx| TextInput::localized("navigator-filter-projects", false, cx));
         let subscriptions = vec![
             cx.subscribe_in(&filter, window, |this, input, event, window, cx| {
                 match event {
@@ -1339,7 +1349,7 @@ impl Navigator {
                 h_flex().absolute().top_0().bottom_0().right(dp(2.)).child(
                     icon_button("clear-filter", Icon::Cross)
                         .small()
-                        .tooltip("Clear the filter")
+                        .tooltip(crate::i18n::t("navigator-clear-filter"))
                         .on_click(cx.listener(|this, _, _, cx| {
                             this.filter.update(cx, |input, cx| input.set_text("", cx));
                             this.filter_changed(cx);
@@ -1738,7 +1748,10 @@ impl Navigator {
             Some(Row::More(project, ref_name, hidden)) => {
                 let key = (project.clone(), ref_name.clone());
                 under_commits("more", Icon::Kebab)
-                    .child(format!("{hidden} more"))
+                    .child(crate::i18n::tf(
+                        "navigator-more",
+                        &[("hidden", (format!("{hidden}")).into())],
+                    ))
                     .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                         this.set_unfolded(key.clone(), true);
                         cx.notify();
@@ -1748,7 +1761,7 @@ impl Navigator {
             Some(Row::Fewer(project, ref_name)) => {
                 let key = (project.clone(), ref_name.clone());
                 under_commits("fewer", Icon::ChevronUp)
-                    .child("Show fewer")
+                    .child(crate::i18n::t("navigator-show-fewer"))
                     .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
                         this.set_unfolded(key.clone(), false);
                         this.hold_still = true;
@@ -2455,7 +2468,7 @@ impl Navigator {
                 icon_button("add-project", Icon::Plus)
                     .small()
                     .inverted(solid)
-                    .tooltip("Add project")
+                    .tooltip(crate::i18n::t("navigator-add-project"))
                     .dispatch(&AddProject),
             )
             .when(total > 0, |el| {
@@ -2463,7 +2476,7 @@ impl Navigator {
                     icon_button("project-view-options", Icon::Kebab)
                         .small()
                         .inverted(solid)
-                        .tooltip("Sort and show")
+                        .tooltip(crate::i18n::t("navigator-sort-show"))
                         .on_click(cx.listener(|this, event: &ClickEvent, _, cx| {
                             this.open_menu(event.position(), |this, cx| this.view_options(cx), cx)
                         })),
@@ -2556,9 +2569,9 @@ impl Navigator {
             ))
             .role(Role::Button)
             .aria_label(if expanded {
-                "Stop watching"
+                crate::i18n::t("navigator-stop-watching")
             } else {
-                "Watch this project"
+                crate::i18n::t("navigator-watch-project")
             })
             .when(!style.selected, |el| {
                 el.opacity(0.).group_hover(ROW_GROUP, |el| el.opacity(1.))
@@ -2599,8 +2612,8 @@ impl Navigator {
                 }
             }))
             .tooltip(Tooltip::text(match expanded {
-                true => "Stop watching",
-                false => "Watch this project",
+                true => crate::i18n::t("navigator-stop-watching"),
+                false => crate::i18n::t("navigator-watch-project"),
             }));
         Some(
             style
@@ -2637,7 +2650,7 @@ impl Navigator {
                                 .children(style.unpushed(unpushed))
                         })
                         .children(target.and_then(|t| {
-                            let behind = plural(t.behind, "commit");
+                            let behind = plural(t.behind, crate::ui::Count::Commit);
                             let tip = format!("{behind} behind {}{}", t.name, with_merged(t));
                             meta_count(Icon::ArrowDown, t.behind, style.meta(theme.warn), tip)
                         }))
@@ -2713,14 +2726,14 @@ impl Navigator {
         let files = store.workspace(id).map_or(&[][..], |ws| &ws.uncommitted);
         style
             .row(format!("uncommitted-{id}"), 6.)
-            .aria_label("Editing a commit")
+            .aria_label(crate::i18n::t("navigator-editing-commit"))
             .child(icon(Icon::Diff).text_color(style.meta(style.theme.warn)))
             .child(
                 div()
                     .flex_1()
                     .min_w_0()
                     .truncate()
-                    .child("Editing a commit"),
+                    .child(crate::i18n::t("navigator-editing-commit")),
             )
             .children(change_counts(tally(files), style))
             .map(|el| self.selectable(el, item, cx))
@@ -2851,7 +2864,7 @@ impl Navigator {
             None => &workspace.uncommitted,
         };
         let uncommitted = store.uncommitted_shown(id, &checkout, uncommitted);
-        let label = "Uncommitted changes";
+        let label = crate::i18n::t("navigator-uncommitted-changes");
         let row = style
             .row(
                 format!("changes-{id}-{}", checkout.linked().unwrap_or_default()),
@@ -2868,7 +2881,11 @@ impl Navigator {
         let dragged = (!files.is_empty()).then(|| {
             let label: SharedString = match files.as_slice() {
                 [file] => file.file.path.clone().into(),
-                files => format!("{} files", files.len()).into(),
+                files => crate::i18n::tf(
+                    "navigator-files",
+                    &[("count", (format!("{}", files.len())).into())],
+                )
+                .into(),
             };
             let changes = Changes {
                 from: None,
@@ -2984,7 +3001,12 @@ impl Navigator {
             .child(count_badge(branches.len(), theme).when(style.solid, |el| {
                 el.bg(theme.inverse_soft).text_color(quiet)
             }))
-            .child(div().flex_none().text_color(word).child("Stack"))
+            .child(
+                div()
+                    .flex_none()
+                    .text_color(word)
+                    .child(crate::i18n::t("navigator-stack")),
+            )
             .children(branches.first().filter(|_| !open).map(|top| {
                 (div().min_w_0().truncate())
                     .text_color(quiet)
@@ -2993,7 +3015,10 @@ impl Navigator {
         let bottom_name = bottom.map(ToString::to_string).unwrap_or_default();
         let row = style
             .row(format!("stack-{id}-{bottom_name}"), 6.)
-            .aria_label(format!("Stack of {}", branches.len()))
+            .aria_label(crate::i18n::tf(
+                "navigator-stack-2",
+                &[("count", (format!("{}", branches.len())).into())],
+            ))
             .aria_expanded(open)
             .when(!open && unread, |el| {
                 el.relative().child(style.unread_line(false))
@@ -3104,7 +3129,10 @@ impl Navigator {
         Some(
             style
                 .row(format!("branch-{id}-{row_id}"), 6.)
-                .aria_label(format!("Branch {name}"))
+                .aria_label(crate::i18n::tf(
+                    "navigator-branch",
+                    &[("name", (name.to_string()).into())],
+                ))
                 .when(unread, |el| el.relative().child(style.unread_line(false)))
                 .child(glyph)
                 .child(match rename {
@@ -3157,8 +3185,8 @@ impl Navigator {
                         let mark = div()
                             .id(ElementId::Name(format!("brief-{row_id}").into()))
                             .child(small_icon(Icon::Docs).text_color(color))
-                            .aria_label("Read the brief")
-                            .tooltip(Tooltip::text("Read the brief"));
+                            .aria_label(crate::i18n::t("navigator-read-brief"))
+                            .tooltip(Tooltip::text(crate::i18n::t("navigator-read-brief")));
                         el.child(pressable(
                             theme.shape,
                             mark,
@@ -3178,7 +3206,7 @@ impl Navigator {
                 // resolve is up, unless a linked worktree resolves it.
                 .children({
                     let warn = style.meta(theme.warn);
-                    let tip = plural(conflicted, "conflicted commit");
+                    let tip = plural(conflicted, crate::ui::Count::ConflictedCommit);
                     let count = |tip| meta_count(Icon::Warning, conflicted, warn, tip);
                     match conflict {
                         None => count(tip),
@@ -3198,7 +3226,7 @@ impl Navigator {
                 .when(!open, |el| {
                     let n = branch.incoming.len();
                     let remote = branch.remote.as_deref().unwrap_or("the remote");
-                    let tip = format!("{} only on {remote}", plural(n, "commit"));
+                    let tip = format!("{} only on {remote}", plural(n, crate::ui::Count::Commit));
                     el.children(self.pull_count(id, ref_name, n, tip, style, cx))
                 })
                 .children(self.push_count(id, ref_name, unpushed_n, style, cx))
@@ -3287,7 +3315,7 @@ impl Navigator {
             Icon::ArrowDown,
             n,
             warn,
-            format!("Pull {}", plural(n, "commit")),
+            format!("Pull {}", plural(n, crate::ui::Count::Commit)),
         )?;
         let (project, ref_name) = (project.clone(), ref_name.clone());
         let pull = cx.listener(move |this, _, _, cx| {
@@ -3465,7 +3493,7 @@ impl Navigator {
         let inactive = store.inactive_worktrees(project);
         let open = inactive_open(store, project, &inactive);
         let after = store.prefs.inactive_after;
-        let label = "Inactive worktrees";
+        let label = crate::i18n::t("navigator-inactive-worktrees");
         self.section_heading(ix, project, &Section::Inactive, label, style, cx)
             .when(!open, |el| {
                 el.child(faint(inactive.len().to_string(), style.theme).text_color(style.quiet()))
@@ -3571,7 +3599,7 @@ impl Navigator {
         let project = project.clone();
         let update = button(
             ElementId::Name(format!("update-{project}").into()),
-            "Update",
+            crate::i18n::t("navigator-update"),
         )
         .small()
         .style(ButtonStyle::Gray)
@@ -3886,15 +3914,15 @@ fn change_counts(
         Icon::Warning,
         conflicted,
         style.meta(theme.warn),
-        plural(conflicted, "conflicted file"),
+        plural(conflicted, crate::ui::Count::ConflictedFile),
     );
     let all = match added + removed {
         0 => style.files(n),
         _ => {
             let tip = format!(
                 "{}: {} added, {removed} removed",
-                plural(n, "uncommitted file"),
-                plural(added as usize, "line"),
+                plural(n, crate::ui::Count::UncommittedFile),
+                plural(added as usize, crate::ui::Count::Line),
             );
             Some(
                 div()
@@ -3913,9 +3941,9 @@ fn running_mark(ix: usize, style: RowStyle) -> impl IntoElement {
         .id(("worktree-running", ix))
         .flex_none()
         .child(small_icon(Icon::Lab).text_color(style.muted()))
-        .tooltip(Tooltip::text(
-            "The app you're using was built from this checkout",
-        ))
+        .tooltip(Tooltip::text(crate::i18n::t(
+            "navigator-app-re-using-was-built-checkout",
+        )))
 }
 
 /// A worktree heading's folder, a linked one's doubled.
@@ -3936,10 +3964,10 @@ pub(crate) fn upstream_label(
     let branch = workspace.and_then(|ws| ws.find_branch(Some(ref_name)));
     let count = branch.map_or(0, |b| b.incoming.len());
     let label = match branch.and_then(|b| b.remote.as_ref()) {
-        Some(remote) => format!("On {remote}"),
-        None => "On the remote".to_owned(),
+        Some(remote) => crate::i18n::tf("navigator-on", &[("remote", (remote.to_string()).into())]),
+        None => crate::i18n::t("navigator-remote").to_owned(),
     };
-    (label, count, plural(count, "commit"))
+    (label, count, plural(count, crate::ui::Count::Commit))
 }
 
 /// How many commits the target's merges brought in besides, as " (N counting merged
@@ -4036,14 +4064,14 @@ impl Render for Navigator {
                     .min_w_0()
                     .truncate()
                     .semibold()
-                    .child("Projects"),
+                    .child(crate::i18n::t("navigator-projects")),
             )
             .children(self.update_button(cx).map(|el| above_drag(div().child(el))))
             .child(above_drag(
                 div().child(
                     icon_button("navigator-add-project", Icon::Plus)
                         .small()
-                        .tooltip("Add project")
+                        .tooltip(crate::i18n::t("navigator-add-project"))
                         .dispatch(&AddProject),
                 ),
             ))

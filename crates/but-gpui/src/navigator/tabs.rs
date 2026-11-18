@@ -892,7 +892,7 @@ impl NavigatorTabs {
         if !Self::shows_terminals(self.store.read(cx)) {
             return None;
         }
-        let label = SharedString::from("Terminals");
+        let label = SharedString::from(crate::i18n::t("navigator-tabs-terminals"));
         let width = self.tab_width(&label, window, cx)
             + MARK_ROOM * self.mark_share(&TabKey::Terminals, now);
         Some((label, width))

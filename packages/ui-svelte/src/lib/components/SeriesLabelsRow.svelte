@@ -1,6 +1,7 @@
 <script lang="ts">
 	import SeriesIcon from "$components/SeriesIcon.svelte";
 	import Tooltip from "$components/Tooltip.svelte";
+	import { t } from "$lib/utils/i18n";
 
 	interface Props {
 		series: string[];
@@ -33,7 +34,7 @@
 	{#if series.length > 1}
 		<Tooltip text={"→ " + series.slice(1).join(" → ")}>
 			<div class="series-name more-series text-14 text-semibold">
-				<span>{series.length - 1} more</span>
+				<span>{$t("{value} more", { value: series.length - 1 })}</span>
 			</div>
 		</Tooltip>
 	{/if}

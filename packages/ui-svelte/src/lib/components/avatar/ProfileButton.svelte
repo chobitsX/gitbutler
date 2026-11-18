@@ -1,5 +1,6 @@
 <script lang="ts">
 	import profileIconSvg from "$lib/assets/profile-icon.svg?raw";
+	import { t } from "$lib/utils/i18n";
 	import { useImageLoading } from "$lib/utils/imageLoading.svelte";
 
 	interface Props {
@@ -17,14 +18,14 @@
 	type="button"
 	class="profile-btn"
 	class:has-image={!!srcUrl}
-	aria-label="Profile button"
+	aria-label={$t("Profile button")}
 	onclick={async () => onclick()}
 >
 	{#if srcUrl && !imageLoadingState.hasError}
 		<img
 			bind:this={imageLoadingState.imgElement}
 			src={srcUrl}
-			alt="Profile"
+			alt={$t("Profile")}
 			class="hidden-preload"
 			referrerpolicy="no-referrer"
 			onload={imageLoadingState.handleImageLoad}

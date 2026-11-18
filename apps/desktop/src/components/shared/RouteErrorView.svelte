@@ -3,6 +3,7 @@
 	import ProjectSwitcher from "$components/shared/ProjectSwitcher.svelte";
 	import loadErrorSvg from "$lib/assets/illustrations/load-error.svg?raw";
 	import { InfoMessage } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	interface Props {
 		projectId?: string;
@@ -14,11 +15,13 @@
 
 <IllustrationSplitLayout img={loadErrorSvg}>
 	<div class="problem__container">
-		<h2 class="problem__title text-18 text-body text-bold">There was a problem loading the app</h2>
+		<h2 class="problem__title text-18 text-body text-bold">
+			{$t("There was a problem loading the app")}
+		</h2>
 
 		<InfoMessage filled outlined={false} style="danger" icon="info">
 			{#snippet content()}
-				{error ? error : "An unknown error occurred"}
+				{error ? error : $t("An unknown error occurred")}
 			{/snippet}
 		</InfoMessage>
 

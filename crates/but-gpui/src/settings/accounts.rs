@@ -57,9 +57,17 @@ impl Adding {
 
     fn title(&self) -> String {
         match (self.forge, self.self_hosted) {
-            (Forge::GitHub, true) => "New GitHub Enterprise token".into(),
-            (forge, true) => format!("New self-hosted {} token", forge.name()),
-            (forge, false) => format!("New {} token", forge.name()),
+            (Forge::GitHub, true) => {
+                crate::i18n::t("settings-accounts-new-github-enterprise-token").into()
+            }
+            (forge, true) => crate::i18n::tf(
+                "settings-accounts-new-self-hosted-token",
+                &[("name", (forge.name().to_string()).into())],
+            ),
+            (forge, false) => crate::i18n::tf(
+                "settings-accounts-new-token",
+                &[("name", (forge.name().to_string()).into())],
+            ),
         }
     }
 
@@ -110,11 +118,12 @@ impl SettingsView {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let token = cx.new(|cx| TextInput::new("Token", false, cx).masked());
+        let token =
+            cx.new(|cx| TextInput::localized("settings-accounts-token", false, cx).masked());
         let placeholder = match (forge, self_hosted) {
             (Forge::GitHub, true) => "https://github.example.com/api/v3",
             (_, true) => "https://gitlab.example.com",
-            (_, false) => "Email",
+            (_, false) => crate::i18n::t("settings-accounts-email"),
         };
         let other = cx.new(|cx| TextInput::new(placeholder, false, cx));
         // Enter adds it and Esc cancels from either field, as the URL or email comes first.
@@ -176,7 +185,11 @@ impl SettingsView {
                         store.retry_forges();
                         store.snack(format!("Added {who} on {}", forge.name()), cx)
                     }),
-                    Err(err) => this.error("Couldn't add the account", err, cx),
+                    Err(err) => this.error(
+                        crate::i18n::t("settings-accounts-add-account-error"),
+                        err,
+                        cx,
+                    ),
                 }
                 this.load_accounts(cx);
             })
@@ -202,7 +215,11 @@ impl SettingsView {
                 Ok((code, device)) => (SharedString::from(code), device),
                 Err(err) => {
                     this.update(cx, |this, cx| {
-                        this.error("Couldn't start signing in", err, cx)
+                        this.error(
+                            crate::i18n::t("settings-accounts-start-signing-error"),
+                            err,
+                            cx,
+                        )
                     })
                     .ok();
                     return;
@@ -258,7 +275,11 @@ impl SettingsView {
                     store.retry_forges();
                     store.snack(format!("Signed in to GitHub as {who}"), cx)
                 }
-                Err(err) => store.failed("Couldn't sign in to GitHub", err, cx),
+                Err(err) => store.failed(
+                    crate::i18n::t("settings-accounts-sign-github-error"),
+                    err,
+                    cx,
+                ),
             });
             this.update(cx, |this, cx| {
                 if this.accounts.github_code.as_ref() == Some(&code) {
@@ -273,7 +294,8 @@ impl SettingsView {
 
     /// GitButler's sign-in: its page shows a token to paste back here.
     pub(super) fn log_in_to_gitbutler(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let input = cx.new(|cx| TextInput::new("Paste the token", false, cx).masked());
+        let input =
+            cx.new(|cx| TextInput::localized("settings-accounts-paste-token", false, cx).masked());
         cx.subscribe(&input, |this, input, event, cx| match event {
             InputEvent::Submit => {
                 let token = input.read(cx).text().to_owned();
@@ -288,7 +310,9 @@ impl SettingsView {
                             Ok(who) => this.store.update(cx, |store, cx| {
                                 store.snack(format!("Signed in to GitButler as {}", who.name), cx)
                             }),
-                            Err(err) => this.error("Couldn't sign in", err, cx),
+                            Err(err) => {
+                                this.error(crate::i18n::t("settings-accounts-sign-error"), err, cx)
+                            }
                         }
                         // Whether AI can use GitButler's key changed with it.
                         this.forget_ai();
@@ -314,7 +338,11 @@ impl SettingsView {
                 Err(err) => this
                     .update(cx, |this, cx| {
                         this.accounts.login = None;
-                        this.error("Couldn't reach GitButler", err, cx)
+                        this.error(
+                            crate::i18n::t("settings-accounts-reach-gitbutler-error"),
+                            err,
+                            cx,
+                        )
                     })
                     .ok(),
             };
@@ -329,7 +357,7 @@ impl SettingsView {
         let user = account.user.as_ref();
         let gitbutler: AnyElement = match (user, &self.accounts.login) {
             (_, Some(input)) => token_field(input, None, "Sign in", window, theme, cx),
-            (Some(_), None) => button("log-out", "Sign out")
+            (Some(_), None) => button("log-out", crate::i18n::t("settings-accounts-sign-out"))
                 .small()
                 .style(ButtonStyle::Ghost)
                 .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
@@ -337,7 +365,7 @@ impl SettingsView {
                     this.store.update(cx, |store, cx| store.sign_out(cx))
                 }))
                 .into_any_element(),
-            (None, None) => button("log-in", "Sign in…")
+            (None, None) => button("log-in", crate::i18n::t("settings-accounts-sign"))
                 .small()
                 .on_click(cx.listener(|this, _: &ClickEvent, window, cx| {
                     this.log_in_to_gitbutler(window, cx)
@@ -346,10 +374,10 @@ impl SettingsView {
         };
         let description: SharedString = match (user, &self.accounts.login) {
             (_, Some(_)) => {
-                "Sign in on the page that opened, then paste the token it shows.".into()
+                crate::i18n::t("settings-accounts-sign-page-opened-then-paste-token").into()
             }
-            (Some(_), None) => "AI can use GitButler's key.".into(),
-            (None, None) => "Sign in to use GitButler's AI key, with no key of your own.".into(),
+            (Some(_), None) => crate::i18n::t("settings-accounts-ai-use-gitbutler-s-key").into(),
+            (None, None) => crate::i18n::t("settings-accounts-sign-use-gitbutler-s-ai-key").into(),
         };
         let row = Row::new("GitButler", description, gitbutler);
         match user.filter(|_| self.accounts.login.is_none()) {
@@ -367,18 +395,21 @@ impl SettingsView {
             // By forge too, as a GitHub and a GitLab account can share a username, and a shared
             // id takes the second's clicks as the first's.
             let key = format!("forget-{}-{}", account.forge.name(), account.label);
-            let forget = button(SharedString::from(key), "Forget")
-                .small()
-                .style(ButtonStyle::Ghost)
-                .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
-                    let id = id.clone();
-                    this.apply(
-                        "Couldn't forget the account",
-                        move || accounts::forget(id),
-                        Self::load_accounts,
-                        cx,
-                    )
-                }));
+            let forget = button(
+                SharedString::from(key),
+                crate::i18n::t("settings-accounts-forget"),
+            )
+            .small()
+            .style(ButtonStyle::Ghost)
+            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                let id = id.clone();
+                this.apply(
+                    "Couldn't forget the account",
+                    move || accounts::forget(id),
+                    Self::load_accounts,
+                    cx,
+                )
+            }));
             connected.push(Row::new(
                 account.forge.name(),
                 account.label.clone(),
@@ -389,20 +420,28 @@ impl SettingsView {
         if let Some(code) = &self.accounts.github_code {
             let copied = code.clone();
             rows.push(Row::new(
-                "Signing in to GitHub",
-                format!("Enter {code} on the page that opened. It's on your clipboard."),
+                crate::i18n::t("settings-accounts-signing-github-label"),
+                crate::i18n::tf(
+                    "settings-accounts-signing-github-description",
+                    &[("code", (format!("{code}")).into())],
+                ),
                 h_flex()
                     .gap(dp(6.))
                     .child(
-                        button("copy-code", "Copy code")
-                            .small()
-                            .style(ButtonStyle::Ghost)
-                            .on_click(cx.listener(move |this, _: &ClickEvent, _, cx| {
+                        button(
+                            "copy-code",
+                            crate::i18n::t("settings-accounts-signing-github-description-2"),
+                        )
+                        .small()
+                        .style(ButtonStyle::Ghost)
+                        .on_click(cx.listener(
+                            move |this, _: &ClickEvent, _, cx| {
                                 clipboard::copy(&this.store, copied.to_string(), cx)
-                            })),
+                            },
+                        )),
                     )
                     .child(
-                        button("cancel-sign-in", "Cancel")
+                        button("cancel-sign-in", crate::i18n::t("common-cancel"))
                             .small()
                             .style(ButtonStyle::Ghost)
                             .on_click(cx.listener(|this, _: &ClickEvent, _, cx| {
@@ -429,39 +468,39 @@ impl SettingsView {
                 let this = cx.entity().downgrade();
                 let menu = cx.entity().downgrade();
                 rows.push(Row::new(
-                    "Add an account",
-                    "For pull requests and CI on GitHub, GitHub Enterprise, GitLab, self-hosted \
-                     GitLab or Bitbucket. GitButler's other apps share them.",
-                    button("add-account", "Add…")
-                        .small()
-                        .on_click(move |event, _, cx| {
-                            // A token for a forge, on a server of the user's own when the bool
-                            // says so, or GitHub's browser sign-in.
-                            let item = |label: &'static str, token: Option<(Forge, bool)>| {
-                                let this = this.clone();
-                                MenuItem::new(label, move |_, window, cx| {
-                                    this.update(cx, |this, cx| match token {
-                                        Some((forge, self_hosted)) => {
-                                            this.start_adding(forge, self_hosted, window, cx)
-                                        }
-                                        None => this.sign_in_to_github(cx),
-                                    })
-                                    .ok();
+                    crate::i18n::t("settings-accounts-add-account-label"),
+                    crate::i18n::t("settings-accounts-add-account-description"),
+                    button(
+                        "add-account",
+                        crate::i18n::t("settings-accounts-add-account-description-2"),
+                    )
+                    .small()
+                    .on_click(move |event, _, cx| {
+                        // A token for a forge, on a server of the user's own when the bool
+                        // says so, or GitHub's browser sign-in.
+                        let item = |label: &'static str, token: Option<(Forge, bool)>| {
+                            let this = this.clone();
+                            MenuItem::new(label, move |_, window, cx| {
+                                this.update(cx, |this, cx| match token {
+                                    Some((forge, self_hosted)) => {
+                                        this.start_adding(forge, self_hosted, window, cx)
+                                    }
+                                    None => this.sign_in_to_github(cx),
                                 })
-                            };
-                            let items = vec![
-                                item("Sign in with GitHub", None),
-                                item("GitHub token…", Some((Forge::GitHub, false))),
-                                item("GitHub Enterprise token…", Some((Forge::GitHub, true))),
-                                item("GitLab token…", Some((Forge::GitLab, false))),
-                                item("Self-hosted GitLab token…", Some((Forge::GitLab, true))),
-                                item("Bitbucket token…", Some((Forge::Bitbucket, false))),
-                            ];
-                            (menu.update(cx, |this, cx| {
-                                this.open_menu(event, move |_, _| items, cx)
-                            }))
+                                .ok();
+                            })
+                        };
+                        let items = vec![
+                            item("Sign in with GitHub", None),
+                            item("GitHub token…", Some((Forge::GitHub, false))),
+                            item("GitHub Enterprise token…", Some((Forge::GitHub, true))),
+                            item("GitLab token…", Some((Forge::GitLab, false))),
+                            item("Self-hosted GitLab token…", Some((Forge::GitLab, true))),
+                            item("Bitbucket token…", Some((Forge::Bitbucket, false))),
+                        ];
+                        (menu.update(cx, |this, cx| this.open_menu(event, move |_, _| items, cx)))
                             .ok();
-                        }),
+                    }),
                 ));
             }
         }
@@ -505,7 +544,7 @@ fn token_field(
         .gap(dp(6.))
         .child({
             let token = token.clone();
-            button("cancel-token", "Cancel")
+            button("cancel-token", crate::i18n::t("common-cancel"))
                 .small()
                 .style(ButtonStyle::Ghost)
                 .on_click(move |_, _, cx| token.update(cx, |_, cx| cx.emit(InputEvent::Cancel)))

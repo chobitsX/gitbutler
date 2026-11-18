@@ -74,8 +74,14 @@ impl Detail {
                 }
         })?;
         let (label, path) = match at {
-            At::File(path, _) => ("Show file history", path),
-            At::Folder(path) => ("Show folder history", path),
+            At::File(path, _) => (
+                crate::i18n::t("detail-upstream-changed-path-show-file-history"),
+                path,
+            ),
+            At::Folder(path) => (
+                crate::i18n::t("detail-upstream-changed-path-show-folder-history"),
+                path,
+            ),
         };
         // As Git has it: what the menu holds is decoded to show.
         let whole = (self.diff.iter().flat_map(|diff| diff.files.iter()))

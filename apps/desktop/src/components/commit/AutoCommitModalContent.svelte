@@ -10,6 +10,7 @@
 		SimpleCommitRow,
 		SimpleCommitRowSkeleton,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type AutoCommitEvent =
 		| { type: "started"; steps_length: number }
@@ -92,7 +93,7 @@
 
 <div class="auto-commit-modal__wrapper">
 	<ModalHeader sticky={!isScrollTopVisible} closeButton={isDone} oncloseclick={close}
-		>Auto commit changes</ModalHeader
+		>{$t("Auto commit changes")}</ModalHeader
 	>
 
 	<AppScrollableContainer
@@ -134,7 +135,7 @@
 
 						{#if parentOfCommitBeingGenerated && !isDone && !isCurrentGenerationComplete}
 							{@const currentMessage = commitMessageMap.get(parentOfCommitBeingGenerated)}
-							{@const title = currentMessage?.split("\n")[0] ?? "Generating commit message..."}
+							{@const title = currentMessage?.split("\n")[0] ?? $t("Generating commit message...")}
 							<SimpleCommitRow {title} sha="..." date={new Date()} aiMessage={currentMessage} />
 						{/if}
 

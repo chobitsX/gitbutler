@@ -165,7 +165,7 @@ impl Detail {
                 Some(theme.pop),
             ),
             (
-                "Commits",
+                crate::i18n::t("overview-commits"),
                 grouped(scoped.len()),
                 "Commits made here then",
                 Some(theme.text_2),
@@ -203,10 +203,13 @@ impl Detail {
             match (n, merged) {
                 (0, 0) => tip.push_str(" · quiet"),
                 (0, _) => {}
-                (n, _) => tip.push_str(&format!(" · {}", plural(n as usize, "edit"))),
+                (n, _) => tip.push_str(&format!(
+                    " · {}",
+                    plural(n as usize, crate::ui::Count::Edit)
+                )),
             }
             if merged > 0 {
-                tip.push_str(&format!(" · {}", plural(merged, "commit")));
+                tip.push_str(&format!(" · {}", plural(merged, crate::ui::Count::Commit)));
             }
             // Outside what's picked, the bars are faint.
             let (edit, commit) = match inside {

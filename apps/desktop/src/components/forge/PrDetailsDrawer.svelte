@@ -6,6 +6,7 @@
 	import { PR_SERVICE } from "$lib/forge/prService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Avatar, Link, Markdown, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -45,11 +46,11 @@
 							<span class="text-bold clr-text-1">
 								{pr.author?.name}
 							</span>
-							wants to merge into
+							{$t("wants to merge into")}
 							<span class="code-string text-semibold">
 								{pr.targetBranch}
 							</span>
-							from
+							{$t("from")}
 							<span class="code-string text-semibold">
 								{pr.sourceBranch}
 							</span>
@@ -58,10 +59,10 @@
 						<div class="pr-request-data__details text-12">
 							<PrStatusBadge {pr} />
 							<span class="pr-request-data__divider">•</span>
-							<span>No remote</span>
+							<span>{$t("No remote")}</span>
 
 							<span class="pr-request-data__divider">•</span>
-							<Link href={pr.htmlUrl}>Open in browser</Link>
+							<Link href={pr.htmlUrl}>{$t("Open in browser")}</Link>
 						</div>
 					</div>
 				</div>

@@ -27,6 +27,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { reactive } from "@gitbutler/shared/reactiveUtils.svelte";
 	import { CardGroup, Select, SelectItem } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	import type {
 		BitbucketAccountIdentifier,
@@ -40,13 +41,13 @@
 
 	type ForgeSelection = ForgeName | "default";
 
-	const FORGE_OPTIONS: { label: string; value: ForgeSelection }[] = [
-		{ label: "None", value: "default" },
+	const FORGE_OPTIONS: { label: string; value: ForgeSelection }[] = $derived([
+		{ label: $t("None"), value: "default" },
 		{ label: "GitHub", value: "github" },
 		{ label: "GitLab", value: "gitlab" },
-		{ label: "Azure", value: "azure" },
+		{ label: $t("Azure"), value: "azure" },
 		{ label: "BitBucket", value: "bitbucket" },
-	];
+	]);
 
 	const { projectId }: { projectId: string } = $props();
 
@@ -140,25 +141,24 @@
 <CardGroup>
 	<CardGroup.Item>
 		{#snippet title()}
-			Forge override
+			{$t("Forge override")}
 		{/snippet}
 
 		{#snippet caption()}
 			{#if selectedOption !== "default"}
-				A forge override is saved for this project. You can change or clear it below.
+				{$t("A forge override is saved for this project. You can change or clear it below.")}
 			{:else if determinedForgeType === "default"}
-				We couldn't detect which Forge you're using.
+				{$t("We couldn't detect which Forge you're using.")}
 				<br />
-				To enable Forge integration, please select your Forge from the dropdown below.
+				{$t("To enable Forge integration, please select your Forge from the dropdown below.")}
 				<br />
-				<span class="text-bold">Note:</span> Currently, only GitHub, GitLab and Bitbucket support pull
-				request creation.
+				<span class="text-bold">{$t("Note:")}</span>
+				{$t("Currently, only GitHub, GitLab and Bitbucket support pull request creation.")}
 			{:else}
-				We’ve detected that you’re using <span class="text-bold"
-					>{determinedForgeType.toUpperCase()}</span
-				>.
+				{$t("We’ve detected that you’re using")}
+				<span class="text-bold">{determinedForgeType.toUpperCase()}</span>.
 				<br />
-				At the moment, it’s not possible to manually override the detected forge type.
+				{$t("At the moment, it’s not possible to manually override the detected forge type.")}
 			{/if}
 		{/snippet}
 
@@ -180,22 +180,22 @@
 
 	<CardGroup.Item>
 		{#snippet title()}
-			Stack information in review descriptions
+			{$t("Stack information in review descriptions")}
 		{/snippet}
 
 		{#snippet caption()}
-			Choose where GitButler-managed stack information appears. Changes apply on the next review
-			sync. The default is Bottom. Does not apply to native GitHub stacked pull requests, where
-			GitHub shows the stack on its own.
+			{$t(
+				"Choose where GitButler-managed stack information appears. Changes apply on the next review sync. The default is Bottom. Does not apply to native GitHub stacked pull requests, where GitHub shows the stack on its own.",
+			)}
 		{/snippet}
 
 		<div data-testid="review-stacking-description-select">
 			<Select
 				value={reviewStackingDescription}
 				options={[
-					{ label: "Bottom", value: "bottom" },
-					{ label: "Top", value: "top" },
-					{ label: "Disabled", value: "disabled" },
+					{ label: $t("Bottom"), value: "bottom" },
+					{ label: $t("Top"), value: "top" },
+					{ label: $t("Disabled"), value: "disabled" },
 				]}
 				wide
 				onselect={(value) => updateReviewStackingDescription(value as ReviewStackingDescription)}
@@ -214,24 +214,22 @@
 	{#if forgeInfo?.name === "github"}
 		<CardGroup.Item>
 			{#snippet title()}
-				Native GitHub stacked pull requests
+				{$t("Native GitHub stacked pull requests")}
 			{/snippet}
 
 			{#snippet caption()}
-				Register this project’s reviewed stacks with GitHub’s private-preview stacks API. Higher
-				pull requests may merge the pull requests below them. Auto falls back to description
-				metadata when the repository is not enrolled in the preview, while Native reports an error.
-				Changes apply on the next push or pull request creation. Fork-backed pull requests always
-				use description metadata.
+				{$t(
+					"Register this project’s reviewed stacks with GitHub’s private-preview stacks API. Higher pull requests may merge the pull requests below them. Auto falls back to description metadata when the repository is not enrolled in the preview, while Native reports an error. Changes apply on the next push or pull request creation. Fork-backed pull requests always use description metadata.",
+				)}
 			{/snippet}
 
 			<div data-testid="github-stacking-mode-select">
 				<Select
 					value={githubStackingMode}
 					options={[
-						{ label: "Auto", value: "auto" },
-						{ label: "Disabled", value: "disabled" },
-						{ label: "Native", value: "native" },
+						{ label: $t("Auto"), value: "auto" },
+						{ label: $t("Disabled"), value: "disabled" },
+						{ label: $t("Native"), value: "native" },
 					]}
 					wide
 					onselect={(value) => updateGitHubStackingMode(value as GitHubStackingMode)}

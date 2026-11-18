@@ -198,16 +198,23 @@ impl Navigator {
             cx,
             move |this, _, cx| this.set_group_folded(&fold_id, open, cx),
         );
-        let label = format!(
-            "{}, {} {}, {} with changes",
-            group.name,
-            group.total,
-            if group.total == 1 {
-                "repository"
-            } else {
-                "repositories"
-            },
-            group.changed
+        let label = crate::i18n::tf(
+            "navigator-groups-changes",
+            &[
+                ("name", (format!("{}", group.name)).into()),
+                ("total", (format!("{}", group.total)).into()),
+                (
+                    "repositories",
+                    ((if group.total == 1 {
+                        "repository"
+                    } else {
+                        "repositories"
+                    })
+                    .to_string())
+                    .into(),
+                ),
+                ("changed", (format!("{}", group.changed)).into()),
+            ],
         );
         let title = tab_stop(h_flex().id(format!("repository-group-toggle-{id}")), theme)
             .group(super::ROW_GROUP)
@@ -247,15 +254,26 @@ impl Navigator {
                         .h(dp(20.))
                         .text_color(theme.blue)
                         .text_11()
-                        .child(format!("{changed} changed"))
+                        .child(crate::i18n::tf(
+                            "navigator-groups-changed",
+                            &[("changed", (format!("{changed}")).into())],
+                        ))
                         .tooltip(move |window, cx| {
-                            Tooltip::text(format!(
-                                "{changed} {} with uncommitted files or unpushed commits",
-                                if changed == 1 {
-                                    "repository"
-                                } else {
-                                    "repositories"
-                                }
+                            Tooltip::text(crate::i18n::tf(
+                                "navigator-groups-uncommitted-files-or-unpushed-commits",
+                                &[
+                                    ("changed", (format!("{changed}")).into()),
+                                    (
+                                        "repositories",
+                                        ((if changed == 1 {
+                                            "repository"
+                                        } else {
+                                            "repositories"
+                                        })
+                                        .to_string())
+                                        .into(),
+                                    ),
+                                ],
                             ))(window, cx)
                         }),
                 )
@@ -284,7 +302,7 @@ impl Navigator {
             .child(
                 icon_button(format!("repository-group-menu-{id}"), Icon::Kebab)
                     .small()
-                    .tooltip("Group options")
+                    .tooltip(crate::i18n::t("navigator-groups-group-options"))
                     .on_click(cx.listener(move |this, event: &ClickEvent, _, cx| {
                         let id = menu_id.clone();
                         this.open_menu(
@@ -316,22 +334,28 @@ impl Navigator {
     fn group_menu(&self, id: &str, _cx: &App) -> Vec<MenuItem> {
         let add_id = id.to_owned();
         let mut items = vec![MenuItem::new(
-            "Add repository…",
+            crate::i18n::t("navigator-groups-add-repository"),
             move |app, window, cx| app.add_to_project_group(add_id.clone(), window, cx),
         )];
         if !id.is_empty() {
             let rename_id = id.to_owned();
-            items.push(MenuItem::new("Rename group…", move |app, window, cx| {
-                app.edit_project_group(Some(rename_id.clone()), None, window, cx)
-            }));
+            items.push(MenuItem::new(
+                crate::i18n::t("navigator-groups-rename-group"),
+                move |app, window, cx| {
+                    app.edit_project_group(Some(rename_id.clone()), None, window, cx)
+                },
+            ));
             let remove_id = id.to_owned();
             items.push(
-                MenuItem::new("Remove group", move |app, _, cx| {
-                    app.store.update(cx, |store, cx| {
-                        store.set_prefs(|prefs| prefs.remove_project_group(&remove_id), cx);
-                        store.snack("Group removed; repositories moved to Ungrouped", cx);
-                    });
-                })
+                MenuItem::new(
+                    crate::i18n::t("navigator-groups-remove-group"),
+                    move |app, _, cx| {
+                        app.store.update(cx, |store, cx| {
+                            store.set_prefs(|prefs| prefs.remove_project_group(&remove_id), cx);
+                            store.snack("Group removed; repositories moved to Ungrouped", cx);
+                        });
+                    },
+                )
                 .detail("Keep repositories")
                 .separated(),
             );
@@ -364,7 +388,7 @@ impl AppView {
             None => String::new(),
         };
         let input = cx.new(|cx| {
-            let mut input = TextInput::new("Group name", false, cx);
+            let mut input = TextInput::localized("navigator-groups-group-name", false, cx);
             input.load(current, cx);
             input.select_all_text(cx);
             input

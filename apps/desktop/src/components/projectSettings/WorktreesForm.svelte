@@ -5,6 +5,7 @@
 	import { STACK_SERVICE } from "$lib/stacks/stackService.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Button, CardGroup } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { ListedWorktree } from "@gitbutler/but-sdk";
 
 	const { projectId }: { projectId: string } = $props();
@@ -40,12 +41,12 @@
 								archived: !archived,
 							})}
 					>
-						{archived ? "Unarchive" : "Archive"}
+						{archived ? $t("Unarchive") : $t("Archive")}
 					</Button>
 					<Button
 						kind="ghost"
 						icon="bin"
-						tooltip="Remove worktree…"
+						tooltip={$t("Remove worktree…")}
 						onclick={() => {
 							removing = worktree.name;
 							removeWorktreeModal?.show();
@@ -62,13 +63,15 @@
 		{#snippet children(listing)}
 			{#if listing.active.length === 0}
 				<p class="text-13 text-body">
-					No active worktrees. A worktree added from now on shows up here and in the workspace.
+					{$t(
+						"No active worktrees. A worktree added from now on shows up here and in the workspace.",
+					)}
 				</p>
 			{:else}
 				{@render rows(listing.active, false)}
 			{/if}
 			{#if listing.archived.length > 0}
-				<h2 class="text-15 text-bold">Archived</h2>
+				<h2 class="text-15 text-bold">{$t("Archived")}</h2>
 				{@render rows(listing.archived, true)}
 			{/if}
 		{/snippet}

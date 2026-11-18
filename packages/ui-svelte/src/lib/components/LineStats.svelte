@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Tooltip from "$components/Tooltip.svelte";
+	import { t } from "$lib/utils/i18n";
 	type Props = {
 		linesAdded: number;
 		linesRemoved: number;
@@ -9,7 +10,7 @@
 </script>
 
 {#if linesAdded > 0 || linesRemoved > 0}
-	<Tooltip text="Lines added/removed">
+	<Tooltip text={$t("Lines added/removed")}>
 		<div class="line-stats text-11 text-semibold">
 			{#if linesAdded > 0}
 				<span class="added">+{linesAdded}</span>

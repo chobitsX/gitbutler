@@ -33,6 +33,7 @@
 	import { inject } from "@gitbutler/core/context";
 	import { persisted } from "@gitbutler/shared/persisted";
 	import { chipToasts, TestId } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { IME_COMPOSITION_HANDLER } from "@gitbutler/ui-svelte/utils/imeHandling";
 	import { tick, untrack } from "svelte";
 	import type { Commit, Segment } from "@gitbutler/but-sdk";
@@ -224,7 +225,7 @@
 	async function createPr(params: CreatePrParams): Promise<PullRequest | undefined> {
 		try {
 			if (!params.upstreamBranchName) {
-				chipToasts.error("No upstream branch name determined");
+				chipToasts.error($t("No upstream branch name determined"));
 				return;
 			}
 
@@ -243,14 +244,20 @@
 
 			const unit = forgeInfo?.unit.abbr || "PR";
 			const symbol = forgeInfo?.unit.symbol || "#";
-			chipToasts.success(`${unit} ${symbol}${pr.number} created successfully`);
+			chipToasts.success(
+				$t("{value0} {value1}{value2} created successfully", {
+					value0: unit,
+					value1: symbol,
+					value2: pr.number,
+				}),
+			);
 
 			return pr;
 		} catch (err: any) {
 			console.error(err);
 			const toast = mapErrorToToast(err);
 			if (toast) showToast(toast);
-			else showError("Error while creating pull request", err);
+			else showError($t("Error while creating pull request"), err);
 		}
 	}
 
@@ -334,7 +341,7 @@
 					onClose();
 				}
 			})}
-			placeholder="{reviewUnitAbbr} title"
+			placeholder={$t("{reviewUnitAbbr} title", { reviewUnitAbbr: reviewUnitAbbr })}
 			showCount={false}
 			oninput={imeHandler.handleInput((e: Event) => {
 				const target = e.target as HTMLInputElement;
@@ -350,7 +357,7 @@
 			initialValue={$prBody}
 			enableFileUpload
 			enableSmiles
-			placeholder="{reviewUnitAbbr} Description"
+			placeholder={$t("{reviewUnitAbbr} Description", { reviewUnitAbbr: reviewUnitAbbr })}
 			messageType="pr"
 			{reviewUnitAbbr}
 			{onAiButtonClick}

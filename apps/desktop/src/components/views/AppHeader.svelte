@@ -22,6 +22,7 @@
 		Tooltip,
 	} from "@gitbutler/ui-svelte";
 	import { focusable } from "@gitbutler/ui-svelte/focus/focusable";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 
 	type Props = {
 		projectId: string;
@@ -77,9 +78,11 @@
 	const needsUpdate = $derived(!!base?.workspaceBehind || worktreesBehind > 0);
 	const updateLabel = $derived.by(() => {
 		if (upstreamCommits > 0)
-			return `${upstreamCommits} upstream ${upstreamCommits === 1 ? "commit" : "commits"}`;
-		if (worktreesBehind > 0) return "Update worktrees";
-		return "Update";
+			return $t(upstreamCommits === 1 ? "{count} upstream commit" : "{count} upstream commits", {
+				count: upstreamCommits,
+			});
+		if (worktreesBehind > 0) return $t("Update worktrees");
+		return $t("Update");
 	});
 
 	let modal = $state<ReturnType<typeof IntegrateUpstreamModal>>();
@@ -110,9 +113,9 @@
 		}
 
 		return [
-			{ header: "Recent" },
+			{ header: $t("Recent") },
 			...recent.map((project) => ({ value: project.id, label: project.title })),
-			{ header: "Other projects" },
+			{ header: $t("Other projects") },
 			...others.map((project) => ({ value: project.id, label: project.title })),
 		];
 	});
@@ -187,7 +190,7 @@
 			<SyncButton {projectId} disabled={actionsDisabled} />
 
 			{#if needsUpdate}
-				<Tooltip text={isDetached ? "HEAD is detached" : undefined} disabled={!isDetached}>
+				<Tooltip text={isDetached ? $t("HEAD is detached") : undefined} disabled={!isDetached}>
 					<Button
 						testId={TestId.IntegrateUpstreamCommitsButton}
 						style="pop"
@@ -200,7 +203,7 @@
 			{:else}
 				<div class="chrome-you-are-up-to-date">
 					<Icon name="tick" />
-					<span class="text-12">You’re up to date</span>
+					<span class="text-12">{$t("You’re up to date")}</span>
 				</div>
 			{/if}
 		</div>
@@ -276,7 +279,7 @@
 								}
 							}}
 						>
-							Add local repository
+							{$t("Add local repository")}
 						</SelectItem>
 					{/if}
 					<SelectItem
@@ -285,22 +288,26 @@
 							goto("/onboarding/clone");
 						}}
 					>
-						Clone repository
+						{$t("Clone repository")}
 					</SelectItem>
 				</OptionsGroup>
 
 				<div class="text-11 new-window-hint">
 					<Icon name="open-in-folder" color="var(--text-3)" size={14} />
-					<span>Hold {newWindowModifierLabel} to open in a new window</span>
+					<span
+						>{$t("Hold {newWindowModifierLabel} to open in a new window", {
+							newWindowModifierLabel: newWindowModifierLabel,
+						})}</span
+					>
 				</div>
 			</Select>
-			<Tooltip text="Current branch">
+			<Tooltip text={$t("Current branch")}>
 				<div class="chrome-current-branch" data-testid={TestId.ChromeHeaderCurrentBranch}>
 					<div class="chrome-current-branch__content">
 						<Icon name="branch" color="var(--text-2)" />
 						<span class="text-12 text-bold clr-text-2 truncate">{currentBranchName}</span>
 						{#if isDetached}
-							<span class="text-12 text-bold clr-text-2 op-60"> read-only </span>
+							<span class="text-12 text-bold clr-text-2 op-60"> {$t("read-only")} </span>
 						{/if}
 					</div>
 				</div>
@@ -308,7 +315,7 @@
 		</div>
 
 		{#if currentMode && isNotInWorkspace}
-			<Tooltip text="Switch back to gitbutler/workspace">
+			<Tooltip text={$t("Switch back to gitbutler/workspace")}>
 				<Button
 					kind="outline"
 					testId={TestId.ChromeHeaderSwitchBackToWorkspaceButton}
@@ -318,7 +325,7 @@
 					reversedDirection
 					disabled={workspaceSwitch.current.isLoading}
 				>
-					Back to workspace
+					{$t("Back to workspace")}
 				</Button>
 			</Tooltip>
 		{/if}
@@ -334,7 +341,7 @@
 				reversedDirection
 				onclick={() => createBranchModal?.show()}
 			>
-				Create branch
+				{$t("Create branch")}
 			</Button>
 		{/if}
 	</div>

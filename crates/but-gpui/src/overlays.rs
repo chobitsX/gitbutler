@@ -264,7 +264,7 @@ pub(crate) fn branch_name(
 /// A field for a branch's name, holding `current` ready to type over.
 pub(crate) fn branch_name_input(current: &str, cx: &mut App) -> Entity<TextInput> {
     cx.new(|cx| {
-        let mut input = TextInput::new("Branch name", false, cx).spaces_as_dashes();
+        let mut input = TextInput::localized("overlays-branch-name", false, cx).spaces_as_dashes();
         input.load(current.to_owned(), cx);
         input.select_all_text(cx);
         input
@@ -346,8 +346,8 @@ pub(crate) fn run_named<I: backend::Intent>(
         );
     }
     let label = match renaming {
-        Some(_) => "Rename branch",
-        None => "Create branch",
+        Some(_) => crate::i18n::t("overlays-rename-branch"),
+        None => crate::i18n::t("overlays-create-branch"),
     };
     // Making or naming a branch only writes refs. An unnamed branch has no ref to tell it
     // from another unnamed one, so its new name waits for the reload.
@@ -622,7 +622,8 @@ impl AppView {
     ) {
         let project = at.project().clone();
         let place = self.store.read(cx).place(&at);
-        let input = cx.new(|cx| TextInput::new("Branch name", false, cx).spaces_as_dashes());
+        let input =
+            cx.new(|cx| TextInput::localized("overlays-branch-name", false, cx).spaces_as_dashes());
         let checked = project.clone();
         let check = move |this: &AppView, name: &str, cx: &App| {
             branch_name(this.store.read(cx), &checked, name, "").err()
@@ -769,8 +770,9 @@ impl AppView {
                 let username = prompt.text.starts_with("Username for ");
                 let result = this.update_in(cx, |this, window, cx| {
                     let input = cx.new(|cx| match username {
-                        true => TextInput::new("Username", false, cx),
-                        false => TextInput::new("Passphrase or password", false, cx).masked(),
+                        true => TextInput::localized("overlays-username", false, cx),
+                        false => TextInput::localized("overlays-passphrase-or-password", false, cx)
+                            .masked(),
                     });
                     this.open_prompt(
                         None,
@@ -964,7 +966,7 @@ impl AppView {
                     .justify_end()
                     .gap(dp(8.))
                     .child(
-                        button("prompt-cancel", "Cancel")
+                        button("prompt-cancel", crate::i18n::t("common-cancel"))
                             .style(ButtonStyle::Ghost)
                             .on_click({
                                 let input = input.clone();
@@ -1082,14 +1084,17 @@ impl AppView {
                                     // forward is advice, with no raw error to copy.
                                     .when(retry.is_none(), |el| {
                                         el.child(
-                                            button(("copy-error", id), "Copy error message")
-                                                .small()
-                                                .style(ButtonStyle::Ghost)
-                                                .on_click(copy_error),
+                                            button(
+                                                ("copy-error", id),
+                                                crate::i18n::t("overlays-copy-error-message"),
+                                            )
+                                            .small()
+                                            .style(ButtonStyle::Ghost)
+                                            .on_click(copy_error),
                                         )
                                     })
                                     .child(
-                                        button(("dismiss", id), "Dismiss")
+                                        button(("dismiss", id), crate::i18n::t("overlays-dismiss"))
                                             .small()
                                             .on_click(dismiss),
                                     )
@@ -1147,7 +1152,7 @@ impl AppView {
                 "The app restarts once it's installed.".into()
             }
         });
-        let title = format!("GitButler {version} is here");
+        let title = crate::i18n::tf("overlays-gitbutler-here", &[("version", (version).into())]);
         // The update icon on a tile of the accent, the card's one touch of colour beside its
         // Update button.
         let tile = div()
@@ -1181,28 +1186,30 @@ impl AppView {
                 .child(
                     h_flex()
                         .gap(dp(6.))
-                        .child(button("update-notes", "Release notes").small().on_click(
-                            cx.listener(|this, _, window, cx| {
-                                this.open_whats_new(&OpenReleaseNotes, window, cx)
-                            }),
-                        ))
+                        .child(
+                            button("update-notes", crate::i18n::t("overlays-release-notes"))
+                                .small()
+                                .on_click(cx.listener(|this, _, window, cx| {
+                                    this.open_whats_new(&OpenReleaseNotes, window, cx)
+                                })),
+                        )
                         .child(div().flex_1())
                         .child(
-                            button("update-later", "Later")
+                            button("update-later", crate::i18n::t("overlays-later"))
                                 .small()
                                 .style(ButtonStyle::Ghost)
-                                .tooltip("Hide for 4 hours")
+                                .tooltip(crate::i18n::t("overlays-hide-4-hours"))
                                 .on_click(cx.listener(|this, _, _, cx| {
                                     this.store.update(cx, |store, cx| store.put_off_update(cx))
                                 })),
                         )
                         .child(
                             if manual_install {
-                                button("update-app", "Downloads page")
+                                button("update-app", crate::i18n::t("overlays-downloads-page"))
                                     .icon(Icon::ArrowUpRight)
                                     .on_click(|_, _, cx| cx.open_url(DOWNLOADS))
                             } else {
-                                button("update-app", "Update")
+                                button("update-app", crate::i18n::t("overlays-update"))
                                     .disabled_because(installing)
                                     .on_click(cx.listener(|this, _, _, cx| this.install_update(cx)))
                             }

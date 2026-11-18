@@ -16,6 +16,7 @@
 	import Tooltip from "$components/Tooltip.svelte";
 	import Avatar from "$components/avatar/Avatar.svelte";
 	import { type IconName } from "$lib/icons/names";
+	import { t } from "$lib/utils/i18n";
 	import type { ComponentColorType } from "$lib/utils/colorTypes";
 
 	const { avatars, maxAvatars = 3, size = "medium", icon, iconColor }: Props = $props();
@@ -55,7 +56,7 @@
 			{/if}
 		{/each}
 		{#if avatars.length > maxAvatars}
-			<Tooltip text={getTooltipText() || "mr. unknown"}>
+			<Tooltip text={getTooltipText() || $t("mr. unknown")}>
 				<div class="avatars-counter">
 					<span class="text-11 text-semibold">+{avatars.length - maxAvatars}</span>
 				</div>

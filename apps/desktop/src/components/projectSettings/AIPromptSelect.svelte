@@ -2,6 +2,7 @@
 	import { PROMPT_SERVICE } from "$lib/ai/aiPromptService";
 	import { inject } from "@gitbutler/core/context";
 	import { Select, SelectItem } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { onMount, untrack } from "svelte";
 	import type { Prompts, UserPrompt } from "$lib/ai/types";
 	import type { Persisted } from "@gitbutler/shared/persisted";
@@ -33,7 +34,7 @@
 
 	function setAllPrompts(userPrompts: UserPrompt[]) {
 		allPrompts = [
-			{ name: "Default Prompt", id: defaultId, prompt: prompts.defaultPrompt },
+			{ name: $t("Default Prompt"), id: defaultId, prompt: prompts.defaultPrompt },
 			...userPrompts,
 		];
 	}
@@ -52,7 +53,7 @@
 <Select
 	value={$selectedPromptId}
 	options={allPrompts.map((p) => ({ label: p.name, value: p.id }))}
-	label={promptUse === "commits" ? "Commit message" : "Branch name"}
+	label={promptUse === "commits" ? $t("Commit message") : $t("Branch name")}
 	wide={true}
 	searchable
 	disabled={allPrompts.length === 1}

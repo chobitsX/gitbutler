@@ -20,6 +20,7 @@
 		TagInput,
 		Toggle,
 	} from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import { untrack } from "svelte";
 	import type { GerritPushFlag } from "$lib/stacks/stack";
 
@@ -104,15 +105,20 @@
 	}
 </script>
 
-<Modal bind:this={modal} title="Gerrit push options" width={400} onSubmit={() => handlePush()}>
+<Modal
+	bind:this={modal}
+	title={$t("Gerrit push options")}
+	width={400}
+	onSubmit={() => handlePush()}
+>
 	<div class="push-options">
 		<!-- Status Section -->
 		<Select
-			label="Status"
+			label={$t("Status")}
 			value={status}
 			options={[
-				{ label: "Ready for review", value: "ready" },
-				{ label: "Work in progress", value: "wip" },
+				{ label: $t("Ready for review"), value: "ready" },
+				{ label: $t("Work in progress"), value: "wip" },
 			]}
 			onselect={(value) => {
 				status = value as "ready" | "wip";
@@ -127,16 +133,16 @@
 
 		<!-- Topic Section -->
 		<Textbox
-			label="Topic"
+			label={$t("Topic")}
 			bind:value={topicValue}
 			oninput={handleTopicInput}
-			placeholder="Enter topic name"
+			placeholder={$t("Enter topic name")}
 			wide
 		/>
 
 		<!-- Tags Section -->
 		<TagInput
-			label="Tags"
+			label={$t("Tags")}
 			bind:tags
 			bind:value={tagInputValue}
 			helperText="Add tags separated by spaces or commas"
@@ -147,11 +153,11 @@
 	{#snippet controls(close)}
 		<label class="toggle-wrapper">
 			<Toggle id="private-toggle" bind:checked={isPrivate} />
-			<span class="text-13 text-body clr-text-2">Mark as private 🔒</span>
+			<span class="text-13 text-body clr-text-2">{$t("Mark as private 🔒")}</span>
 		</label>
 		<div class="flex-1 flex justify-end gap-8">
-			<Button kind="outline" onclick={close}>Cancel</Button>
-			<Button style="pop" type="submit" disabled={!canPush}>Push</Button>
+			<Button kind="outline" onclick={close}>{$t("Cancel")}</Button>
+			<Button style="pop" type="submit" disabled={!canPush}>{$t("Push")}</Button>
 		</div>
 	{/snippet}
 </Modal>

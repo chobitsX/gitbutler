@@ -1511,9 +1511,9 @@ impl Detail {
                 .update(cx, |store, cx| store.set_opened(None, cx));
         }
         if edit.changed_on_disk && edit.dirty() {
-            let message = format!(
-                "Your edits to {} weren't saved: it changed on disk",
-                edit.shown_path
+            let message = crate::i18n::tf(
+                "detail-edit-lines-edits-weren-t-saved-changed-disk",
+                &[("shown_path", (edit.shown_path).into())],
             );
             snack(&self.store, message, cx);
         }
@@ -1559,9 +1559,16 @@ impl Detail {
         let name = (edit.shown_path.rsplit('/').next()).unwrap_or(&edit.shown_path);
         let answer = window.prompt(
             gpui::PromptLevel::Info,
-            &format!("Save changes to {name}?"),
-            Some("Your edits are lost if you don't save them."),
-            &["Save", "Don't save", "Cancel"],
+            &crate::i18n::tf(
+                "detail-edit-lines-save-changes",
+                &[("name", (name.to_string()).into())],
+            ),
+            Some(crate::i18n::t("detail-edit-lines-edits-are-lost-if-don-t")),
+            &[
+                crate::i18n::t("common-save"),
+                crate::i18n::t("detail-edit-lines-don-t-save"),
+                crate::i18n::t("common-cancel"),
+            ],
             cx,
         );
         cx.spawn_in(window, async move |this, cx| {
@@ -1771,7 +1778,7 @@ impl Detail {
                 .text_12()
                 .text_color(color)
                 .child(small_icon(Icon::Edit).text_color(color))
-                .child("Editing");
+                .child(crate::i18n::t("detail-edit-lines-editing"));
             return Some(editing.into_any_element());
         }
         let act = |f: fn(&mut Detail, &mut Window, &mut Context<Detail>)| {
@@ -1791,20 +1798,23 @@ impl Detail {
                 div()
                     .mr(dp(2.))
                     .text_color(theme.warn)
-                    .child("Changed on disk"),
+                    .child(crate::i18n::t("detail-edit-lines-changed-disk")),
             )
             .child(
-                button("edit-discard", "Discard my edits")
-                    .small()
-                    .style(ButtonStyle::Ghost)
-                    .tooltip("Keep the file as it was written")
-                    .on_click(act(Self::discard_edit)),
+                button(
+                    "edit-discard",
+                    crate::i18n::t("detail-edit-lines-discard-my-edits"),
+                )
+                .small()
+                .style(ButtonStyle::Ghost)
+                .tooltip(crate::i18n::t("detail-edit-lines-keep-file-was-written"))
+                .on_click(act(Self::discard_edit)),
             )
             .child(
-                button("edit-keep", "Keep mine")
+                button("edit-keep", crate::i18n::t("detail-edit-lines-keep-mine"))
                     .small()
                     .style(ButtonStyle::Gray)
-                    .tooltip("Save over what was written")
+                    .tooltip(crate::i18n::t("detail-edit-lines-save-over-was-written"))
                     .on_click(act(Self::keep_edit)),
             );
         Some(controls.into_any_element())

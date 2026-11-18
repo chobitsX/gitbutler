@@ -14,6 +14,7 @@
 	import { UI_STATE } from "$lib/state/uiState.svelte";
 	import { inject } from "@gitbutler/core/context";
 	import { Icon, TestId, Tooltip, Button } from "@gitbutler/ui-svelte";
+	import { t } from "@gitbutler/ui-svelte/utils/i18n";
 	import type { Segment } from "@gitbutler/but-sdk";
 
 	interface Props {
@@ -120,7 +121,7 @@
 				kind="ghost"
 				icon="pop-out-bottom-right"
 				size="tag"
-				tooltip="Pop out diff view"
+				tooltip={$t("Pop out diff view")}
 				onclick={onpopout}
 			/>
 		{/if}
@@ -130,8 +131,8 @@
 			{#if hasCommits}
 				<Tooltip
 					text={remoteTrackingBranch
-						? `Remote tracking branch:\n${remoteTrackingBranch}`
-						: "No remote tracking branch"}
+						? $t("Remote tracking branch:\n{value0}", { value0: remoteTrackingBranch })
+						: $t("No remote tracking branch")}
 				>
 					<div class="remote-tracking-branch-icon" class:disabled={!remoteTrackingBranch}>
 						<Icon name={remoteTrackingBranch ? "target-branch" : "target-cross"} />
@@ -207,10 +208,13 @@
 			<div class="branch-view__empty-state__image">
 				{@html newBranchSmolSVG}
 			</div>
-			<h3 class="text-16 text-semibold branch-view__empty-state__title">This is a new branch</h3>
+			<h3 class="text-16 text-semibold branch-view__empty-state__title">
+				{$t("This is a new branch")}
+			</h3>
 			<p class="text-13 text-body branch-view__empty-state__description">
-				Commit your changes here. You can stack additional branches or apply them independently. You
-				can also drag and drop files to start a new commit.
+				{$t(
+					"Commit your changes here. You can stack additional branches or apply them independently. You can also drag and drop files to start a new commit.",
+				)}
 			</p>
 		</div>
 	{/if}

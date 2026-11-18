@@ -227,7 +227,7 @@ fn shortcut(title: SharedString, action: Box<dyn Action>, cx: &App) -> Shortcut 
         }
     }
     let description = match bindings.is_empty() {
-        true => "No keys".to_owned(),
+        true => crate::i18n::t("settings-keyboard-no-keys").to_owned(),
         false => places(bindings.iter().map(|(_, context)| context.as_deref())),
     };
     // Found by its keys as written (⌘B), and as typed (cmd b) or bound (secondary-b), and by
